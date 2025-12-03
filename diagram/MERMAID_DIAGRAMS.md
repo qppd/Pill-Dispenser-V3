@@ -101,8 +101,8 @@ graph LR
     
     subgraph "Web Application"
         NEXT[Next.js Frontend]
-        API_DISP[/api/dispenser]
-        API_DISPENSE[/api/dispense]
+        API_DISP["/api/dispenser"]
+        API_DISPENSE["/api/dispense"]
         DASH[Dashboard Page]
         LOGS[Logs Page]
         SCHED[Schedule Page]
