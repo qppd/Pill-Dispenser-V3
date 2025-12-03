@@ -304,23 +304,16 @@ sequenceDiagram
     
     RPI->>YOLO: Detect Pills in Image 2
     YOLO-->>RPI: Detections
-    
     RPI->>YOLO: Detect Pills in Image 3
     YOLO-->>RPI: Detections
-    
-    RPI->>RPI: Ensemble Aggregation<br/>(Voting & Confidence)
-    
+    RPI->>RPI: Ensemble Aggregation (Voting & Confidence)
     RPI->>ESP32: UART: "PILLS_DETECTED:3:round_pill"
-    
-    ESP32->>LCD: Update Display<br/>"3 Pills Dispensed"
-    
-    ESP32->>Firebase: Push Log<br/>/pilldispenser/pill_logs
-    ESP32->>Firebase: Push Report<br/>/pilldispenser/reports
-    
+    ESP32->>LCD: Update Display "3 Pills Dispensed"
+    ESP32->>Firebase: Push Log /pilldispenser/pill_logs
+    ESP32->>Firebase: Push Report /pilldispenser/reports
     Firebase-->>Web: Real-time Update
     Web-->>User: Show Confirmation
-    
-    RPI->>RPI: Store in SQLite<br/>pill_dispenser.db
+    RPI->>RPI: Store in SQLite pill_dispenser.db
 ```
 
 ---
