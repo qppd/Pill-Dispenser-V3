@@ -205,31 +205,31 @@ flowchart TD
 stateDiagram-v2
     [*] --> Idle
     
-    Idle --> IRDetection: User Request or\nScheduled Time
+    Idle --> IRDetection: "User Request or\nScheduled Time"
     
-    IRDetection --> ServoActivation: Pills Detected at\nEntrance (IR1)
+    IRDetection --> ServoActivation: "Pills Detected at\nEntrance (IR1)"
     
-    ServoActivation --> DispensePills: Activate Servo Pair\n(Open/Close)
+    ServoActivation --> DispensePills: "Activate Servo Pair\n(Open/Close)"
     
     DispensePills --> MiddleCheck: Pills Moving
     
     MiddleCheck --> ExitCheck: IR2 Triggered
     
-    ExitCheck --> CaptureImage: IR3 Triggered\n(Exit Detection)
+    ExitCheck --> CaptureImage: "IR3 Triggered\n(Exit Detection)"
     
-    CaptureImage --> RPiTrigger: Send UART Trigger\nto Raspberry Pi
+    CaptureImage --> RPiTrigger: "Send UART Trigger\nto Raspberry Pi"
     
-    RPiTrigger --> ImageCapture: RPi Captures\n3 Images via ESP32-CAM
+    RPiTrigger --> ImageCapture: "RPi Captures\n3 Images via ESP32-CAM"
     
-    ImageCapture --> MLInference: YOLOv8 Ensemble\nDetection
+    ImageCapture --> MLInference: "YOLOv8 Ensemble\nDetection"
     
-    MLInference --> CountVerify: Pill Count &\nClassification
+    MLInference --> CountVerify: "Pill Count &\nClassification"
     
-    CountVerify --> ResultSend: Send Results to\nESP32 via UART
+    CountVerify --> ResultSend: "Send Results to\nESP32 via UART"
     
-    ResultSend --> LCDUpdate: Update LCD Display
+    ResultSend --> LCDUpdate: "Update LCD Display"
     
-    LCDUpdate --> FirebaseLog: Log to Firebase:\n- pill_logs\n- reports
+    LCDUpdate --> FirebaseLog: "Log to Firebase:\n- pill_logs\n- reports"
     
     FirebaseLog --> DatabaseStore: Store in SQLite
     
