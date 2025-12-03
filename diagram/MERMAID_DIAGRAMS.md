@@ -22,18 +22,18 @@ graph TB
     end
     
     subgraph "Processing Layer"
-        RPI[Raspberry Pi 4<br/>ML Processor]
-        YOLO[YOLOv8<br/>Pill Detector]
-        DB_LOCAL[SQLite<br/>Local Database]
+        RPI[Raspberry Pi 4 ML Processor]
+        YOLO[YOLOv8 Pill Detector]
+        DB_LOCAL[SQLite Local Database]
     end
     
     subgraph "Cloud Layer"
-        FIREBASE[Firebase<br/>Realtime Database]
-        AUTH[Firebase<br/>Authentication]
+        FIREBASE[Firebase Realtime Database]
+        AUTH[Firebase Authentication]
     end
     
     subgraph "User Interface"
-        WEB[Next.js Web App<br/>Dashboard]
+        WEB[Next.js Web App Dashboard]
         USER[End Users]
     end
     
