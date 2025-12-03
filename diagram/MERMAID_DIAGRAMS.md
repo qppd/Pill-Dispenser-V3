@@ -229,7 +229,7 @@ stateDiagram-v2
     
     ResultSend --> LCDUpdate: "Update LCD Display"
     
-    LCDUpdate --> FirebaseLog: "Log to Firebase:\n- pill_logs\n- reports"
+    LCDUpdate --> FirebaseLog: Log to Firebase
     
     FirebaseLog --> DatabaseStore: Store in SQLite
     
