@@ -9,16 +9,16 @@ Generated from actual codebase analysis on December 3, 2025
 ```mermaid
 graph TB
     subgraph "Hardware Layer"
-        ESP32[ESP32 Main<br/>Controller]
-        ESP32CAM[ESP32-CAM<br/>Image Capture]
-        SERVO[PCA9685<br/>16-Ch Servo Driver]
-        IR1[IR Sensor 1<br/>Entrance]
-        IR2[IR Sensor 2<br/>Middle]
-        IR3[IR Sensor 3<br/>Exit]
-        LCD[I2C LCD 20x4<br/>Display]
-        RTC[DS1302 RTC<br/>Real-Time Clock]
-        GSM[SIM800L<br/>GSM Module]
-        MOTORS[Servo Motors<br/>x16]
+        ESP32[ESP32 Main Controller]
+        ESP32CAM[ESP32-CAM Image Capture]
+        SERVO[PCA9685 16-Ch Servo Driver]
+        IR1[IR Sensor 1 Entrance]
+        IR2[IR Sensor 2 Middle]
+        IR3[IR Sensor 3 Exit]
+        LCD[I2C LCD 20x4 Display]
+        RTC[DS1302 RTC Real-Time Clock]
+        GSM[SIM800L GSM Module]
+        MOTORS[Servo Motors x16]
     end
     
     subgraph "Processing Layer"
