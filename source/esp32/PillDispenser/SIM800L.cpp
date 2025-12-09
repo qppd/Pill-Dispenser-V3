@@ -1,9 +1,8 @@
+
 #include "SIM800L.h"
 
-SIM800L::SIM800L(uint8_t rxPin, uint8_t txPin, uint8_t rstPin) : sim800(rxPin, txPin) {
-  this->rxPin = rxPin;
-  this->txPin = txPin;
-  this->rstPin = rstPin;
+SIM800L::SIM800L(uint8_t rxPin, uint8_t txPin, uint8_t rstPin, HardwareSerial& serialPort)
+  : sim800(&serialPort), rxPin(rxPin), txPin(txPin), rstPin(rstPin) {
   isModuleReady = false;
   lastCommand = 0;
 }
@@ -11,23 +10,23 @@ SIM800L::SIM800L(uint8_t rxPin, uint8_t txPin, uint8_t rstPin) : sim800(rxPin, t
 bool SIM800L::begin(long baudRate) {
   pinMode(rstPin, OUTPUT);
   digitalWrite(rstPin, HIGH);
-  
-  sim800.begin(baudRate);
+
+  sim800->begin(baudRate, SERIAL_8N1, rxPin, txPin);
   delay(1000);
-  
+
   Serial.println("SIM800L: Initializing module...");
-  
+
   // Reset module
   reset();
   delay(3000);
-  
+
   // Test basic communication
   if (sendATCommand("AT", "OK", 3000)) {
     Serial.println("SIM800L: Module responding to AT commands");
-    
+
     // Disable echo
     sendATCommand("ATE0", "OK", 3000);
-    
+
     // Check SIM card
     if (sendATCommand("AT+CPIN?", "READY", 5000)) {
       Serial.println("SIM800L: SIM card is ready");
@@ -66,7 +65,7 @@ bool SIM800L::sendATCommand(String command, String expectedResponse, unsigned lo
   Serial.print("SIM800L: Sending: ");
   Serial.println(command);
   
-  sim800.println(command);
+  sim800->println(command);
   lastCommand = millis();
   
   waitForResponse(timeout);
@@ -90,8 +89,8 @@ void SIM800L::waitForResponse(unsigned long timeout) {
   unsigned long startTime = millis();
   
   while (millis() - startTime < timeout) {
-    if (sim800.available()) {
-      char c = sim800.read();
+    if (sim800->available()) {
+      char c = sim800->read();
       response += c;
       
       // Stop reading if we get a complete response
@@ -108,8 +107,8 @@ String SIM800L::getResponse() {
 }
 
 void SIM800L::clearBuffer() {
-  while (sim800.available()) {
-    sim800.read();
+  while (sim800->available()) {
+    sim800->read();
   }
   response = "";
 }
@@ -164,13 +163,13 @@ bool SIM800L::sendSMS(String phoneNumber, String message) {
   
   // Set recipient
   String recipient = "AT+CMGS=\"" + phoneNumber + "\"";
-  sim800.println(recipient);
+  sim800->println(recipient);
   delay(1000);
   
   // Send message
-  sim800.print(message);
+  sim800->print(message);
   delay(500);
-  sim800.write(26); // Ctrl+Z to send
+  sim800->write(26); // Ctrl+Z to send
   
   waitForResponse(10000);
   

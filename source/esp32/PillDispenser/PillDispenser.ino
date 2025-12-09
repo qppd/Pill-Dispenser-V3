@@ -6,64 +6,39 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <WiFi.h>
+#include "PINS_CONFIG.h"
+#include "FirebaseConfig.h"
 #include "ServoDriver.h"
-#include "IRSensor.h"
 #include "LCDDisplay.h"
-#include "RTClock.h"
+#include "TimeManager.h"
 #include "FirebaseManager.h"
 #include "SIM800L.h"
+#include "VoltageSensor.h"
 
 // ===== DEVELOPMENT MODE CONFIGURATION =====
 #define DEVELOPMENT_MODE true  // Set to false for production
 #define PRODUCTION_MODE false  // Will implement later
 
-// ===== PIN DEFINITIONS =====
-// I2C pins (default for ESP32)
-#define SDA_PIN 21
-#define SCL_PIN 22
-
-// IR Sensor pins
-#define IR_SENSOR1_PIN 34
-#define IR_SENSOR2_PIN 35
-#define IR_SENSOR3_PIN 32
-
-// RTC DS1302 pins
-#define RTC_CLK_PIN 18
-#define RTC_DAT_PIN 19
-#define RTC_RST_PIN 5
-
-// SIM800L pins
-#define SIM800_RX_PIN 16
-#define SIM800_TX_PIN 17
-#define SIM800_RST_PIN 4
-
-// Status LED
-#define STATUS_LED_PIN 2
-
 // ===== COMPONENT INSTANCES =====
 ServoDriver servoDriver;
-IRSensor irSensors(IR_SENSOR1_PIN, IR_SENSOR2_PIN, IR_SENSOR3_PIN);
 LCDDisplay lcd;
-RTClock rtclock(RTC_CLK_PIN, RTC_DAT_PIN, RTC_RST_PIN);
+TimeManager timeManager;
 FirebaseManager firebase;
-SIM800L sim800(SIM800_RX_PIN, SIM800_TX_PIN, SIM800_RST_PIN);
+SIM800L sim800(PIN_SIM800_RX, PIN_SIM800_TX, PIN_SIM800_RST, Serial2);
+VoltageSensor voltageSensor(PIN_VOLTAGE_SENSOR);
 
 // ===== SYSTEM VARIABLES =====
 bool systemInitialized = false;
 String currentMode = "DEVELOPMENT";
-unsigned long lastSensorCheck = 0;
 unsigned long lastHeartbeat = 0;
 int pillCount = 0;
 
 // WiFi credentials (for development - move to secure storage in production)
-const String WIFI_SSID = "YOUR_WIFI_SSID";
-const String WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const String WIFI_SSID = "QPPD";
+const String WIFI_PASSWORD = "Programmer136";
 
-// Firebase credentials (for development - move to secure storage in production)
-const String FIREBASE_API_KEY = "YOUR_API_KEY";
-const String FIREBASE_URL = "YOUR_DATABASE_URL";
-const String FIREBASE_EMAIL = "YOUR_EMAIL";
-const String FIREBASE_PASSWORD = "YOUR_PASSWORD";
+// Firebase credentials loaded from FirebaseConfig.h
+// Edit FirebaseConfig.cpp to set your actual credentials
 
 void setup() {
   Serial.begin(115200);
@@ -74,11 +49,11 @@ void setup() {
   Serial.println(String('=', 50));
   
   // Initialize status LED
-  pinMode(STATUS_LED_PIN, OUTPUT);
-  digitalWrite(STATUS_LED_PIN, LOW);
+  pinMode(PIN_STATUS_LED, OUTPUT);
+  digitalWrite(PIN_STATUS_LED, LOW);
   
   // Initialize I2C
-  Wire.begin(SDA_PIN, SCL_PIN);
+  Wire.begin(PIN_SDA, PIN_SCL);
   Serial.println("I2C initialized");
   
   if (DEVELOPMENT_MODE) {
@@ -92,22 +67,19 @@ void setup() {
   Serial.println("\n" + String('=', 50));
   Serial.println("    SYSTEM READY");
   Serial.println(String('=', 50));
-  digitalWrite(STATUS_LED_PIN, HIGH);
+  digitalWrite(PIN_STATUS_LED, HIGH);
 }
 
 void loop() {
   if (DEVELOPMENT_MODE) {
     handleSerialCommands();
     
-    // Basic sensor monitoring in development mode
-    if (millis() - lastSensorCheck > 500) {
-      irSensors.readAllSensors();
-      lastSensorCheck = millis();
-    }
+    // Update time manager (auto-sync every 6 hours)
+    timeManager.update();
     
     // Heartbeat every 30 seconds in development
     if (millis() - lastHeartbeat > 30000) {
-      Serial.println("💓 System heartbeat - " + rtclock.getTimeString());
+      Serial.println("💓 System heartbeat - " + timeManager.getTimeString());
       lastHeartbeat = millis();
     }
   }
@@ -127,13 +99,10 @@ void initializeDevelopmentMode() {
     Serial.println("❌ FAILED");
   }
   
-  // Initialize RTC
-  Serial.print("RTC Clock: ");
-  if (rtclock.begin()) {
-    Serial.println("✅ OK");
-  } else {
-    Serial.println("❌ FAILED");
-  }
+  // Initialize Time Manager (NTP)
+  Serial.print("Time Manager (NTP): ");
+  timeManager.begin("pool.ntp.org", 0, 0); // GMT+0, adjust as needed
+  Serial.println("✅ OK");
   
   // Initialize Servo Driver
   Serial.print("Servo Driver: ");
@@ -143,11 +112,6 @@ void initializeDevelopmentMode() {
     Serial.println("❌ FAILED");
   }
   
-  // Initialize IR Sensors
-  Serial.print("IR Sensors: ");
-  irSensors.begin();
-  Serial.println("✅ OK");
-  
   // Initialize SIM800L
   Serial.print("SIM800L Module: ");
   if (sim800.begin()) {
@@ -155,6 +119,11 @@ void initializeDevelopmentMode() {
   } else {
     Serial.println("❌ FAILED");
   }
+  
+  // Initialize Voltage Sensor
+  Serial.print("Voltage Sensor: ");
+  voltageSensor.begin();
+  Serial.println("✅ OK");
   
   Serial.println("\n🎯 Development mode ready!");
   Serial.println("Type 'help' to see available commands");
@@ -202,22 +171,11 @@ void processSerialCommand(String cmd) {
   else if (cmd == "test all dispensers") {
     servoDriver.testAllDispenserPairs();
   }
-  else if (cmd == "test ir") {
-    irSensors.testAllSensors();
-  }
-  else if (cmd.startsWith("test ir")) {
-    int sensorNum = cmd.substring(8).toInt();
-    if (sensorNum >= 1 && sensorNum <= 3) {
-      irSensors.testSensor(sensorNum);
-    } else {
-      Serial.println("Invalid sensor number. Use 1, 2, or 3");
-    }
-  }
   else if (cmd == "test lcd") {
     lcd.testDisplay();
   }
-  else if (cmd == "test rtc") {
-    rtclock.testRTC();
+  else if (cmd == "test time" || cmd == "time test") {
+    timeManager.testTime();
   }
   else if (cmd == "test sim800") {
     sim800.testModule();
@@ -225,11 +183,14 @@ void processSerialCommand(String cmd) {
   else if (cmd == "test firebase") {
     testFirebaseConnection();
   }
-  else if (cmd == "time") {
-    Serial.println("Current time: " + rtclock.getDateTimeString());
+  else if (cmd == "test voltage" || cmd == "voltage test") {
+    voltageSensor.testSensor();
   }
-  else if (cmd == "sensors") {
-    irSensors.printSensorStates();
+  else if (cmd == "voltage") {
+    voltageSensor.printDebug();
+  }
+  else if (cmd == "time") {
+    timeManager.printDebug();
   }
   else if (cmd == "dispense") {
     testPillDispense();
@@ -279,18 +240,17 @@ void printHelpMenu() {
   Serial.println("  test all servos     - Test all 16 servos");
   Serial.println("  test pill dispenser - Test pill dispensing on channel");
   Serial.println("  test all dispensers - Test all dispenser pairs");
-  Serial.println("  test ir             - Test all IR sensors");
-  Serial.println("  test ir [1-3]       - Test specific IR sensor");
   Serial.println("  test lcd            - Test LCD display");
-  Serial.println("  test rtc            - Test RTC clock");
+  Serial.println("  test time           - Test NTP time sync (continuous)");
   Serial.println("  test sim800         - Test SIM800L module");
   Serial.println("  test firebase       - Test Firebase connection");
+  Serial.println("  test voltage        - Test voltage sensor (continuous)");
+  Serial.println("  voltage             - Show current voltage reading");
   Serial.println();
   Serial.println("Pill Dispenser Operations:");
   Serial.println("  dispense            - Test pill dispensing sequence");
   Serial.println("  dispense [ch] [size] - Dispense pill (ch=0-15, size=small/medium/large)");
   Serial.println("  dispense pair [ch1] [ch2] [size] - Dispense using servo pair");
-  Serial.println("  sensors             - Show sensor states");
   Serial.println();
   Serial.println("Servo Control:");
   Serial.println("  servo [num] [angle] - Move servo to angle (0-180)");
@@ -307,7 +267,7 @@ void printSystemStatus() {
   Serial.println("Mode: " + currentMode);
   Serial.println("Uptime: " + String(millis() / 1000) + " seconds");
   Serial.println("Free Heap: " + String(ESP.getFreeHeap()) + " bytes");
-  Serial.println("Current Time: " + rtclock.getDateTimeString());
+  Serial.println("Current Time: " + timeManager.getDateTimeString());
   Serial.println("Pills Dispensed: " + String(pillCount));
   Serial.println();
   
@@ -315,16 +275,18 @@ void printSystemStatus() {
   Serial.println("Component Status:");
   Serial.println("  LCD: " + String(lcd.isConnected() ? "✅ Connected" : "❌ Disconnected"));
   Serial.println("  Servo Driver: " + String(servoDriver.isConnected() ? "✅ Connected" : "❌ Disconnected"));
-  Serial.println("  RTC: " + String(rtclock.isValidTime() ? "✅ Valid Time" : "❌ Invalid Time"));
+  Serial.println("  Time Manager: " + String(timeManager.isSynced() ? "✅ Synced" : "❌ Not Synced"));
   Serial.println("  SIM800L: " + String(sim800.isReady() ? "✅ Ready" : "❌ Not Ready"));
+  Serial.println("  Voltage Sensor: " + String(voltageSensor.isConnected() ? "✅ Connected" : "❌ Disconnected"));
   Serial.println("  WiFi: " + String(WiFi.status() == WL_CONNECTED ? "✅ Connected" : "❌ Disconnected"));
   
-  // Sensor readings
+  // Voltage reading
   Serial.println();
-  Serial.println("Sensor Readings:");
-  Serial.print("  IR Sensor 1: "); Serial.println(irSensors.isBlocked(1) ? "🔴 BLOCKED" : "🟢 CLEAR");
-  Serial.print("  IR Sensor 2: "); Serial.println(irSensors.isBlocked(2) ? "🔴 BLOCKED" : "🟢 CLEAR");
-  Serial.print("  IR Sensor 3: "); Serial.println(irSensors.isBlocked(3) ? "🔴 BLOCKED" : "🟢 CLEAR");
+  Serial.println("Voltage Sensor:");
+  float voltage = voltageSensor.readActualVoltage();
+  Serial.print("  Voltage: ");
+  Serial.print(voltage, 2);
+  Serial.println(" V");
   Serial.println("─────────────────────────────────────");
 }
 
@@ -464,12 +426,12 @@ void testFirebaseConnection() {
   
   Serial.println("🔥 Testing Firebase connection...");
   
-  if (firebase.begin(FIREBASE_API_KEY, FIREBASE_URL)) {
+  if (firebase.begin(PillDispenserConfig::getApiKey(), PillDispenserConfig::getDatabaseURL())) {
     firebase.testConnection();
     firebase.testDataUpload();
     
     // Test pill report functionality
-    firebase.sendPillReport(1, rtclock.getDateTimeString(), "Test dispense from development mode", 1);
+    firebase.sendPillReport(1, timeManager.getDateTimeString(), "Test dispense from development mode", 1);
   } else {
     Serial.println("❌ Firebase initialization failed");
   }

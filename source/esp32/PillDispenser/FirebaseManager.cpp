@@ -1,4 +1,6 @@
 #include "FirebaseManager.h"
+#include "addons/TokenHelper.h"
+#include "addons/RTDBHelper.h"
 
 // Static instance for callbacks
 FirebaseManager* FirebaseManager::instance = nullptr;
