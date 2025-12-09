@@ -1,6 +1,6 @@
 # Testing Documentation
 
-This document provides comprehensive testing procedures and protocols for the Pill Dispenser V3 system.
+This document provides comprehensive testing procedures and protocols for the Pill Dispenser V3 multi-component system including ESP32 hardware, Raspberry Pi ML processing, ESP32-CAM imaging, and web dashboard.
 
 ## Table of Contents
 
@@ -17,16 +17,43 @@ This document provides comprehensive testing procedures and protocols for the Pi
 
 ### Testing Philosophy
 
-The Pill Dispenser V3 implements a comprehensive testing framework with three distinct testing levels:
+The Pill Dispenser V3 implements a comprehensive testing framework with four distinct testing levels:
 
 1. **Unit Testing**: Individual component testing and verification
 2. **Integration Testing**: Component interaction and system-level testing
 3. **System Testing**: End-to-end functionality and performance validation
+4. **User Acceptance Testing**: Real-world scenario validation
+
+### Testing Components
+
+#### ESP32 Main Controller Testing
+- Hardware component validation
+- Serial command interface testing
+- Sensor and actuator verification
+- Communication protocol testing
+
+#### Raspberry Pi ML Processing Testing
+- YOLOv8 model inference testing
+- Image capture and processing validation
+- ESP32 communication testing
+- Database operations verification
+
+#### ESP32-CAM Imaging Testing
+- Camera stream functionality
+- HTTP API endpoint testing
+- Flash control validation
+- Image quality assessment
+
+#### Web Dashboard Testing
+- Authentication flow testing
+- Real-time data synchronization
+- User interface validation
+- API endpoint testing
 
 ### Testing Modes
 
 #### Development Mode
-Activated by setting `DEVELOPMENT_MODE = true` in the main application:
+Activated by setting `DEVELOPMENT_MODE = true` in ESP32 main application:
 - Verbose serial output for all operations
 - Detailed component status reporting
 - Interactive command interface for manual testing
@@ -41,7 +68,7 @@ Activated by setting `DEVELOPMENT_MODE = false`:
 
 ### Serial Command Interface
 
-The system provides a comprehensive serial command interface accessible through the Arduino Serial Monitor or terminal:
+The ESP32 system provides a comprehensive serial command interface accessible through the Arduino Serial Monitor or terminal:
 
 ```
 Available Commands:

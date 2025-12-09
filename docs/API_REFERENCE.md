@@ -1,16 +1,28 @@
 # API Documentation
 
-This document provides comprehensive API documentation for the Pill Dispenser V3 software components.
+This document provides comprehensive API documentation for the Pill Dispenser V3 multi-component system including ESP32 hardware, Raspberry Pi ML processing, and web dashboard APIs.
 
 ## Table of Contents
 
-- [ServoDriver API](#servodriver-api)
-- [IRSensor API](#irsensor-api)
-- [LCDDisplay API](#lcddisplay-api)
-- [RTClock API](#rtclock-api)
-- [FirebaseManager API](#firebasemanager-api)
-- [SIM800L API](#sim800l-api)
-- [Main Application API](#main-application-api)
+- [ESP32 Component APIs](#esp32-component-apis)
+  - [ServoDriver API](#servodriver-api)
+  - [IRSensor API](#irsensor-api)
+  - [LCDDisplay API](#lcddisplay-api)
+  - [RTClock API](#rtclock-api)
+  - [FirebaseManager API](#firebasemanager-api)
+  - [SIM800L API](#sim800l-api)
+  - [Main Application API](#main-application-api)
+- [Raspberry Pi APIs](#raspberry-pi-apis)
+  - [ESP32CamInterface API](#esp32caminterface-api)
+  - [EnsemblePillDetector API](#ensemblepilldetector-api)
+  - [ESP32Communicator API](#esp32communicator-api)
+  - [DatabaseManager API](#databasemanager-api)
+- [Web Dashboard APIs](#web-dashboard-apis)
+  - [Authentication API](#authentication-api)
+  - [Dispenser Management API](#dispenser-management-api)
+  - [Dispense Control API](#dispense-control-api)
+
+## ESP32 Component APIs
 
 ## ServoDriver API
 

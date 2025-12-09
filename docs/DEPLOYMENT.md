@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This document provides comprehensive deployment procedures for the Pill Dispenser V3 system, covering installation, configuration, and production setup.
+This document provides comprehensive deployment procedures for the Pill Dispenser V3 system, covering installation, configuration, and production setup for all system components including ESP32, Raspberry Pi, ESP32-CAM, and web dashboard.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This document provides comprehensive deployment procedures for the Pill Dispense
 
 ## Pre-Deployment Checklist
 
-### Hardware Requirements Verification
+### ESP32 Main Controller Requirements
 
 **ESP32 Development Board**:
 - [ ] ESP32-WROOM-32 or compatible
@@ -54,44 +54,42 @@ This document provides comprehensive deployment procedures for the Pill Dispense
 - [ ] SMS and voice call capability
 - [ ] External antenna connection
 
-**Power Supply**:
-- [ ] 5V DC power adapter
-- [ ] Minimum 3A current capacity
-- [ ] Stable voltage regulation
-- [ ] Overcurrent protection
+### Raspberry Pi ML Processing Requirements
 
-**Mechanical Components**:
-- [ ] Servo motors (quantity as required)
-- [ ] Pill dispensing mechanisms
-- [ ] Mounting hardware
-- [ ] Enclosure materials
+**Raspberry Pi 4**:
+- [ ] Raspberry Pi 4 Model B (4GB RAM recommended)
+- [ ] MicroSD card (32GB Class 10 minimum)
+- [ ] Power supply (5V 3A USB-C)
+- [ ] Ethernet cable (recommended for stability)
+- [ ] Heat sinks and case
 
-### Software Requirements Verification
+**Camera Components**:
+- [ ] ESP32-CAM module with camera
+- [ ] Camera ribbon cable
+- [ ] External WiFi antenna for ESP32-CAM
 
-**Development Environment**:
-- [ ] Arduino IDE 1.8.19 or newer
-- [ ] ESP32 Board Package installed
-- [ ] Required libraries available
-- [ ] USB drivers for ESP32
+### ESP32-CAM Image Capture Requirements
 
-**Required Libraries**:
-- [ ] Adafruit PWM Servo Driver Library
-- [ ] LiquidCrystal I2C Library
-- [ ] RtcDS1302 Library
-- [ ] Firebase ESP Client Library
-- [ ] SoftwareSerial Library (built-in)
+**ESP32-CAM Module**:
+- [ ] AI-Thinker ESP32-CAM or compatible
+- [ ] OV2640 camera module
+- [ ] External antenna
+- [ ] 3.3V-5V power supply
+- [ ] Flash LED capability
 
-**Cloud Services**:
+### Web Dashboard Requirements
+
+**Server Environment**:
+- [ ] Node.js 18+ runtime
+- [ ] npm or yarn package manager
+- [ ] SSL certificate for production
+- [ ] Domain name (optional)
+
+**Firebase Services**:
 - [ ] Firebase project created
+- [ ] Authentication enabled
 - [ ] Realtime Database enabled
-- [ ] API keys generated
-- [ ] Authentication configured
-
-**Network Services**:
-- [ ] WiFi network credentials
-- [ ] Internet connectivity verified
-- [ ] Firewall rules configured
-- [ ] SIM card activated (for GSM)
+- [ ] Hosting configured (optional)
 
 ### Documentation and Tools
 

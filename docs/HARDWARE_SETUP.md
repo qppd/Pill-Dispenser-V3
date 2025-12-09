@@ -1,6 +1,6 @@
 # Hardware Setup Guide
 
-This document provides detailed instructions for assembling and configuring the hardware components of the Pill Dispenser V3 system.
+This document provides detailed instructions for assembling and configuring the hardware components of the Pill Dispenser V3 multi-component system including ESP32, Raspberry Pi, and ESP32-CAM.
 
 ## Prerequisites
 
@@ -11,20 +11,22 @@ This document provides detailed instructions for assembling and configuring the 
 - Screwdrivers (Phillips and flathead)
 - Heat shrink tubing
 - Breadboard or prototyping board
+- MicroSD card writer (for Raspberry Pi)
 
 ### Safety Considerations
 - Always disconnect power before making connections
 - Use appropriate voltage levels (3.3V for ESP32 GPIO)
 - Ensure proper grounding of all components
 - Use surge protection for power supplies
+- Handle Raspberry Pi with ESD protection
 
 ## Component Overview
 
-### Primary Components
+### ESP32 Main Controller Components
 
 | Component | Specifications | Purpose |
 |-----------|---------------|---------|
-| ESP32 Development Board | ESP32-WROOM-32, 32 GPIO pins | Main microcontroller |
+| ESP32 Development Board | ESP32-WROOM-32, 32 GPIO pins | Main microcontroller for dispensing |
 | PCA9685 PWM Driver | 16-channel, 12-bit resolution | Servo motor control |
 | IR Obstacle Sensors | Digital output, 3-5V operation | Pill detection |
 | I2C LCD Display | 20x4 characters, I2C interface | Status display |
@@ -32,17 +34,38 @@ This document provides detailed instructions for assembling and configuring the 
 | SIM800L GSM Module | Quad-band GSM/GPRS | Communication |
 | Servo Motors | Standard or continuous rotation | Pill dispensing |
 
+### Raspberry Pi ML Processing Components
+
+| Component | Specifications | Purpose |
+|-----------|---------------|---------|
+| Raspberry Pi 4 | 4GB RAM, Broadcom BCM2711 | Machine learning processing |
+| MicroSD Card | 32GB Class 10, UHS-I | OS and storage |
+| Power Supply | 5V 3A USB-C | Raspberry Pi power |
+| Heat Sinks | Aluminum, 15x15x10mm | Thermal management |
+| Camera Cable | 15-pin ribbon cable | ESP32-CAM connection |
+
+### ESP32-CAM Image Capture Components
+
+| Component | Specifications | Purpose |
+|-----------|---------------|---------|
+| ESP32-CAM Module | AI-Thinker, OV2640 camera | Image capture for pill detection |
+| External Antenna | 2.4GHz WiFi antenna | Improved connectivity |
+| Power Supply | 3.3V-5V regulated | Camera module power |
+| Flash LED | Built-in GPIO 4 | Illumination control |
+
 ### Power Supply Requirements
 
 | Component | Voltage | Current | Notes |
 |-----------|---------|---------|-------|
-| ESP32 | 3.3V/5V | 250mA | Via USB or external |
+| ESP32 Main | 3.3V/5V | 250mA | Via USB or external |
 | PCA9685 | 5V | 20mA | Logic supply |
 | Servos | 5V | 1-2A each | External supply required |
 | LCD | 5V | 50mA | Via I2C backpack |
 | DS1302 | 3.3V | 1mA | Plus CR2032 backup |
 | SIM800L | 3.7-4.2V | 2A peak | During transmission |
 | IR Sensors | 3.3-5V | 20mA each | Per sensor |
+| Raspberry Pi | 5V | 3A | Via USB-C |
+| ESP32-CAM | 3.3V-5V | 500mA | With camera active |
 
 ## Wiring Diagram
 

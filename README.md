@@ -1,6 +1,6 @@
 # Pill Dispenser V3
 
-**An Advanced ESP32-Based Automated Medication Dispensing System**
+**An Advanced Multi-Component IoT Automated Medication Dispensing System**
 
 ## Table of Contents
 
@@ -22,17 +22,18 @@
 
 ## Overview
 
-The Pill Dispenser V3 is a sophisticated, IoT-enabled medication dispensing system built on the ESP32 microcontroller platform. This system provides automated pill dispensing with real-time monitoring, cloud connectivity, and comprehensive safety features for healthcare applications.
+The Pill Dispenser V3 is a sophisticated, multi-component IoT-enabled medication dispensing system designed for healthcare applications. The system integrates ESP32 microcontrollers, Raspberry Pi machine learning processing, ESP32-CAM image capture, and a modern Next.js web dashboard to provide comprehensive automated pill dispensing with real-time monitoring, cloud connectivity, and advanced safety features.
 
 ### Key Capabilities
 
 - **Automated Dispensing**: Precision servo-controlled pill dispensing with multiple medication types
+- **AI-Powered Detection**: Machine learning-based pill verification using YOLOv8
 - **Real-time Monitoring**: Continuous sensor monitoring and status reporting
 - **Cloud Integration**: Firebase-based data logging and remote monitoring
 - **Communication**: GSM/GPRS connectivity for alerts and notifications
+- **User Interface**: Modern web dashboard with authentication and scheduling
 - **Safety Features**: Multiple IR sensors for pill detection and verification
-- **User Interface**: 20x4 LCD display with real-time status information
-- **Scheduling**: RTC-based medication scheduling and timing
+- **Modular Architecture**: Independent components for scalability and maintenance
 
 ## Features
 
@@ -40,18 +41,22 @@ The Pill Dispenser V3 is a sophisticated, IoT-enabled medication dispensing syst
 
 - **Multi-Channel Dispensing**: Support for up to 16 independent servo channels
 - **Pill Size Recognition**: Configurable timing for small, medium, and large pills
+- **AI Verification**: Computer vision-based pill detection and counting
 - **Real-time Clock**: Accurate timekeeping with DS1302 RTC module
 - **Sensor Array**: Triple IR sensor system for pill detection and verification
 - **Cloud Connectivity**: Real-time data streaming and remote command execution
 - **GSM Communication**: SMS notifications and remote monitoring capabilities
+- **Web Dashboard**: User-friendly interface for monitoring and control
 
 ### Advanced Features
 
 - **Modular Architecture**: Object-oriented design with independent component classes
+- **Machine Learning**: YOLOv8-based pill detection with ensemble voting
 - **Development Mode**: Comprehensive testing framework with serial command interface
 - **Error Handling**: Robust error detection and recovery mechanisms
 - **I2C Device Management**: Automatic device discovery and status monitoring
 - **Remote Configuration**: Cloud-based configuration updates and scheduling
+- **Multi-Device Coordination**: ESP32, Raspberry Pi, and ESP32-CAM integration
 
 ## System Architecture
 
@@ -59,8 +64,12 @@ The Pill Dispenser V3 is a sophisticated, IoT-enabled medication dispensing syst
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   ESP32 MCU     │    │  PCA9685 PWM    │    │   Servo Motors  │
-│                 │◄──►│    Driver       │◄──►│   (16 Channel)  │
+│   ESP32 Main    │    │  PCA9685 PWM    │    │   Servo Motors  │
+│   Controller    │◄──►│    Driver       │◄──►│   (16 Channel)  │
+│                 │    │                 │    │                 │
+│ - Pill Dispensing│    │ - Servo Control │    │ - Medication   │
+│ - Sensor Monitoring│   │ - I2C Interface │   │   Delivery     │
+│ - LCD Display    │    │                 │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │
          ├─── I2C Bus ──┬── LCD Display (20x4)
@@ -74,35 +83,44 @@ The Pill Dispenser V3 is a sophisticated, IoT-enabled medication dispensing syst
          │
          ├─── UART ─────── SIM800L GSM Module
          │
-         └─── WiFi ─────── Firebase Cloud Service
+         ├─── WiFi ─────── Firebase Cloud Service
+         │
+         └─── Serial ───── Raspberry Pi (ML Processing)
 ```
 
 ### Software Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│              Main Application               │
-│            (PillDispenser.ino)              │
-├─────────────────────────────────────────────┤
-│              Component Layer                │
-├──────────┬──────────┬──────────┬────────────┤
-│ServoDriver│IRSensor  │LCDDisplay│RTClock     │
-├──────────┼──────────┼──────────┼────────────┤
-│Firebase  │SIM800L   │          │            │
-│Manager   │          │          │            │
-├─────────────────────────────────────────────┤
-│              Hardware Layer                 │
-│        (Arduino Core, Wire, WiFi)           │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    User Interface Layer                     │
+├─────────────────────────────────────────────────────────────┤
+│              Next.js Web Dashboard                          │
+│            (Authentication, Monitoring, Control)           │
+├─────────────────────────────────────────────────────────────┤
+│                    Cloud Services Layer                     │
+├─────────────────────────────────────────────────────────────┤
+│              Firebase Realtime Database                     │
+│            (Data Storage, Real-time Sync)                   │
+├─────────────────────────────────────────────────────────────┤
+│                    Processing Layer                         │
+├─────────────────────────────────────────────────────────────┤
+│   Raspberry Pi 4     │   ESP32-CAM        │   ESP32 Main    │
+│   - YOLOv8 ML        │   - Image Capture  │   - Dispensing  │
+│   - Pill Detection   │   - HTTP Stream    │   - Sensors     │
+│   - Data Analysis    │   - Flash Control  │   - Communication│
+├─────────────────────────────────────────────────────────────┤
+│                    Hardware Layer                           │
+│        (Arduino Core, OpenCV, Firebase SDK)                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Hardware Requirements
 
-### Core Components
+### ESP32 Main Controller Components
 
 | Component | Specification | Quantity | Purpose |
 |-----------|---------------|----------|---------|
-| ESP32 Development Board | ESP32-WROOM-32 | 1 | Main microcontroller |
+| ESP32 Development Board | ESP32-WROOM-32 | 1 | Main microcontroller for dispensing |
 | PCA9685 PWM Driver | 16-Channel, 12-bit | 1 | Servo motor control |
 | Servo Motors | MG996R or equivalent | 1-16 | Pill dispensing mechanism |
 | IR Obstacle Sensors | HC-SR04 compatible | 3 | Pill detection |
@@ -110,22 +128,49 @@ The Pill Dispenser V3 is a sophisticated, IoT-enabled medication dispensing syst
 | RTC Module | DS1302 Real-time Clock | 1 | Timing and scheduling |
 | GSM Module | SIM800L | 1 | Communication |
 
+### Raspberry Pi ML Processing Components
+
+| Component | Specification | Quantity | Purpose |
+|-----------|---------------|----------|---------|
+| Raspberry Pi 4 | 4GB RAM or higher | 1 | Machine learning processing |
+| MicroSD Card | 32GB Class 10 | 1 | OS and storage |
+| Power Supply | 5V 3A USB-C | 1 | Raspberry Pi power |
+| Camera Cable | Raspberry Pi Camera Cable | 1 | ESP32-CAM connection |
+
+### ESP32-CAM Image Capture Components
+
+| Component | Specification | Quantity | Purpose |
+|-----------|---------------|----------|---------|
+| ESP32-CAM Module | AI-Thinker or compatible | 1 | Image capture for pill detection |
+| Antenna | External WiFi antenna | 1 | Improved connectivity |
+| Power Supply | 3.3V-5V regulated | 1 | Camera module power |
+
+### General Components
+
+| Component | Specification | Quantity | Purpose |
+|-----------|---------------|----------|---------|
+| Power Supply | 5V DC 3A+ | 1 | Main system power |
+| Jumper Wires | Male-Female, Male-Male | Various | Connections |
+| Breadboard | Full-size | 1 | Prototyping |
+| Enclosure | 3D printed or plastic | 1 | System housing |
+
 ### Power Requirements
 
-- **Input Voltage**: 5V DC (recommended)
-- **Current Consumption**: 2-5A (depending on servo load)
+- **ESP32 System**: 5V DC, 2-5A (depending on servo load)
+- **Raspberry Pi**: 5V DC, 3A via USB-C
+- **ESP32-CAM**: 3.3V-5V DC, 500mA
 - **Backup Power**: CR2032 battery for RTC
 
-### Connectivity
+### Connectivity Requirements
 
-- **I2C Bus**: 3.3V logic level
-- **GPIO Pins**: 3.3V logic level
-- **UART**: 3.3V logic level
-- **WiFi**: 2.4GHz IEEE 802.11 b/g/n
+- **WiFi Network**: 2.4GHz IEEE 802.11 b/g/n for ESP32 devices
+- **Ethernet**: Optional for Raspberry Pi (recommended for stability)
+- **Internet Access**: Required for Firebase connectivity
+- **SIM Card**: For GSM functionality (optional)
 
 ## Software Dependencies
 
-### Arduino Libraries
+### ESP32 Arduino Dependencies
 
 ```cpp
 // Core Libraries
@@ -142,12 +187,60 @@ The Pill Dispenser V3 is a sophisticated, IoT-enabled medication dispensing syst
 #include <SoftwareSerial.h>           // SIM800L communication
 ```
 
-### Required Library Versions
+### Raspberry Pi Dependencies
 
+```python
+# Core Python packages
+opencv-python>=4.8.0
+numpy>=1.24.0
+pillow>=10.0.0
+requests>=2.31.0
+pyserial>=3.5
+
+# Machine Learning
+ultralytics>=8.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Data processing
+pandas>=2.0.0
+sqlite3  # Built-in
+
+# System
+RPi.GPIO>=0.7.0
+```
+
+### Web Application Dependencies
+
+```json
+{
+  "next": ">=16.0.0",
+  "react": ">=19.0.0",
+  "firebase": ">=12.6.0",
+  "lucide-react": ">=0.554.0",
+  "tailwindcss": ">=4.0.0"
+}
+```
+
+### Required Software Versions
+
+#### ESP32 Libraries
 - **Adafruit PWM Servo Driver Library**: >= 2.4.0
 - **LiquidCrystal I2C**: >= 1.1.2
 - **Firebase ESP32 Client**: >= 4.3.0
 - **RTC Library**: >= 2.3.5
+
+#### Raspberry Pi
+- **Python**: 3.9+
+- **OpenCV**: 4.8+
+- **PyTorch**: 2.0+
+- **YOLOv8**: Latest ultralytics
+
+#### Web Application
+- **Node.js**: 18+
+- **Next.js**: 16+
+- **React**: 19+
+- **Firebase SDK**: 12.6+
 
 ## Installation Guide
 
@@ -224,6 +317,74 @@ Tools → Manage Libraries → Search and Install:
    - CPU Frequency: "240MHz (WiFi/BT)"
 
 5. Upload the firmware
+
+#### Raspberry Pi Setup
+
+1. Install Raspberry Pi OS (64-bit) on your microSD card
+2. Boot the Raspberry Pi and connect to network
+3. Update system packages:
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   ```
+
+4. Install Python dependencies:
+   ```bash
+   cd Pill-Dispenser-V3/source/rpi/PillDispenser
+   pip install -r requirements.txt
+   ```
+
+5. Install YOLOv8:
+   ```bash
+   pip install ultralytics
+   ```
+
+6. Configure serial communication with ESP32:
+   - Ensure `/dev/ttyAMA0` or appropriate serial port is available
+   - Update configuration in `main.py` if needed
+
+7. Run the ML service:
+   ```bash
+   python main.py
+   ```
+
+#### ESP32-CAM Setup
+
+1. Flash ESP32-CAM with the provided firmware:
+   ```bash
+   # Using esptool.py
+   esptool.py --chip esp32 --port /dev/ttyUSB0 write_flash -z 0x1000 esp32cam_firmware.bin
+   ```
+
+2. Configure WiFi credentials in the firmware
+3. Ensure camera is connected and accessible via HTTP stream
+
+#### Web Application Setup
+
+1. Install Node.js 18+ on your development machine
+2. Navigate to the web directory:
+   ```bash
+   cd Pill-Dispenser-V3/source/web
+   ```
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Configure Firebase:
+   - Copy your Firebase config to `src/lib/firebase.ts`
+   - Update authentication and database settings
+
+5. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+6. Build for production:
+   ```bash
+   npm run build
+   npm start
+   ```
 
 ## Configuration
 
@@ -789,7 +950,7 @@ This project uses the following open-source libraries:
 
 ## Changelog
 
-### Version 3.0.0 (2025-11-01)
+### Version 3.0.0 (2025-12-10)
 
 #### Added
 - Complete modular architecture redesign
