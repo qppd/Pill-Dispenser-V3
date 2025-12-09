@@ -552,8 +552,8 @@ The development mode provides a comprehensive command-line interface accessible 
 | `reset` | Restart the system |
 | `clear` | Clear serial monitor display |
 | `time` | Show current date and time |
-| `wifi connect` | Connect to WiFi |
 | `i2c scan` | Scan for I2C devices |
+| `wifi connect` | Initiate WiFi connection |
 
 #### Component Testing Commands
 
