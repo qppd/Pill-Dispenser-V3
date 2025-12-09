@@ -552,42 +552,41 @@ The development mode provides a comprehensive command-line interface accessible 
 | `reset` | Restart the system |
 | `clear` | Clear serial monitor display |
 | `time` | Show current date and time |
+| `wifi connect` | Connect to WiFi |
 | `i2c scan` | Scan for I2C devices |
-| `wifi connect` | Initiate WiFi connection |
 
 #### Component Testing Commands
 
 | Command | Description |
 |---------|-------------|
-| `test servo` | Test individual servo (prompts for channel) |
-| `test all servos` | Test all 16 servo channels |
-| `test pill dispenser` | Test pill dispensing on specific channel |
+| `test servo` | Test single servo (will ask for number) |
+| `test all servos` | Test all 16 servos |
+| `test pill dispenser` | Test pill dispensing on channel |
 | `test all dispensers` | Test all dispenser pairs |
-| `test ir` | Test all IR sensors (15-second monitoring) |
-| `test ir [1-3]` | Test specific IR sensor |
-| `test lcd` | Complete LCD display test |
-| `test rtc` | RTC functionality test |
-| `test sim800` | SIM800L module test |
-| `test firebase` | Firebase connectivity test |
+| `test lcd` | Test LCD display |
+| `test time` | Test NTP time sync (continuous) |
+| `test sim800` | Test SIM800L module |
+| `test firebase` | Test Firebase connection |
+| `test voltage` | Test voltage sensor (continuous) |
+| `voltage` | Show current voltage reading |
 
 #### Pill Dispensing Commands
 
 | Command | Description |
 |---------|-------------|
-| `dispense` | Basic pill dispensing test |
-| `dispense [0-15] [size]` | Dispense specific pill size on channel |
-| `dispense pair [ch1] [ch2] [size]` | Dual servo dispensing |
-| `sensors` | Display current sensor states |
+| `dispense` | Test pill dispensing sequence |
+| `dispense [ch] [size]` | Dispense pill (ch=0-15, size=small/medium/large) |
+| `dispense pair [ch1] [ch2] [size]` | Dispense using servo pair |
 
 #### Advanced Servo Control
 
 | Command | Description |
 |---------|-------------|
-| `servo [0-15] [0-180]` | Move servo to specific angle |
-| `servo reset` | Reset all servos to 90 degrees |
-| `servo stop [0-15]` | Stop specific servo |
-| `servo stop all` | Emergency stop all servos |
-| `servo speed [0-15] [300-450]` | Set continuous rotation speed |
+| `servo [num] [angle]` | Move servo to angle (0-180) |
+| `servo reset` | Reset all servos to 90° |
+| `servo stop [num]` | Stop specific servo |
+| `servo stop all` | Stop all servos |
+| `servo speed [num] [speed]` | Set servo speed (300-450) |
 
 ### Example Development Session
 

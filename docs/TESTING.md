@@ -71,18 +71,41 @@ Activated by setting `DEVELOPMENT_MODE = false`:
 The ESP32 system provides a comprehensive serial command interface accessible through the Arduino Serial Monitor or terminal:
 
 ```
-Available Commands:
-- help: Show available commands
-- status: Show system status
-- test: Run component tests
-- servo: Test servo operations
-- ir: Test IR sensors
-- lcd: Test LCD display
-- rtc: Test real-time clock
-- firebase: Test Firebase connectivity
-- sim: Test SIM800L module
-- dispense: Test pill dispensing
-- reset: Reset system
+📚 AVAILABLE COMMANDS:
+─────────────────────────────────────
+System Commands:
+  help                 - Show this menu
+  status              - System status
+  reset               - Restart system
+  clear               - Clear screen
+  time                - Show current time
+  wifi connect        - Connect to WiFi
+  i2c scan            - Scan I2C devices
+
+Component Testing:
+  test servo          - Test single servo (will ask for number)
+  test all servos     - Test all 16 servos
+  test pill dispenser - Test pill dispensing on channel
+  test all dispensers - Test all dispenser pairs
+  test lcd            - Test LCD display
+  test time           - Test NTP time sync (continuous)
+  test sim800         - Test SIM800L module
+  test firebase       - Test Firebase connection
+  test voltage        - Test voltage sensor (continuous)
+  voltage             - Show current voltage reading
+
+Pill Dispenser Operations:
+  dispense            - Test pill dispensing sequence
+  dispense [ch] [size] - Dispense pill (ch=0-15, size=small/medium/large)
+  dispense pair [ch1] [ch2] [size] - Dispense using servo pair
+
+Servo Control:
+  servo [num] [angle] - Move servo to angle (0-180)
+  servo reset         - Reset all servos to 90°
+  servo stop [num]    - Stop specific servo
+  servo stop all      - Stop all servos
+  servo speed [num] [speed] - Set servo speed (300-450)
+─────────────────────────────────────
 ```
 
 ## Hardware Testing
