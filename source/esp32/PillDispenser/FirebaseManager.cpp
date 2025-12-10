@@ -1,5 +1,6 @@
 #include "FirebaseManager.h"
 #include "FirebaseConfig.h"
+#include "VoltageSensor.h"
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
@@ -306,7 +307,7 @@ bool FirebaseManager::updateDeviceStatus(String status) {
   }
 }
 
-bool FirebaseManager::sendHeartbeat() {
+bool FirebaseManager::sendHeartbeat(VoltageSensor* voltageSensor) {
   unsigned long currentTime = millis();
   if (currentTime - lastHeartbeat < HEARTBEAT_INTERVAL) {
     return true; // Not time for heartbeat yet
@@ -326,6 +327,12 @@ bool FirebaseManager::sendHeartbeat() {
   json.set("wifi_strength", WiFi.RSSI());
   json.set("free_heap", ESP.getFreeHeap());
   json.set("device_status", "online");
+  
+  // Add battery data if voltage sensor is available
+  if (voltageSensor != nullptr) {
+    json.set("battery_voltage", String(voltageSensor->readActualVoltage()));
+    json.set("battery_percentage", String(voltageSensor->readBatteryPercentage()));
+  }
   
   if (Firebase.RTDB.setJSON(&fbdo, path, &json)) {
     Serial.println("FirebaseManager: Heartbeat sent");

@@ -40,7 +40,7 @@ public:
   // Data operations
   bool sendPillDispenseLog(int pillCount, String timestamp);
   bool updateDeviceStatus(String status);
-  bool sendHeartbeat();
+  bool sendHeartbeat(VoltageSensor* voltageSensor = nullptr);
   bool uploadSensorData(String sensorName, String value);
   bool sendPillReport(int pillCount, String datetime, String description, int status);
   
