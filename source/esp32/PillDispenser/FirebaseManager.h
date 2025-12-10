@@ -20,12 +20,16 @@ private:
   unsigned long lastHeartbeat;
   unsigned long sendDataPrevMillis;
   
+  // Command processing
+  bool dispenseCommandReceived;
+  int lastDispenseCommand;
+  
   static const unsigned long HEARTBEAT_INTERVAL = 60000; // 1 minute
   static const unsigned long SEND_DATA_INTERVAL = 5000;  // 5 seconds
   
   // Device paths for streaming
   String deviceParentPath;
-  String devicePaths[4] = { "/device_status", "/pill_schedule", "/dispense_command", "/system_config" };
+  String devicePaths[4] = { "/device_status", "/pill_schedule", "/commands", "/system_config" };
   
   // Callback functions
   static void deviceStreamCallback(MultiPathStream stream);
@@ -52,6 +56,8 @@ public:
   // Configuration
   bool downloadSchedule();
   bool checkForCommands();
+  bool hasDispenseCommand();
+  int getLastDispenseCommand();
   
   // Testing functions
   bool testConnection();

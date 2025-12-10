@@ -110,6 +110,17 @@ void loop() {
   handleBatteryUpdate();
   handleScheduleSync();
   
+  // Check for realtime dispense commands from Firebase stream
+  if (firebase.hasDispenseCommand()) {
+    int dispenserId = firebase.getLastDispenseCommand();
+    if (dispenserId > 0) {
+      Serial.print("ESP32: Processing realtime dispense command for dispenser ");
+      Serial.println(dispenserId);
+      
+      // Trigger manual dispense
+      dispensePill(dispenserId, "Manual", "Web App Dispense", "Remote User");
+    }
+  }
   
   delay(100);
 }
@@ -318,8 +329,9 @@ void onScheduledDispense(int dispenserId, String pillSize, String medication, St
   lcd.displayMessage("Dispensing...", patient);
   
   // Perform dispensing
-  Serial.println("▶ Activating dispenser " + String(dispenserId) + "...");
-  servoDriver.dispensePill(dispenserId, pillSize);
+  uint8_t servoChannel = dispenserId - 1;  // Convert dispenser ID to 0-based channel
+  Serial.println("▶ Activating dispenser " + String(dispenserId) + " (servo channel " + String(servoChannel) + ")...");
+  servoDriver.dispensePill(servoChannel, pillSize);
   
   totalPillsDispensed++;
   
@@ -412,7 +424,7 @@ void updateFirebaseStatus() {
   
   // Send via FirebaseManager
   firebase.updateDeviceStatus("online");
-  firebase.sendHeartbeat();
+  firebase.sendHeartbeat(&voltageSensor);
 }
 
 void updateFirebaseBattery() {
@@ -459,5 +471,45 @@ void loadSchedulesFromFirebase() {
   } else {
     Serial.println("   ℹ No schedules configured");
   }
+}
+
+void dispensePill(int dispenserId, String trigger, String medication, String patient) {
+  Serial.println("\n" + String('=', 60));
+  Serial.println("🎯 MANUAL DISPENSE TRIGGERED");
+  Serial.println(String('=', 60));
+  Serial.println("Dispenser ID: " + String(dispenserId));
+  Serial.println("Trigger: " + trigger);
+  Serial.println("Medication: " + medication);
+  Serial.println("Patient: " + patient);
+  Serial.println("Time: " + timeManager.getDateTimeString());
+  Serial.println(String('=', 60));
+  
+  // Update LCD
+  lcd.clear();
+  lcd.displayMessage("Dispensing...", "Container " + String(dispenserId));
+  
+  // Perform dispensing - map dispenser ID (1-5) to servo channel (0-4)
+  uint8_t servoChannel = dispenserId - 1;  // Convert dispenser ID to 0-based channel
+  Serial.println("▶ Activating dispenser " + String(dispenserId) + " (servo channel " + String(servoChannel) + ")...");
+  servoDriver.dispensePill(servoChannel, "medium");  // Default pill size
+  
+  totalPillsDispensed++;
+  
+  // Log to Firebase
+  if (firebaseConnected) {
+    logDispenseEvent(dispenserId, trigger, "success", medication, patient);
+  }
+  
+  // Send SMS notification for manual dispenses
+  if (trigger != "schedule") {  // Avoid double notifications for scheduled dispenses
+    notificationManager.notifyOnDispense(patient, medication);
+  }
+  
+  // Update LCD
+  lcd.displayMessage("Dispensed!", "Total: " + String(totalPillsDispensed));
+  delay(2000);
+  lcd.displayMessage("Ready", timeManager.getTimeString());
+  
+  Serial.println("✅ Manual dispensing complete!\n");
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { ref, onValue, set } from 'firebase/database';
+import { ref, onValue, set, get } from 'firebase/database';
 import { Pill, Battery, Wifi, WifiOff, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +50,8 @@ export default function Dashboard() {
     if (!user || !db) return;
 
     const dispensersRef = ref(db, `dispensers/${user.uid}/containers`);
-    const deviceRef = ref(db, `dispensers/${user.uid}/device`);
+    // Read from ESP32 device path - scan all devices under pilldispenser/device/
+    const allDevicesRef = ref(db, 'pilldispenser/device');
 
     const unsubscribeContainers = onValue(dispensersRef, (snapshot) => {
       const data = snapshot.val();
@@ -71,14 +72,36 @@ export default function Dashboard() {
       setLoading(false);
     });
 
-    const unsubscribeDevice = onValue(deviceRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setDeviceStatus(data);
-      } else {
-        const defaultDevice: DeviceStatus = { battery: 85, status: 'offline' };
-        set(deviceRef, defaultDevice);
-        setDeviceStatus(defaultDevice);
+    const unsubscribeDevice = onValue(allDevicesRef, (snapshot) => {
+      const devices = snapshot.val();
+      
+      if (devices) {
+        // Get the first device (or you can let user select device later)
+        const deviceIds = Object.keys(devices);
+        if (deviceIds.length > 0) {
+          const firstDeviceId = deviceIds[0];
+          const deviceData = devices[firstDeviceId];
+          
+          // Extract battery data from sensors
+          let batteryPercentage = 0;
+          if (deviceData.sensors && deviceData.sensors.battery_percentage) {
+            batteryPercentage = parseFloat(deviceData.sensors.battery_percentage.value) || 0;
+          }
+          
+          // Extract online status from heartbeat or status
+          let isOnline = false;
+          if (deviceData.heartbeat && deviceData.heartbeat.device_status === 'online') {
+            isOnline = true;
+          } else if (deviceData.status && deviceData.status.ip_address) {
+            // If we have status data with IP, consider it online
+            isOnline = true;
+          }
+          
+          setDeviceStatus({
+            battery: Math.round(batteryPercentage),
+            status: isOnline ? 'online' : 'offline'
+          });
+        }
       }
     });
 
@@ -88,22 +111,49 @@ export default function Dashboard() {
     };
   }, [user]);
 
-  const dispenseNow = (dispenserId: number) => {
+  const dispenseNow = async (dispenserId: number) => {
     if (!user || !db) return;
 
-    const now = new Date().toLocaleString();
-    const updatedDispensers = dispensers.map((d) =>
-      d.id === dispenserId
-        ? {
-            ...d,
-            lastDispensed: now,
-            pillsRemaining: Math.max(0, d.pillsRemaining - 1),
-          }
-        : d
-    );
+    try {
+      // Send command to ESP32
+      const devices = await get(ref(db, 'pilldispenser/device'));
+      if (devices.exists()) {
+        const deviceIds = Object.keys(devices.val());
+        if (deviceIds.length > 0) {
+          const firstDeviceId = deviceIds[0];
+          const commandRef = ref(db, `pilldispenser/device/${firstDeviceId}/commands`);
+          
+          // Send dispense command
+          await set(commandRef, `DISPENSE:${dispenserId}`);
+          
+          // Clear the command after a short delay to allow ESP32 to process it
+          setTimeout(async () => {
+            try {
+              await set(commandRef, null);
+            } catch (error) {
+              console.error('Error clearing command:', error);
+            }
+          }, 1000);
+          
+          // Update local UI state
+          const now = new Date().toLocaleString();
+          const updatedDispensers = dispensers.map((d) =>
+            d.id === dispenserId
+              ? {
+                  ...d,
+                  lastDispensed: now,
+                  pillsRemaining: Math.max(0, d.pillsRemaining - 1),
+                }
+              : d
+          );
 
-    const dispensersRef = ref(db, `dispensers/${user.uid}/containers`);
-    set(dispensersRef, updatedDispensers);
+          const dispensersRef = ref(db, `dispensers/${user.uid}/containers`);
+          await set(dispensersRef, updatedDispensers);
+        }
+      }
+    } catch (error) {
+      console.error('Error sending dispense command:', error);
+    }
   };
 
   const getBatteryColor = (battery: number) => {

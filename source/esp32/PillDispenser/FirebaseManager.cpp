@@ -12,6 +12,8 @@ FirebaseManager::FirebaseManager() {
   signupOk = false;
   lastHeartbeat = 0;
   sendDataPrevMillis = 0;
+  dispenseCommandReceived = false;
+  lastDispenseCommand = 0;
   deviceId = "PILL_DISPENSER_" + String(ESP.getEfuseMac(), HEX);
   deviceParentPath = "pilldispenser/device/" + deviceId;
   
@@ -214,11 +216,12 @@ void FirebaseManager::deviceStreamCallback(MultiPathStream stream) {
         Serial.println(deviceStatus);
         // Handle device status changes here
         
-      } else if (stream.dataPath == "/dispense_command") {
+      } else if (stream.dataPath == "/commands") {
         String command = stream.value;
-        Serial.print("FirebaseManager: Dispense command received: ");
+        Serial.print("FirebaseManager: Command received via stream: ");
         Serial.println(command);
-        // Handle dispense commands here
+        // Process command in realtime
+        instance->processCommand(command);
         
       } else if (stream.dataPath == "/pill_schedule") {
         String schedule = stream.value;
@@ -438,12 +441,56 @@ bool FirebaseManager::checkForCommands() {
       Serial.print("FirebaseManager: Command received: ");
       Serial.println(command);
       
-      // Clear the command after reading
+      // Process the command
+      processCommand(command);
+      
+      // Clear the command after reading (only for polling mode)
       Firebase.RTDB.deleteNode(&fbdo, path);
       return true;
     }
   }
   return false;
+}
+
+void FirebaseManager::processCommand(String command) {
+  command.trim();
+  command.toUpperCase();
+  
+  if (command.startsWith("DISPENSE:")) {
+    // Extract dispenser ID from command like "DISPENSE:1"
+    int colonIndex = command.indexOf(':');
+    if (colonIndex > 0) {
+      String dispenserIdStr = command.substring(colonIndex + 1);
+      int dispenserId = dispenserIdStr.toInt();
+      
+      if (dispenserId >= 1 && dispenserId <= 5) {
+        Serial.print("FirebaseManager: Processing dispense command for dispenser ");
+        Serial.println(dispenserId);
+        
+        // Trigger dispense - this will be handled by the main sketch
+        // For now, we'll set a flag that the main loop can check
+        lastDispenseCommand = dispenserId;
+        dispenseCommandReceived = true;
+      } else {
+        Serial.println("FirebaseManager: Invalid dispenser ID in command");
+      }
+    }
+  } else {
+    Serial.print("FirebaseManager: Unknown command: ");
+    Serial.println(command);
+  }
+}
+
+bool FirebaseManager::hasDispenseCommand() {
+  return dispenseCommandReceived;
+}
+
+int FirebaseManager::getLastDispenseCommand() {
+  if (dispenseCommandReceived) {
+    dispenseCommandReceived = false; // Reset the flag
+    return lastDispenseCommand;
+  }
+  return 0;
 }
 
 void FirebaseManager::printConnectionStatus() {
