@@ -9,6 +9,11 @@ TimeManager::TimeManager() {
   lastSyncTime = 0;
   isTimeSynced = false;
   memset(&timeinfo, 0, sizeof(timeinfo));
+  
+  // Initialize software RTC
+  memset(&softwareRTC, 0, sizeof(softwareRTC));
+  softwareRTCInitialized = false;
+  lastSecondUpdate = 0;
 }
 
 void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) {
@@ -59,6 +64,9 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
     Serial.println(timeStringBuff);
 
     // Note: Arduino Time library sync removed to avoid conflicts with system time
+    
+    // Initialize software RTC with NTP time
+    initializeSoftwareRTC();
   }
 }
 
@@ -92,15 +100,127 @@ bool TimeManager::syncTime() {
 
   isTimeSynced = true;
   lastSyncTime = millis();
+  
+  // Sync software RTC from NTP
+  syncSoftwareRTCFromNTP();
+  
   return true;
 }
 
 void TimeManager::forceSync() {
   Serial.println("TimeManager: 🔄 Force syncing time...");
-  syncTime();
+  if (syncTime()) {
+    syncSoftwareRTCFromNTP();
+  }
+}
+
+void TimeManager::initializeSoftwareRTC() {
+  Serial.println("TimeManager: Initializing software RTC...");
+  
+  // Try to get time from NTP first
+  if (getLocalTime(&timeinfo)) {
+    // Copy NTP time to software RTC
+    softwareRTC = timeinfo;
+    softwareRTCInitialized = true;
+    lastSecondUpdate = millis();
+    Serial.println("TimeManager: Software RTC initialized from NTP");
+    
+    char timeStringBuff[50];
+    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &softwareRTC);
+    Serial.print("TimeManager: Software RTC time: ");
+    Serial.println(timeStringBuff);
+  } else {
+    // Fallback: set to current date/time
+    Serial.println("TimeManager: NTP failed, setting software RTC to fallback time");
+    softwareRTC.tm_year = 2025 - 1900; // Year since 1900
+    softwareRTC.tm_mon = 11;  // December (0-based)
+    softwareRTC.tm_mday = 11; // Day
+    softwareRTC.tm_hour = 12; // Hour
+    softwareRTC.tm_min = 0;   // Minute
+    softwareRTC.tm_sec = 0;   // Second
+    softwareRTCInitialized = true;
+    lastSecondUpdate = millis();
+  }
+}
+
+void TimeManager::updateSoftwareRTC() {
+  if (!softwareRTCInitialized) {
+    initializeSoftwareRTC();
+    return;
+  }
+  
+  // Update every second
+  if (millis() - lastSecondUpdate >= 1000) {
+    lastSecondUpdate = millis();
+    
+    // Increment seconds
+    softwareRTC.tm_sec++;
+    
+    // Handle minute rollover
+    if (softwareRTC.tm_sec >= 60) {
+      softwareRTC.tm_sec = 0;
+      softwareRTC.tm_min++;
+      
+      // Handle hour rollover
+      if (softwareRTC.tm_min >= 60) {
+        softwareRTC.tm_min = 0;
+        softwareRTC.tm_hour++;
+        
+        // Handle day rollover (simplified - doesn't handle months with different days)
+        if (softwareRTC.tm_hour >= 24) {
+          softwareRTC.tm_hour = 0;
+          softwareRTC.tm_mday++;
+          
+          // Handle month rollover (simplified)
+          if (softwareRTC.tm_mday > 31) {
+            softwareRTC.tm_mday = 1;
+            softwareRTC.tm_mon++;
+            
+            // Handle year rollover
+            if (softwareRTC.tm_mon >= 12) {
+              softwareRTC.tm_mon = 0;
+              softwareRTC.tm_year++;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void TimeManager::syncSoftwareRTCFromNTP() {
+  if (getLocalTime(&timeinfo)) {
+    softwareRTC = timeinfo;
+    softwareRTCInitialized = true;
+    lastSecondUpdate = millis();
+    Serial.println("TimeManager: Software RTC synced from NTP");
+  }
+}
+
+String TimeManager::getSoftwareRTCTimeString() {
+  if (!softwareRTCInitialized) {
+    return "12/11/2025 12:00:00 PM";
+  }
+  
+  char buffer[25];
+  strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", &softwareRTC);
+  return String(buffer);
+}
+
+String TimeManager::getSoftwareRTCDateTimeString() {
+  if (!softwareRTCInitialized) {
+    return "2025-12-11 12:00:00";
+  }
+  
+  char buffer[20];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &softwareRTC);
+  return String(buffer);
 }
 
 void TimeManager::update() {
+  // Update software RTC every call (it handles its own timing internally)
+  updateSoftwareRTC();
+  
   // Check if time is valid, if not, try to sync immediately
   time_t currentTime = time(nullptr);
   if (currentTime < 1000000000) { // Invalid time (before year 2001)
@@ -109,19 +229,14 @@ void TimeManager::update() {
     return;
   }
 
-  // Re-sync every 6 hours or if time seems stuck
-  static time_t lastValidTime = 0;
-  if (currentTime == lastValidTime) {
-    // Time is not advancing, force a sync
-    Serial.println("TimeManager: Time appears stuck, forcing NTP sync...");
-    syncTime();
-  } else {
-    lastValidTime = currentTime;
-  }
-
+  // Re-sync every 6 hours to keep software RTC accurate
   if (isTimeSynced && (millis() - lastSyncTime > SYNC_INTERVAL)) {
     Serial.println("TimeManager: Auto-sync triggered (6 hour interval)");
     syncTime();
+    // Sync software RTC from NTP after successful sync
+    if (isTimeSynced) {
+      syncSoftwareRTCFromNTP();
+    }
   }
 }
 
@@ -188,25 +303,9 @@ String TimeManager::getCurrentLogPrefix() {
 }
 
 String TimeManager::getTimeString() {
-  // Always get fresh time from system using ESP32 native functions
-  time_t now = time(nullptr);
-  if (now < 1000000000) {
-    // Invalid time, return fallback
-    return "12/11/2025 12:00:00 PM";
-  }
-
-  struct tm timeInfo;
-  localtime_r(&now, &timeInfo);
-
-  // Update the class member for other functions
-  timeinfo = timeInfo;
-
-  char buffer[25];
-  strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", &timeInfo);
-  return String(buffer);
-}
-
-String TimeManager::getDateString() {
+  updateSoftwareRTC(); // Ensure software RTC is updated
+  return getSoftwareRTCTimeString();
+}String TimeManager::getDateString() {
   if (!getLocalTime(&timeinfo)) {
     return "0000-00-00";
   }
@@ -217,25 +316,9 @@ String TimeManager::getDateString() {
 }
 
 String TimeManager::getDateTimeString() {
-  // Always get fresh time from system using ESP32 native functions
-  time_t now = time(nullptr);
-  if (now < 1000000000) {
-    // Invalid time, return fallback
-    return "2025-12-11 12:00:00";
-  }
-
-  struct tm timeInfo;
-  localtime_r(&now, &timeInfo);
-
-  // Update the class member for other functions
-  timeinfo = timeInfo;
-
-  char buffer[20];
-  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeInfo);
-  return String(buffer);
-}
-
-time_t TimeManager::getTimestamp() {
+  updateSoftwareRTC(); // Ensure software RTC is updated
+  return getSoftwareRTCDateTimeString();
+}time_t TimeManager::getTimestamp() {
   return time(nullptr);
 }
 

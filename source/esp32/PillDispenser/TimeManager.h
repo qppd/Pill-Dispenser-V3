@@ -18,12 +18,24 @@ private:
   
   struct tm timeinfo;
   
+  // Software RTC variables
+  unsigned long lastSecondUpdate;
+  struct tm softwareRTC;
+  bool softwareRTCInitialized;
+  
 public:
   TimeManager();
   void begin(const char* server = "pool.ntp.org", long gmtOffset = 0, int daylightOffset = 0);
   void update();
   bool syncTime();
   void forceSync(); // Force immediate time sync
+  
+  // Software RTC methods
+  void initializeSoftwareRTC();
+  void updateSoftwareRTC();
+  void syncSoftwareRTCFromNTP();
+  String getSoftwareRTCTimeString();
+  String getSoftwareRTCDateTimeString();
   
   // Time retrieval functions
   String getTimeString();
