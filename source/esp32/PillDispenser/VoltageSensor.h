@@ -11,9 +11,9 @@ private:
   static const float VOLTAGE_DIVIDER_RATIO;     // 25.0 / 5.0 = 5.0
   static const uint8_t SAMPLE_COUNT = 10;       // Number of samples for averaging
   
-  // Battery calibration (18650 Li-ion 3S configuration: 9V - 12.6V)
-  static constexpr float BATTERY_MIN_VOLTAGE = 9.0;   // 3.0V per cell x 3 = 9.0V (empty)
-  static constexpr float BATTERY_MAX_VOLTAGE = 12.6;  // 4.2V per cell x 3 = 12.6V (full)
+  // Battery calibration (18650 Li-ion 2S configuration: 6.0V - 8.4V)
+  static constexpr float BATTERY_MIN_VOLTAGE = 6.0;   // 3.0V per cell x 2 = 6.0V (empty)
+  static constexpr float BATTERY_MAX_VOLTAGE = 8.4;  // 4.2V per cell x 2 = 8.4V (full)
   
   float lastRawVoltage;
   float lastActualVoltage;
@@ -44,8 +44,8 @@ public:
   
   // Advanced features
   float readAveragedVoltage(uint8_t samples = SAMPLE_COUNT);
-  bool isVoltageLow(float threshold = 9.5);  // Updated for 3S battery
-  bool isVoltageHigh(float threshold = 12.6); // Updated for 3S battery
+  bool isVoltageLow(float threshold = 6.5);  // Updated for 2S battery
+  bool isVoltageHigh(float threshold = 8.4); // Updated for 2S battery
   bool isBatteryLow(float threshold = 20.0); // Battery % threshold
 };
 
