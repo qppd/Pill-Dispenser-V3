@@ -11,8 +11,8 @@ TimeManager::TimeManager() {
 
 void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) {
   ntpServer = server;
-  gmtOffset_sec = gmtOffset;
-  daylightOffset_sec = daylightOffset;
+  gmtOffset_sec = gmtOffset * 3600; // Convert hours to seconds
+  daylightOffset_sec = daylightOffset * 3600; // Convert hours to seconds
   
   Serial.println("TimeManager: Initializing NTP time synchronization");
   Serial.print("TimeManager: NTP Server: ");
@@ -140,11 +140,11 @@ String TimeManager::getCurrentLogPrefix() {
 
 String TimeManager::getTimeString() {
   if (!getLocalTime(&timeinfo)) {
-    return "Jan 01, 2000 12:00 AM";
+    return "01/01/2000 12:00 AM";
   }
   
   char buffer[25];
-  strftime(buffer, sizeof(buffer), "%b %d, %Y %I:%M %p", &timeinfo);
+  strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M %p", &timeinfo);
   return String(buffer);
 }
 
