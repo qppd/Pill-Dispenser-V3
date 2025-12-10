@@ -141,21 +141,24 @@ void ServoDriver::dispensePill(uint8_t channel, String pillSize) {
     return;
   }
   
-  int duration = getDurationForPillSize(pillSize);
-  
   Serial.print("ServoDriver: Dispensing ");
   Serial.print(pillSize);
   Serial.print(" pill on channel ");
-  Serial.print(channel);
-  Serial.print(" for ");
-  Serial.print(duration);
-  Serial.println("ms");
+  Serial.println(channel);
   
-  // Dispense pill with forward rotation
-  operateServoTimed(channel, SERVO_FORWARD, duration);
+  // Move servo to 180 degrees
+  setServoAngle(channel, 180);
+  delay(100); // Small delay for servo movement
   
-  // Small delay between operations
-  delay(100);
+  // Wait 2 seconds
+  delay(2000);
+  
+  // Move servo back to 0 degrees
+  setServoAngle(channel, 0);
+  delay(100); // Small delay for servo movement
+  
+  Serial.print("ServoDriver: Dispensing complete on channel ");
+  Serial.println(channel);
 }
 
 void ServoDriver::dispensePillPair(uint8_t channel1, uint8_t channel2, String pillSize) {
@@ -164,34 +167,30 @@ void ServoDriver::dispensePillPair(uint8_t channel1, uint8_t channel2, String pi
     return;
   }
   
-  int duration = getDurationForPillSize(pillSize);
-  
   Serial.print("ServoDriver: Dispensing ");
   Serial.print(pillSize);
   Serial.print(" pills using channels ");
   Serial.print(channel1);
   Serial.print(" & ");
-  Serial.print(channel2);
-  Serial.print(" for ");
-  Serial.print(duration);
-  Serial.println("ms");
+  Serial.println(channel2);
   
-  // Start both servos simultaneously
-  setServoSpeed(channel1, SERVO_FORWARD);
-  setServoSpeed(channel2, SERVO_FORWARD);
+  // Move both servos to 180 degrees
+  setServoAngle(channel1, 180);
+  setServoAngle(channel2, 180);
+  delay(100); // Small delay for servo movement
   
-  // Wait for specified duration
-  delay(duration);
+  // Wait 2 seconds
+  delay(2000);
   
-  // Stop both servos
-  stopServo(channel1);
-  stopServo(channel2);
+  // Move both servos back to 0 degrees
+  setServoAngle(channel1, 0);
+  setServoAngle(channel2, 0);
+  delay(100); // Small delay for servo movement
   
-  Serial.print("ServoDriver: Both channels ");
+  Serial.print("ServoDriver: Dispensing complete on channels ");
   Serial.print(channel1);
   Serial.print(" & ");
-  Serial.print(channel2);
-  Serial.println(" stopped");
+  Serial.println(channel2);
   
   // Buffer between operations
   delay(150);
