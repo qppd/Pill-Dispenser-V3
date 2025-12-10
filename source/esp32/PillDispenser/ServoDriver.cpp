@@ -203,18 +203,10 @@ void ServoDriver::dispenseWithRotation(uint8_t servoNum, uint16_t startAngle, ui
     return;
   }
   
-  // For MG90S servos, limit angles to mechanical range (typically 0-120°)
-  if (startAngle > MG90S_MAX_ANGLE) {
-    Serial.print("ServoDriver: Limiting start angle to MG90S max (");
-    Serial.print(MG90S_MAX_ANGLE);
-    Serial.println("°)");
-    startAngle = MG90S_MAX_ANGLE;
-  }
-  if (stopAngle > MG90S_MAX_ANGLE) {
-    Serial.print("ServoDriver: Limiting stop angle to MG90S max (");
-    Serial.print(MG90S_MAX_ANGLE);
-    Serial.println("°)");
-    stopAngle = MG90S_MAX_ANGLE;
+  // For MG90S servos, warn about potential mechanical limits but allow full range
+  if (startAngle > 120 || stopAngle > 120) {
+    Serial.println("ServoDriver: WARNING - Angles > 120° may hit MG90S mechanical stops");
+    Serial.println("ServoDriver: Use 'calibrate servo' to test your servo's actual range");
   }
   
   Serial.print("ServoDriver: Dispensing with rotation - Servo ");
@@ -252,26 +244,34 @@ void ServoDriver::calibrateServo(uint8_t servoNum) {
   
   Serial.print("ServoDriver: Calibrating MG90S servo ");
   Serial.println(servoNum);
-  Serial.println("ServoDriver: Testing mechanical limits...");
+  Serial.println("ServoDriver: Testing full 180° range (per specs)...");
   
   // Test minimum position
   Serial.println("ServoDriver: Moving to minimum position (0°)...");
   setServoAngle(servoNum, 0);
-  delay(1000);
+  delay(1500);
   
-  // Test maximum position (MG90S typically stops around 120-150°)
-  Serial.println("ServoDriver: Moving to maximum position (120°)...");
-  setServoAngle(servoNum, MG90S_MAX_ANGLE);
-  delay(1000);
+  // Test maximum position (specs say 180°, but mechanical stops may limit)
+  Serial.println("ServoDriver: Moving to maximum position (180° per specs)...");
+  setServoAngle(servoNum, 180);
+  delay(1500);
   
   // Test center position
-  Serial.println("ServoDriver: Moving to center position (60°)...");
-  setServoAngle(servoNum, MG90S_MAX_ANGLE / 2);
+  Serial.println("ServoDriver: Moving to center position (90°)...");
+  setServoAngle(servoNum, 90);
+  delay(1000);
+  
+  // Test quarter positions to find actual working range
+  Serial.println("ServoDriver: Testing quarter positions...");
+  setServoAngle(servoNum, 45);
+  delay(1000);
+  setServoAngle(servoNum, 135);
   delay(1000);
   
   Serial.print("ServoDriver: Calibration complete for servo ");
   Serial.println(servoNum);
-  Serial.println("ServoDriver: Note - MG90S servos have mechanical stops around 120°");
+  Serial.println("ServoDriver: If servo didn't reach 180°, adjust MG90S_MAX_ANGLE in ServoDriver.h");
+  Serial.println("ServoDriver: Typical working range: 0-120° to 0-150° for MG90S");
 }
 
 // ========================================
@@ -408,23 +408,23 @@ void ServoDriver::testDispenserRotation(uint8_t dispenserNum) {
   Serial.print(dispenserNum);
   Serial.print(" (servo ");
   Serial.print(servoNum);
-  Serial.println(") - MG90S limits: 0-120°");
+  Serial.println(") - Testing full 180° range");
   
-  // Test sequence: 0° -> 120° -> 0° with different speeds (MG90S compatible)
-  Serial.println("ServoDriver: Test 1 - Full rotation 0° to 120° (fast)");
-  dispenseWithRotation(servoNum, 0, MG90S_MAX_ANGLE, 10);  // Fast speed
+  // Test sequence: 0° -> 180° -> 0° with different speeds (test full specs)
+  Serial.println("ServoDriver: Test 1 - Full spec rotation 0° to 180° (fast)");
+  dispenseWithRotation(servoNum, 0, 180, 10);  // Fast speed
   delay(1000);
   
-  Serial.println("ServoDriver: Test 2 - Full rotation 120° to 0° (medium)");
-  dispenseWithRotation(servoNum, MG90S_MAX_ANGLE, 0, 20);  // Medium speed
+  Serial.println("ServoDriver: Test 2 - Full spec rotation 180° to 0° (medium)");
+  dispenseWithRotation(servoNum, 180, 0, 20);  // Medium speed
   delay(1000);
   
-  Serial.println("ServoDriver: Test 3 - Partial rotation 30° to 90° (slow)");
-  dispenseWithRotation(servoNum, 30, 90, 30); // Slow speed
+  Serial.println("ServoDriver: Test 3 - Partial rotation 45° to 135° (slow)");
+  dispenseWithRotation(servoNum, 45, 135, 30); // Slow speed
   delay(1000);
   
-  Serial.println("ServoDriver: Test 4 - Return to center position (60°)");
-  dispenseWithRotation(servoNum, 90, MG90S_MAX_ANGLE / 2, 20); // Medium speed
+  Serial.println("ServoDriver: Test 4 - Return to center position (90°)");
+  dispenseWithRotation(servoNum, 135, 90, 20); // Medium speed
   delay(500);
   
   Serial.print("ServoDriver: Dispenser ");

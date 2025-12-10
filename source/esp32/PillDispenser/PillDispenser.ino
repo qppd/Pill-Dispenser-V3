@@ -293,12 +293,12 @@ void printHelpMenu() {
   Serial.println("  test all dispensers - Test all 5 dispensers sequentially");
   Serial.println();
   Serial.println("Servo Control:");
-  Serial.println("  servo [num] [angle] - Move servo to angle (0-120° for MG90S)");
+  Serial.println("  servo [num] [angle] - Move servo to angle (0-180° per MG90S specs)");
   Serial.println("  servo reset         - Reset all servos to 90°");
   Serial.println("  servo stop [num]    - Stop specific servo");
   Serial.println("  servo stop all      - Stop all servos");
   Serial.println("  servo speed [num] [speed] - Set servo speed (300-450)");
-  Serial.println("  calibrate servo [num] - Calibrate MG90S servo mechanical limits");
+  Serial.println("  calibrate servo [num] - Calibrate MG90S servo (tests full 180°)");
   Serial.println("─────────────────────────────────────");
 }
 
@@ -444,12 +444,12 @@ void handleDispenseRotationCommand(String cmd) {
         stopAngle >= 0 && stopAngle <= 180 && speed > 0) {
       servoDriver.dispenseWithRotation(servo, startAngle, stopAngle, speed);
     } else {
-      Serial.println("Invalid parameters: servo (0-15), angles (0-120° recommended for MG90S), speed > 0");
+      Serial.println("Invalid parameters: servo (0-15), angles (0-180° per specs), speed > 0");
     }
   } else {
     Serial.println("Usage: dispense rotation [servo] [start_angle] [stop_angle] [speed]");
-    Serial.println("Example: dispense rotation 0 0 120 15");
-    Serial.println("Note: MG90S servos have mechanical limits around 120°");
+    Serial.println("Example: dispense rotation 0 0 180 15");
+    Serial.println("Note: MG90S specs claim 180°, but mechanical stops may limit range");
   }
 }
 
