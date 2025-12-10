@@ -8,7 +8,9 @@ VoltageSensor::VoltageSensor(uint8_t pin) {
   analogPin = pin;
   lastRawVoltage = 0.0;
   lastActualVoltage = 0.0;
+  lastBatteryPercentage = 0.0;
   lastAdcValue = 0;
+  lastBatteryUpdate = 0;
 }
 
 void VoltageSensor::begin() {
@@ -94,8 +96,59 @@ bool VoltageSensor::isConnected() {
   return (testValue <= ADC_RESOLUTION);
 }
 
+float VoltageSensor::calculateBatteryPercentage(float voltage) {
+  // Linear interpolation between min and max voltage
+  if (voltage <= BATTERY_MIN_VOLTAGE) {
+    return 0.0;
+  }
+  if (voltage >= BATTERY_MAX_VOLTAGE) {
+    return 100.0;
+  }
+  
+  // Calculate percentage
+  float percentage = ((voltage - BATTERY_MIN_VOLTAGE) / 
+                     (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100.0;
+  
+  // Ensure within 0-100 range
+  percentage = constrain(percentage, 0.0, 100.0);
+  
+  return percentage;
+}
+
+float VoltageSensor::readBatteryPercentage() {
+  float voltage = readAveragedVoltage(5); // Average of 5 samples
+  lastBatteryPercentage = calculateBatteryPercentage(voltage);
+  lastBatteryUpdate = millis();
+  return lastBatteryPercentage;
+}
+
+float VoltageSensor::getLastBatteryPercentage() {
+  return lastBatteryPercentage;
+}
+
+bool VoltageSensor::shouldUpdateBattery() {
+  return (millis() - lastBatteryUpdate >= BATTERY_UPDATE_INTERVAL);
+}
+
+String VoltageSensor::getBatteryStatus() {
+  if (lastBatteryPercentage >= 80) {
+    return "Full";
+  } else if (lastBatteryPercentage >= 50) {
+    return "Good";
+  } else if (lastBatteryPercentage >= 20) {
+    return "Low";
+  } else {
+    return "Critical";
+  }
+}
+
+bool VoltageSensor::isBatteryLow(float threshold) {
+  return lastBatteryPercentage < threshold;
+}
+
 void VoltageSensor::printDebug() {
   readActualVoltage();
+  readBatteryPercentage();
   
   Serial.println("─────────────────────────────────────");
   Serial.println("[VOLTAGE SENSOR DEBUG]");
@@ -107,6 +160,11 @@ void VoltageSensor::printDebug() {
   Serial.print("Actual Voltage:  ");
   Serial.print(lastActualVoltage, 2);
   Serial.println(" V");
+  Serial.print("Battery %:       ");
+  Serial.print(lastBatteryPercentage, 1);
+  Serial.println(" %");
+  Serial.print("Battery Status:  ");
+  Serial.println(getBatteryStatus());
   Serial.println("─────────────────────────────────────");
 }
 
