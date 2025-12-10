@@ -73,7 +73,7 @@ graph TB
 ```mermaid
 graph LR
     subgraph "ESP32 Main Controller"
-        MAIN[Main Program<br/>PillDispenser.ino]
+        MAIN[Main Program PillDispenser.ino]
         SERVO_DRV[ServoDriver Module]
         IR_MOD[IRSensor Module]
         LCD_MOD[LCDDisplay Module]
@@ -146,17 +146,17 @@ graph LR
 
 ```mermaid
 flowchart TD
-    START([System Power On]) --> INIT[Initialize Serial<br/>115200 baud]
-    INIT --> I2C[Initialize I2C<br/>SDA:21, SCL:22]
-    I2C --> MODE{Development<br/>Mode?}
+    START([System Power On]) --> INIT[Initialize Serial 115200 baud]
+    INIT --> I2C[Initialize I2C SDA:21, SCL:22]
+    I2C --> MODE{Development Mode?}
     
-    MODE -->|Yes| DEV_INIT[Initialize Dev Components:<br/>- ServoDriver<br/>- IRSensor<br/>- LCDDisplay<br/>- RTClock]
-    MODE -->|No| PROD_INIT[Production Mode<br/>Not Implemented]
+    MODE -->|Yes| DEV_INIT[Initialize Dev Components: - ServoDriver - IRSensor - LCDDisplay - RTClock]
+    MODE -->|No| PROD_INIT[Production Mode Not Implemented]
     
-    DEV_INIT --> READY[System Ready<br/>LED ON]
+    DEV_INIT --> READY[System Ready LED ON]
     READY --> LOOP{Main Loop}
     
-    LOOP --> SERIAL_CHECK{Serial<br/>Available?}
+    LOOP --> SERIAL_CHECK{Serial Available?}
     SERIAL_CHECK -->|Yes| READ_CMD[Read Serial Command]
     SERIAL_CHECK -->|No| SENSOR_CHECK
     
@@ -181,11 +181,11 @@ flowchart TD
     WIFI_CONN --> LOOP
     FB_TEST --> LOOP
     
-    SENSOR_CHECK --> TIMER{500ms<br/>Elapsed?}
+    SENSOR_CHECK --> TIMER{500ms Elapsed?}
     TIMER -->|Yes| READ_SENSORS[Read All IR Sensors]
     TIMER -->|No| HEARTBEAT
     
-    READ_SENSORS --> HEARTBEAT{30s<br/>Elapsed?}
+    READ_SENSORS --> HEARTBEAT{30s Elapsed?}
     HEARTBEAT -->|Yes| SEND_HB[Send Heartbeat]
     HEARTBEAT -->|No| DELAY
     
@@ -267,22 +267,22 @@ sequenceDiagram
     participant YOLO as YOLOv8 Model
     participant LCD as LCD Display
     
-    User->>Web: Request Dispense<br/>(Manual/Schedule)
-    Web->>Firebase: Update Command<br/>/dispensers/{uid}/commands
+    User->>Web: Request Dispense (Manual/Schedule)
+    Web->>Firebase: Update Command /dispensers/{uid}/commands
     
-    Firebase-->>ESP32: Stream Update<br/>dispense_command
+    Firebase-->>ESP32: Stream Update dispense_command
     
-    ESP32->>IR: Monitor Entrance<br/>(IR Sensor 1)
+    ESP32->>IR: Monitor Entrance (IR Sensor 1)
     IR-->>ESP32: Detection: HIGH→LOW
     
-    ESP32->>Servo: Activate Channel Pair<br/>(e.g., CH0+CH1)
+    ESP32->>Servo: Activate Channel Pair (e.g., CH0+CH1)
     Servo->>Servo: Open Gate (90°)
     Servo->>Servo: Close Gate (0°)
     
-    ESP32->>IR: Monitor Middle<br/>(IR Sensor 2)
+    ESP32->>IR: Monitor Middle (IR Sensor 2)
     IR-->>ESP32: Pills Moving
     
-    ESP32->>IR: Monitor Exit<br/>(IR Sensor 3)
+    ESP32->>IR: Monitor Exit (IR Sensor 3)
     IR-->>ESP32: Pills Dispensed
     
     ESP32->>RPI: UART: "TRIGGER_DETECTION"
@@ -323,23 +323,23 @@ sequenceDiagram
 ```mermaid
 graph TB
     subgraph "Pill Dispenser V3 System"
-        UC1[Manual Pill<br/>Dispensing]
-        UC2[Schedule<br/>Management]
-        UC3[View Dispense<br/>Logs]
-        UC4[Monitor Device<br/>Status]
-        UC5[Pill Count<br/>Verification]
-        UC6[User<br/>Authentication]
-        UC7[Export<br/>Reports]
-        UC8[System<br/>Testing]
-        UC9[Real-time<br/>Monitoring]
-        UC10[Remote<br/>Control]
-        UC11[SMS<br/>Notifications]
+        UC1[Manual Pill Dispensing]
+        UC2[Schedule Management]
+        UC3[View Dispense Logs]
+        UC4[Monitor Device Status]
+        UC5[Pill Count Verification]
+        UC6[User Authentication]
+        UC7[Export Reports]
+        UC8[System Testing]
+        UC9[Real-time Monitoring]
+        UC10[Remote Control]
+        UC11[SMS Notifications]
     end
     
-    USER((End User/<br/>Caregiver))
-    ADMIN((System<br/>Administrator))
-    ESP32((ESP32<br/>Controller))
-    RPI((Raspberry Pi<br/>ML System))
+    USER((End User/ Caregiver))
+    ADMIN((System Administrator))
+    ESP32((ESP32 Controller))
+    RPI((Raspberry Pi ML System))
     
     USER --> UC1
     USER --> UC2
@@ -489,24 +489,24 @@ erDiagram
 ```mermaid
 graph TB
     subgraph "Local Network - 192.168.1.x"
-        ESP32[ESP32 Main<br/>WiFi Client]
-        ESP32CAM[ESP32-CAM<br/>192.168.1.100<br/>HTTP Server]
-        RPI[Raspberry Pi 4<br/>WiFi/Ethernet]
-        ROUTER[WiFi Router<br/>Access Point]
+        ESP32[ESP32 Main WiFi Client]
+        ESP32CAM[ESP32-CAM 192.168.1.100 HTTP Server]
+        RPI[Raspberry Pi 4 WiFi/Ethernet]
+        ROUTER[WiFi Router Access Point]
     end
     
     subgraph "Serial Communication"
         ESP32 <-->|UART 115200| RPI
-        ESP32 -->|Monitor| SERIAL[Serial Monitor<br/>USB]
+        ESP32 -->|Monitor| SERIAL[Serial Monitor USB]
     end
     
     subgraph "Internet"
-        FIREBASE[Firebase<br/>Realtime DB<br/>pilldispenser-5c037]
-        WEB_HOST[Vercel<br/>Web Hosting]
+        FIREBASE[Firebase Realtime DB pilldispenser-5c037]
+        WEB_HOST[Vercel Web Hosting]
     end
     
     subgraph "User Devices"
-        BROWSER[Web Browser<br/>Any Device]
+        BROWSER[Web Browser Any Device]
         MOBILE[Mobile Device]
     end
     
@@ -537,53 +537,53 @@ graph TB
 
 ```mermaid
 flowchart TD
-    START([User Access<br/>localhost:3000]) --> AUTH_CHECK{Firebase<br/>Configured?}
+    START([User Access localhost:3000]) --> AUTH_CHECK{Firebase Configured?}
     
-    AUTH_CHECK -->|No| SETUP_MSG[Show Setup<br/>Required Message]
-    AUTH_CHECK -->|Yes| LOGIN_CHECK{User<br/>Logged In?}
+    AUTH_CHECK -->|No| SETUP_MSG[Show Setup Required Message]
+    AUTH_CHECK -->|Yes| LOGIN_CHECK{User Logged In?}
     
     LOGIN_CHECK -->|No| LOGIN_PAGE[Login Page]
     LOGIN_CHECK -->|Yes| DASHBOARD
     
-    LOGIN_PAGE --> LOGIN_FORM[Enter Email<br/>& Password]
-    LOGIN_FORM --> AUTH_SUBMIT{Submit<br/>Credentials}
+    LOGIN_PAGE --> LOGIN_FORM[Enter Email & Password]
+    LOGIN_FORM --> AUTH_SUBMIT{Submit Credentials}
     
     AUTH_SUBMIT -->|Success| DASHBOARD[Dashboard Page]
-    AUTH_SUBMIT -->|Failed| ERROR[Show Error<br/>Message]
+    AUTH_SUBMIT -->|Failed| ERROR[Show Error Message]
     ERROR --> LOGIN_PAGE
     
-    DASHBOARD --> LOAD_DATA{Load Data<br/>from Firebase}
+    DASHBOARD --> LOAD_DATA{Load Data from Firebase}
     
-    LOAD_DATA --> DEVICE_STATUS[Get Device Status<br/>/dispensers/{uid}/device]
-    LOAD_DATA --> CONTAINERS[Get Containers<br/>/dispensers/{uid}/containers]
+    LOAD_DATA --> DEVICE_STATUS["Get Device Status /dispensers/{uid}/device"]
+    LOAD_DATA --> CONTAINERS["Get Containers /dispensers/{uid}/containers"]
     
-    DEVICE_STATUS --> DISPLAY_DEVICE[Display:<br/>- Battery %<br/>- Online/Offline<br/>- Low Pills Count]
+    DEVICE_STATUS --> DISPLAY_DEVICE[Display: - Battery % - Online/Offline - Low Pills Count]
     
-    CONTAINERS --> DISPLAY_CONTAINERS[Display 5 Containers:<br/>- Pills Remaining<br/>- Next Dose<br/>- Last Dispensed]
+    CONTAINERS --> DISPLAY_CONTAINERS[Display 5 Containers: - Pills Remaining - Next Dose - Last Dispensed]
     
-    DISPLAY_DEVICE --> USER_ACTION{User<br/>Action?}
+    DISPLAY_DEVICE --> USER_ACTION{User Action?}
     DISPLAY_CONTAINERS --> USER_ACTION
     
-    USER_ACTION -->|Dispense Now| DISPENSE_CHECK{Device<br/>Online?}
+    USER_ACTION -->|Dispense Now| DISPENSE_CHECK{Device Online?}
     USER_ACTION -->|View Logs| LOGS_PAGE[Logs Page]
     USER_ACTION -->|Manage Schedule| SCHEDULE_PAGE[Schedule Page]
     USER_ACTION -->|Logout| LOGOUT[Sign Out]
     
-    DISPENSE_CHECK -->|Yes| UPDATE_FB[Update Firebase:<br/>- Decrement pills<br/>- Set timestamp]
+    DISPENSE_CHECK -->|Yes| UPDATE_FB[Update Firebase: - Decrement pills - Set timestamp]
     DISPENSE_CHECK -->|No| DISABLED[Button Disabled]
     
-    UPDATE_FB --> REALTIME_UPDATE[Real-time Update<br/>via onValue()]
+    UPDATE_FB --> REALTIME_UPDATE[Real-time Update via onValue()]
     REALTIME_UPDATE --> DASHBOARD
     
-    LOGS_PAGE --> LOAD_LOGS[Load pill_logs<br/>& reports]
+    LOGS_PAGE --> LOAD_LOGS[Load pill_logs & reports]
     LOAD_LOGS --> FILTER{Filter/Search}
     FILTER --> EXPORT{Export CSV?}
     EXPORT -->|Yes| DOWNLOAD_CSV[Download Logs.csv]
     EXPORT -->|No| LOGS_PAGE
     
-    SCHEDULE_PAGE --> SELECT_CONTAINER[Select Container<br/>1-5]
-    SELECT_CONTAINER --> MANAGE_TIMES[Add/Edit/Remove<br/>Schedule Times<br/>Max 3 per day]
-    MANAGE_TIMES --> SAVE_SCHEDULE[Save to Firebase<br/>/schedules/{uid}]
+    SCHEDULE_PAGE --> SELECT_CONTAINER[Select Container 1-5]
+    SELECT_CONTAINER --> MANAGE_TIMES[Add/Edit/Remove Schedule Times Max 3 per day]
+    MANAGE_TIMES --> SAVE_SCHEDULE["Save to Firebase /schedules/{uid}"]
     SAVE_SCHEDULE --> SCHEDULE_PAGE
     
     LOGOUT --> LOGIN_PAGE
@@ -601,23 +601,23 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph ESP32_MAIN["ESP32 Main Controller (PillDispenser.ino)"]
-        MAIN[Main Loop<br/>Development Mode]
+        MAIN[Main Loop Development Mode]
     end
     
     subgraph MODULES["Software Modules"]
-        SERVO[ServoDriver<br/>Class]
-        IR[IRSensor<br/>Class]
-        LCD[LCDDisplay<br/>Class]
-        RTC[RTClock<br/>Class]
-        FB[FirebaseManager<br/>Class]
-        GSM[SIM800L<br/>Class]
+        SERVO[ServoDriver Class]
+        IR[IRSensor Class]
+        LCD[LCDDisplay Class]
+        RTC[RTClock Class]
+        FB[FirebaseManager Class]
+        GSM[SIM800L Class]
     end
     
     subgraph HARDWARE["Hardware Interfaces"]
-        I2C_BUS[I2C Bus<br/>SDA:21 SCL:22]
-        GPIO[GPIO Pins<br/>34,35,32]
-        WIRE3[3-Wire<br/>CLK,DAT,RST]
-        UART[UART<br/>RX:16 TX:17]
+        I2C_BUS[I2C Bus SDA:21 SCL:22]
+        GPIO[GPIO Pins 34,35,32]
+        WIRE3[3-Wire CLK,DAT,RST]
+        UART[UART RX:16 TX:17]
         WIFI[WiFi Radio]
     end
     
@@ -652,12 +652,12 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    TRIGGER[ESP32 Trigger<br/>UART Command] --> RPI_RECV[Raspberry Pi<br/>Receives Trigger]
+    TRIGGER[ESP32 Trigger UART Command] --> RPI_RECV[Raspberry Pi Receives Trigger]
     
-    RPI_RECV --> FLASH_ON[HTTP Request<br/>ESP32-CAM Flash ON]
+    RPI_RECV --> FLASH_ON[HTTP Request ESP32-CAM Flash ON]
     
-    FLASH_ON --> CAP1[Capture Image 1<br/>HTTP GET /stream]
-    CAP1 --> SAVE1[Save to<br/>captured_images/]
+    FLASH_ON --> CAP1["Capture Image 1 HTTP GET /stream"]
+    CAP1 --> SAVE1["Save to captured_images/"]
     
     SAVE1 --> DELAY1[Delay 300ms]
     DELAY1 --> CAP2[Capture Image 2]
@@ -669,27 +669,27 @@ flowchart TD
     
     SAVE3 --> FLASH_OFF[Flash OFF]
     
-    FLASH_OFF --> PROC1[YOLOv8 Inference<br/>Image 1]
-    PROC1 --> DET1[Detections 1:<br/>bbox, conf, class]
+    FLASH_OFF --> PROC1[YOLOv8 Inference Image 1]
+    PROC1 --> DET1[Detections 1: bbox, conf, class]
     
-    FLASH_OFF --> PROC2[YOLOv8 Inference<br/>Image 2]
+    FLASH_OFF --> PROC2[YOLOv8 Inference Image 2]
     PROC2 --> DET2[Detections 2]
     
-    FLASH_OFF --> PROC3[YOLOv8 Inference<br/>Image 3]
+    FLASH_OFF --> PROC3[YOLOv8 Inference Image 3]
     PROC3 --> DET3[Detections 3]
     
     DET1 --> ENSEMBLE[Ensemble Aggregation]
     DET2 --> ENSEMBLE
     DET3 --> ENSEMBLE
     
-    ENSEMBLE --> VOTE[Spatial Grouping<br/>& Voting]
-    VOTE --> CONF[Confidence<br/>Averaging]
-    CONF --> FILTER[Threshold Filter<br/>0.7 minimum]
+    ENSEMBLE --> VOTE[Spatial Grouping & Voting]
+    VOTE --> CONF[Confidence Averaging]
+    CONF --> FILTER[Threshold Filter 0.7 minimum]
     
-    FILTER --> FINAL[Final Detection:<br/>Count & Class]
+    FILTER --> FINAL[Final Detection: Count & Class]
     
-    FINAL --> UART_SEND[UART to ESP32:<br/>"PILLS_DETECTED:3:round_pill"]
-    FINAL --> DB_SAVE[Save to SQLite:<br/>detection_sessions]
+    FINAL --> UART_SEND[UART to ESP32: "PILLS_DETECTED:3:round_pill"]
+    FINAL --> DB_SAVE[Save to SQLite: detection_sessions]
     
     UART_SEND --> ESP32_PROC[ESP32 Processing]
     DB_SAVE --> RPI_LOG[Logging Complete]
@@ -769,39 +769,39 @@ stateDiagram-v2
 graph TB
     subgraph "Physical Device"
         subgraph "ESP32 Node"
-            ESP32_FW[ESP32 Firmware<br/>Arduino C++<br/>PillDispenser.ino]
-            ESP32_LIBS[Libraries:<br/>- Firebase_ESP_Client<br/>- Adafruit_PWMServo<br/>- LiquidCrystal_I2C]
+            ESP32_FW[ESP32 Firmware Arduino C++ PillDispenser.ino]
+            ESP32_LIBS[Libraries: - Firebase_ESP_Client - Adafruit_PWMServo - LiquidCrystal_I2C]
         end
         
         subgraph "ESP32-CAM Node"
-            CAM_FW[ESP32-CAM Firmware<br/>IPCamera.ino]
-            CAM_SERVER[HTTP Server<br/>- /stream<br/>- /flash/*]
+            CAM_FW[ESP32-CAM Firmware IPCamera.ino]
+            CAM_SERVER[HTTP Server - /stream - /flash/*]
         end
         
         subgraph "Raspberry Pi Node"
-            RPI_SW[Python Application<br/>main.py]
-            RPI_DEPS[Dependencies:<br/>- ultralytics (YOLOv8)<br/>- opencv-python<br/>- pyserial<br/>- sqlite3]
-            YOLO_MODEL[YOLOv8 Model<br/>pill_detector_v1.pt]
-            SQLITE[SQLite Database<br/>pill_dispenser.db]
+            RPI_SW[Python Application main.py]
+            RPI_DEPS[Dependencies: - ultralytics (YOLOv8) - opencv-python - pyserial - sqlite3]
+            YOLO_MODEL[YOLOv8 Model pill_detector_v1.pt]
+            SQLITE[SQLite Database pill_dispenser.db]
         end
     end
     
     subgraph "Cloud Infrastructure"
         subgraph "Firebase Project"
-            FB_RTDB[Realtime Database<br/>pilldispenser-5c037]
-            FB_AUTH[Authentication<br/>Email/Password]
+            FB_RTDB[Realtime Database pilldispenser-5c037]
+            FB_AUTH[Authentication Email/Password]
         end
         
         subgraph "Vercel Platform"
-            NEXT_APP[Next.js 16.0.3<br/>Production Build]
-            API_ROUTES[API Routes<br/>- /api/dispenser<br/>- /api/dispense]
+            NEXT_APP[Next.js 16.0.3 Production Build]
+            API_ROUTES["API Routes - /api/dispenser - /api/dispense"]
         end
     end
     
     subgraph "Development Environment"
-        ARDUINO_IDE[Arduino IDE<br/>ESP32 Board Support]
-        VSCODE[VS Code<br/>Python/TypeScript]
-        NODE[Node.js 18+<br/>npm packages]
+        ARDUINO_IDE[Arduino IDE ESP32 Board Support]
+        VSCODE[VS Code Python/TypeScript]
+        NODE[Node.js 18+ npm packages]
     end
     
     ESP32_FW -->|Upload via USB| ARDUINO_IDE
@@ -1021,8 +1021,8 @@ graph TB
     end
     
     subgraph "Next.js API Routes"
-        API_DISP["/api/dispenser<br/>GET & POST"]
-        API_DISPENSE["/api/dispense<br/>POST"]
+        API_DISP["/api/dispenser GET & POST"]
+        API_DISPENSE["/api/dispense POST"]
     end
     
     subgraph "Firebase Operations"
@@ -1108,3 +1108,4 @@ graph TB
 *All diagrams generated from actual codebase implementation.*
 *No imaginary or speculative features included.*
 *Date: December 3, 2025*
+
