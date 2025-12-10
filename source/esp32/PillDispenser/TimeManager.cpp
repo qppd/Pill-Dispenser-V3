@@ -76,6 +76,68 @@ void TimeManager::update() {
   }
 }
 
+time_t TimeManager::getTimestampWithFallback() {
+  time_t timestamp = getTimestamp();
+  
+  if (timestamp == 0) {
+    // NTP failed, use fallback with warning
+    Serial.println("TimeManager: ⚠️ NTP unavailable, using fallback timestamp");
+    unsigned long fallbackTime = millis() / 1000 + 1692620000; // Fallback base
+    return (time_t)fallbackTime;
+  }
+  
+  // Log successful NTP time retrieval periodically
+  static unsigned long lastNTPLog = 0;
+  if (millis() - lastNTPLog > 300000) { // Log every 5 minutes
+    Serial.println("TimeManager: ✅ NTP time synchronized: " + getDateTimeString());
+    lastNTPLog = millis();
+  }
+  
+  return timestamp;
+}
+
+bool TimeManager::isNTPSynced() {
+  time_t now = time(nullptr);
+  return (now > 1000000000); // Valid timestamp (after year 2001)
+}
+
+String TimeManager::getFormattedDateTime() {
+  if (!getLocalTime(&timeinfo)) {
+    // Return fallback formatted time if NTP fails
+    unsigned long fallbackTimestamp = millis() / 1000 + 1692620000;
+    time_t fallbackTime = (time_t)fallbackTimestamp;
+    struct tm* fallbackTimeInfo = localtime(&fallbackTime);
+    
+    char timeStringBuff[50];
+    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", fallbackTimeInfo);
+    return String(timeStringBuff) + " (EST)"; // Estimated time
+  }
+  
+  char timeStringBuff[50];
+  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  return String(timeStringBuff);
+}
+
+String TimeManager::getFormattedDateTimeWithFallback() {
+  if (isNTPSynced()) {
+    return getFormattedDateTime();
+  } else {
+    // Use fallback with clear indication
+    unsigned long fallbackTimestamp = millis() / 1000 + 1692620000;
+    time_t fallbackTime = (time_t)fallbackTimestamp;
+    struct tm* fallbackTimeInfo = localtime(&fallbackTime);
+    
+    char timeStringBuff[50];
+    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", fallbackTimeInfo);
+    return String(timeStringBuff) + " (EST)"; // Estimated time
+  }
+}
+
+String TimeManager::getCurrentLogPrefix() {
+  String datetime = getFormattedDateTimeWithFallback();
+  return "[" + datetime + "] ";
+}
+
 String TimeManager::getTimeString() {
   if (!getLocalTime(&timeinfo)) {
     return "00:00:00";

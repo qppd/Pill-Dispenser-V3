@@ -29,6 +29,13 @@ public:
   String getDateTimeString();
   time_t getTimestamp();
   
+  // Enhanced time functions with fallback
+  time_t getTimestampWithFallback();
+  String getFormattedDateTime();
+  String getFormattedDateTimeWithFallback();
+  String getCurrentLogPrefix();
+  bool isNTPSynced();
+  
   // Individual components
   int getHour();
   int getMinute();

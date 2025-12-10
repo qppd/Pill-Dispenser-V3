@@ -1,4 +1,5 @@
 #include "FirebaseManager.h"
+#include "FirebaseConfig.h"
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
@@ -18,11 +19,49 @@ FirebaseManager::FirebaseManager() {
   instance = this;
 }
 
+void FirebaseManager::printNetworkDiagnostics() {
+    Serial.println("\n=== Network Diagnostics ===");
+    
+    // WiFi Status
+    Serial.printf("WiFi Status: %s\n", 
+                  WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected");
+    Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
+    Serial.printf("DNS Server: %s\n", WiFi.dnsIP().toString().c_str());
+    Serial.printf("Signal Strength (RSSI): %d dBm\n", WiFi.RSSI());
+    
+    // DNS Resolution Test
+    Serial.println("\nTesting DNS resolution...");
+    IPAddress ip;
+    if (WiFi.hostByName("pool.ntp.org", ip)) {
+        Serial.printf("DNS Test: SUCCESS - pool.ntp.org resolved to %s\n", ip.toString().c_str());
+    } else {
+        Serial.println("DNS Test: FAILED - Could not resolve pool.ntp.org");
+    }
+    
+    // NTP Time Check
+    time_t now = time(nullptr);
+    if (now > 1000000000) { // Valid timestamp (after year 2001)
+        Serial.printf("NTP Time: SUCCESS - %s", ctime(&now));
+    } else {
+        Serial.println("NTP Time: FAILED - Time not synchronized");
+    }
+    
+    // Memory Status
+    Serial.printf("Free Heap: %d bytes\n", ESP.getFreeHeap());
+    
+    Serial.println("=== End Diagnostics ===\n");
+}
+
 bool FirebaseManager::begin(String apiKey, String databaseURL) {
   config.api_key = apiKey;
   config.database_url = databaseURL;
   
   Serial.println("FirebaseManager: Initializing Firebase...");
+  
+  // Print network diagnostics for debugging
+  printNetworkDiagnostics();
+  
   return initializeFirebase();
 }
 
@@ -59,45 +98,75 @@ bool FirebaseManager::initializeFirebase() {
     return false;
   }
   
-  Serial.println("FirebaseManager: Setting up Firebase authentication...");
+  Serial.println("FirebaseManager: Setting up Firebase with service account authentication...");
+  Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
   
-  // Use anonymous authentication (no email/password required)
-  if (Firebase.signUp(&config, &auth, "", "")) {
-    Serial.println("FirebaseManager: Anonymous signup successful");
-    signupOk = true;
-  } else {
-    Serial.printf("FirebaseManager: Signup failed: %s\n", config.signer.signupError.message.c_str());
-    signupOk = true; // Continue anyway for development
-  }
+  // Assign Firebase credentials (using service account)
+  config.service_account.data.client_email = PillDispenserConfig::getClientEmail();
+  config.service_account.data.project_id = PillDispenserConfig::getProjectId();
+  config.service_account.data.private_key = PillDispenserConfig::getPrivateKey();
   
-  // Set token status callback
-  config.token_status_callback = tokenStatusCallback;
+  // Set network reconnection
+  Firebase.reconnectNetwork(true);
   
-  // Initialize Firebase
-  Firebase.begin(&config, &auth);
-  Firebase.reconnectWiFi(true);
+  // Configure buffer sizes for ESP32
+  fbdo.setBSSLBufferSize(4096, 1024);
+  fbdo.setResponseSize(2048);
   
-  // Wait for Firebase to be ready
-  unsigned long startTime = millis();
-  while (!Firebase.ready() && millis() - startTime < 10000) {
-    delay(100);
-  }
+  // Set timeouts to handle slow connections
+  config.timeout.serverResponse = 10 * 1000; // 10 seconds
+  config.timeout.socketConnection = 10 * 1000; // 10 seconds
+  config.timeout.sslHandshake = 30 * 1000; // 30 seconds
+  config.timeout.rtdbKeepAlive = 45 * 1000; // 45 seconds
+  config.timeout.rtdbStreamReconnect = 1 * 1000; // 1 second
+  config.timeout.rtdbStreamError = 3 * 1000; // 3 seconds
   
-  if (Firebase.ready()) {
-    Serial.println("FirebaseManager: Firebase initialized successfully");
-    isAuthenticated = true;
+  // Begin Firebase with retry logic
+  Serial.println("Initializing Firebase with retry logic...");
+  
+  int retryCount = 0;
+  const int maxRetries = 5;
+  const int baseDelay = 2000; // 2 seconds
+  
+  while (retryCount < maxRetries) {
+    Firebase.begin(&config, &auth);
     
-    // Start data streaming
-    beginDataStream();
+    // Wait for Firebase to initialize with timeout
+    int initWait = 0;
+    const int maxInitWait = 30; // 30 seconds max wait
     
-    // Send initial heartbeat
-    sendHeartbeat();
-    return true;
-  } else {
-    Serial.println("FirebaseManager: Firebase initialization failed");
-    isAuthenticated = false;
-    return false;
+    while (!Firebase.ready() && initWait < maxInitWait) {
+      Serial.print(".");
+      delay(1000);
+      initWait++;
+    }
+    Serial.println();
+    
+    if (Firebase.ready()) {
+      Serial.println("FirebaseManager: ✅ Firebase initialized successfully!");
+      isAuthenticated = true;
+      signupOk = true;
+      
+      // Start data streaming
+      beginDataStream();
+      
+      // Send initial heartbeat
+      sendHeartbeat();
+      return true;
+    } else {
+      retryCount++;
+      if (retryCount < maxRetries) {
+        int delayTime = baseDelay * retryCount;
+        Serial.printf("FirebaseManager: Retry %d/%d failed. Waiting %d ms before retry...\n", 
+                     retryCount, maxRetries, delayTime);
+        delay(delayTime);
+      }
+    }
   }
+  
+  Serial.println("FirebaseManager: ❌ Failed to initialize Firebase after all retries!");
+  isAuthenticated = false;
+  return false;
 }
 
 bool FirebaseManager::beginDataStream() {

@@ -12,6 +12,8 @@ public:
     static const char* getDatabaseURL();
     static const char* getApiKey();
     static const char* getProjectId();
+    static const char* getClientEmail();
+    static const char* getPrivateKey();
 };
 
 #endif

@@ -57,6 +57,7 @@ public:
   bool testDataUpload();
   bool testDataDownload();
   void printConnectionStatus();
+  void printNetworkDiagnostics();
   
   // Utility functions
   String getDeviceId();
