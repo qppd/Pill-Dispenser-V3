@@ -127,12 +127,45 @@ export default function SchedulePage() {
     if (!user || !db) return;
 
     setSaving(true);
-    const schedulesRef = ref(db, `schedules/${user.uid}`);
-    await set(schedulesRef, { dispensers });
-    setSaving(false);
+    try {
+      // Save to user's schedule path
+      const schedulesRef = ref(db, `schedules/${user.uid}`);
+      await set(schedulesRef, { dispensers });
 
-    // Show success toast (you can add a toast library later)
-    alert('Schedules saved successfully!');
+      // Also save to device path for ESP32 to read
+      // Format: pilldispenser/device/{deviceId}/pill_schedule
+      // We'll save all schedules in a format ESP32 can parse
+      const deviceScheduleRef = ref(db, `pilldispenser/device/schedules/${user.uid}`);
+      
+      // Convert schedules to ESP32-friendly format
+      const esp32Schedules: any = {};
+      dispensers.forEach((dispenser) => {
+        dispenser.schedules.forEach((schedule, index) => {
+          if (schedule.enabled) {
+            const scheduleId = `${dispenser.id}_${index}`;
+            const [hours, minutes] = schedule.time.split(':');
+            esp32Schedules[scheduleId] = {
+              dispenserId: dispenser.id - 1, // ESP32 uses 0-based index
+              hour: parseInt(hours),
+              minute: parseInt(minutes),
+              enabled: schedule.enabled,
+              medicationName: `Container ${dispenser.id} Medication`,
+              patientName: user.email || 'Patient',
+              pillSize: 'medium',
+            };
+          }
+        });
+      });
+
+      await set(deviceScheduleRef, esp32Schedules);
+      
+      setSaving(false);
+      alert('Schedules saved successfully!');
+    } catch (error) {
+      console.error('Error saving schedules:', error);
+      setSaving(false);
+      alert('Failed to save schedules. Please try again.');
+    }
   };
 
   if (loading) {
