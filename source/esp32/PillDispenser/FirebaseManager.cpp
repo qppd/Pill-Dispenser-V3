@@ -1,6 +1,5 @@
 #include "FirebaseManager.h"
 #include "FirebaseConfig.h"
-#include "VoltageSensor.h"
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
