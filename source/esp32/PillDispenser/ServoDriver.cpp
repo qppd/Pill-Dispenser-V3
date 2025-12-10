@@ -196,6 +196,39 @@ void ServoDriver::dispensePillPair(uint8_t channel1, uint8_t channel2, String pi
   delay(150);
 }
 
+// Custom dispense function for full rotation control
+void ServoDriver::dispenseWithRotation(uint8_t servoNum, uint16_t startAngle, uint16_t stopAngle, uint16_t speed) {
+  if (servoNum > 15 || startAngle > 180 || stopAngle > 180) {
+    Serial.println("ServoDriver: Invalid servo number or angle");
+    return;
+  }
+  
+  Serial.print("ServoDriver: Dispensing with rotation - Servo ");
+  Serial.print(servoNum);
+  Serial.print(" from ");
+  Serial.print(startAngle);
+  Serial.print("° to ");
+  Serial.print(stopAngle);
+  Serial.print("° at speed ");
+  Serial.println(speed);
+  
+  // Determine rotation direction
+  int step = (startAngle < stopAngle) ? 1 : -1;
+  int steps = abs(stopAngle - startAngle);
+  
+  // Move servo step by step for smooth rotation
+  for (int angle = startAngle; steps >= 0; angle += step, steps--) {
+    setServoAngle(servoNum, angle);
+    delay(speed);  // Speed controls delay between steps (lower = faster)
+  }
+  
+  // Ensure final position is reached
+  setServoAngle(servoNum, stopAngle);
+  
+  Serial.print("ServoDriver: Rotation complete for servo ");
+  Serial.println(servoNum);
+}
+
 // ========================================
 // TRADITIONAL SERVO CONTROL (COMPATIBILITY)
 // ========================================
@@ -315,4 +348,41 @@ void ServoDriver::testAllDispenserPairs() {
   }
   
   Serial.println("ServoDriver: All dispenser pair tests complete");
+}
+
+void ServoDriver::testDispenserRotation(uint8_t dispenserNum) {
+  if (dispenserNum >= 5) {
+    Serial.println("ServoDriver: Invalid dispenser number (0-4)");
+    return;
+  }
+  
+  // Define dispenser servo mappings (0-4 map to servos 0-4)
+  uint8_t servoNum = dispenserNum;
+  
+  Serial.print("ServoDriver: Testing dispenser ");
+  Serial.print(dispenserNum);
+  Serial.print(" (servo ");
+  Serial.print(servoNum);
+  Serial.println(")");
+  
+  // Test sequence: 0° -> 180° -> 0° with different speeds
+  Serial.println("ServoDriver: Test 1 - Full rotation 0° to 180° (fast)");
+  dispenseWithRotation(servoNum, 0, 180, 10);  // Fast speed
+  delay(1000);
+  
+  Serial.println("ServoDriver: Test 2 - Full rotation 180° to 0° (medium)");
+  dispenseWithRotation(servoNum, 180, 0, 20);  // Medium speed
+  delay(1000);
+  
+  Serial.println("ServoDriver: Test 3 - Partial rotation 45° to 135° (slow)");
+  dispenseWithRotation(servoNum, 45, 135, 30); // Slow speed
+  delay(1000);
+  
+  Serial.println("ServoDriver: Test 4 - Return to 90° (medium)");
+  dispenseWithRotation(servoNum, 135, 90, 20); // Medium speed
+  delay(500);
+  
+  Serial.print("ServoDriver: Dispenser ");
+  Serial.print(dispenserNum);
+  Serial.println(" rotation test complete");
 }

@@ -16,8 +16,8 @@
 #include "VoltageSensor.h"
 
 // ===== DEVELOPMENT MODE CONFIGURATION =====
-#define DEVELOPMENT_MODE true  // Set to false for production
-#define PRODUCTION_MODE false  // Will implement later
+#define DEVELOPMENT_MODE false  // Set to false for production
+#define PRODUCTION_MODE true  // Will implement later
 
 // ===== COMPONENT INSTANCES =====
 ServoDriver servoDriver;
@@ -29,7 +29,7 @@ VoltageSensor voltageSensor(PIN_VOLTAGE_SENSOR);
 
 // ===== SYSTEM VARIABLES =====
 bool systemInitialized = false;
-String currentMode = "DEVELOPMENT";
+String currentMode = "PRODUCTION";
 unsigned long lastHeartbeat = 0;
 int pillCount = 0;
 
@@ -204,6 +204,32 @@ void processSerialCommand(String cmd) {
   else if (cmd.startsWith("servo")) {
     handleServoCommand(cmd);
   }
+  else if (cmd.startsWith("dispense rotation")) {
+    handleDispenseRotationCommand(cmd);
+  }
+  else if (cmd == "test dispenser 0") {
+    servoDriver.testDispenserRotation(0);
+  }
+  else if (cmd == "test dispenser 1") {
+    servoDriver.testDispenserRotation(1);
+  }
+  else if (cmd == "test dispenser 2") {
+    servoDriver.testDispenserRotation(2);
+  }
+  else if (cmd == "test dispenser 3") {
+    servoDriver.testDispenserRotation(3);
+  }
+  else if (cmd == "test dispenser 4") {
+    servoDriver.testDispenserRotation(4);
+  }
+  else if (cmd == "test all dispensers") {
+    Serial.println("Testing all 5 dispensers sequentially...");
+    for (int i = 0; i < 5; i++) {
+      servoDriver.testDispenserRotation(i);
+      delay(2000); // Delay between dispenser tests
+    }
+    Serial.println("All dispenser tests complete!");
+  }
   else if (cmd == "wifi connect") {
     connectWiFi();
   }
@@ -251,6 +277,15 @@ void printHelpMenu() {
   Serial.println("  dispense            - Test pill dispensing sequence");
   Serial.println("  dispense [ch] [size] - Dispense pill (ch=0-15, size=small/medium/large)");
   Serial.println("  dispense pair [ch1] [ch2] [size] - Dispense using servo pair");
+  Serial.println("  dispense rotation [servo] [start] [stop] [speed] - Custom rotation dispense");
+  Serial.println();
+  Serial.println("Dispenser Testing (5 Dispensers):");
+  Serial.println("  test dispenser 0    - Test dispenser 0 (servo 0)");
+  Serial.println("  test dispenser 1    - Test dispenser 1 (servo 1)");
+  Serial.println("  test dispenser 2    - Test dispenser 2 (servo 2)");
+  Serial.println("  test dispenser 3    - Test dispenser 3 (servo 3)");
+  Serial.println("  test dispenser 4    - Test dispenser 4 (servo 4)");
+  Serial.println("  test all dispensers - Test all 5 dispensers sequentially");
   Serial.println();
   Serial.println("Servo Control:");
   Serial.println("  servo [num] [angle] - Move servo to angle (0-180)");
@@ -384,6 +419,30 @@ void handleDispensePairCommand(String cmd) {
     }
   } else {
     Serial.println("Usage: dispense pair [0-15] [0-15] [small/medium/large]");
+  }
+}
+
+void handleDispenseRotationCommand(String cmd) {
+  // Parse "dispense rotation [servo] [start] [stop] [speed]"
+  int firstSpace = cmd.indexOf(' ', 17); // Find space after "dispense rotation "
+  int secondSpace = cmd.indexOf(' ', firstSpace + 1);
+  int thirdSpace = cmd.indexOf(' ', secondSpace + 1);
+  
+  if (firstSpace != -1 && secondSpace != -1 && thirdSpace != -1) {
+    int servo = cmd.substring(17, firstSpace).toInt();
+    int startAngle = cmd.substring(firstSpace + 1, secondSpace).toInt();
+    int stopAngle = cmd.substring(secondSpace + 1, thirdSpace).toInt();
+    int speed = cmd.substring(thirdSpace + 1).toInt();
+    
+    if (servo >= 0 && servo <= 15 && startAngle >= 0 && startAngle <= 180 && 
+        stopAngle >= 0 && stopAngle <= 180 && speed > 0) {
+      servoDriver.dispenseWithRotation(servo, startAngle, stopAngle, speed);
+    } else {
+      Serial.println("Invalid parameters: servo (0-15), angles (0-180), speed > 0");
+    }
+  } else {
+    Serial.println("Usage: dispense rotation [servo] [start_angle] [stop_angle] [speed]");
+    Serial.println("Example: dispense rotation 0 0 180 15");
   }
 }
 

@@ -38,6 +38,9 @@ public:
   void dispensePill(uint8_t channel, String pillSize = "medium");
   void dispensePillPair(uint8_t channel1, uint8_t channel2, String pillSize = "medium");
   
+  // Custom dispense function for full rotation control
+  void dispenseWithRotation(uint8_t servoNum, uint16_t startAngle, uint16_t stopAngle, uint16_t speed);
+  
   // Traditional servo control (for compatibility)
   void setServoAngle(uint8_t servoNum, uint16_t angle);
   void setServoPulse(uint8_t servoNum, uint16_t pulse);
@@ -47,6 +50,7 @@ public:
   void testServo(uint8_t servoNum);
   void testPillDispenser(uint8_t channel);
   void testAllDispenserPairs();
+  void testDispenserRotation(uint8_t dispenserNum);
   
   // Utility functions
   bool isConnected();
