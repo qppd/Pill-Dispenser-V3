@@ -54,10 +54,16 @@ void FirebaseManager::printNetworkDiagnostics() {
 }
 
 bool FirebaseManager::begin(String apiKey, String databaseURL) {
+  Serial.println(\"\\nFirebaseManager: Initializing Firebase...\");
+  Serial.printf(\"Firebase Client v%s\\n\\n\", FIREBASE_CLIENT_VERSION);
+  
+  // Assign Firebase credentials
   config.api_key = apiKey;
   config.database_url = databaseURL;
   
-  Serial.println("FirebaseManager: Initializing Firebase...");
+  config.service_account.data.client_email = PillDispenserConfig::getClientEmail();
+  config.service_account.data.project_id = PillDispenserConfig::getProjectId();
+  config.service_account.data.private_key = PillDispenserConfig::getPrivateKey();
   
   // Print network diagnostics for debugging
   printNetworkDiagnostics();

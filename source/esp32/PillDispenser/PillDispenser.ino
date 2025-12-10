@@ -11,6 +11,7 @@
 #include <TimeAlarms.h>
 #include "PINS_CONFIG.h"
 #include "FirebaseConfig.h"
+#include "WiFiManager.h"
 #include "ServoDriver.h"
 #include "LCDDisplay.h"
 #include "TimeManager.h"
@@ -142,12 +143,21 @@ void initializeProductionMode() {
   
   // 2. WiFi Connection
   Serial.print("2. WiFi Connection: ");
-  connectWiFi();
+  setupWiFi(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str(), &timeManager);
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println(" ✅ Connected");
+    Serial.print("   IP: ");
+    Serial.println(WiFi.localIP());
+    wifiConnected = true;
+  } else {
+    Serial.println(" ❌ FAILED");
+    wifiConnected = false;
+  }
   delay(1000);
   
-  // 3. Time Manager (NTP)
+  // 3. Time Sync is handled by setupWiFi (NTP initialized after WiFi connects)
   Serial.print("3. Time Sync (NTP): ");
-  timeManager.begin("pool.ntp.org", 0, 0); // Configure timezone as needed
   if (timeManager.isSynced()) {
     Serial.println("✅ OK - " + timeManager.getDateTimeString());
     setTime(timeManager.getTimestamp());  // Sync TimeLib with NTP
@@ -247,10 +257,14 @@ void initializeDevelopmentMode() {
     Serial.println("❌ FAILED");
   }
   
-  // Initialize Time Manager (NTP)
-  Serial.print("Time Manager (NTP): ");
-  timeManager.begin("pool.ntp.org", 0, 0); // GMT+0, adjust as needed
-  Serial.println("✅ OK");
+  // Initialize WiFi and Time Manager using setupWiFi
+  Serial.println("WiFi & NTP Setup:");
+  setupWiFi(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str(), &timeManager);
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiConnected = true;
+    Serial.println("✅ WiFi & NTP initialized");
+  }
   
   // Initialize Servo Driver
   Serial.print("Servo Driver: ");
@@ -378,32 +392,7 @@ void handleScheduleSync() {
 }
 
 // ===== FIREBASE FUNCTIONS =====
-
-void connectWiFi() {
-  if (WIFI_SSID == "YOUR_WIFI_SSID" || WIFI_SSID == "") {
-    Serial.println("❌ WiFi credentials not configured");
-    wifiConnected = false;
-    return;
-  }
-  
-  WiFi.begin(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str());
-  
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" ✅ Connected");
-    Serial.println("   IP: " + WiFi.localIP().toString());
-    wifiConnected = true;
-  } else {
-    Serial.println(" ❌ Failed");
-    wifiConnected = false;
-  }
-}
+// Note: WiFi connection now handled by WiFiManager.cpp (setupWiFi function)
 
 void uploadDeviceInfo() {
   FirebaseJson json;

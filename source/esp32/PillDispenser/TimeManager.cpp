@@ -11,60 +11,60 @@ TimeManager::TimeManager() {
 
 void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) {
   ntpServer = server;
-  gmtOffset_sec = gmtOffset * 3600; // Convert hours to seconds
-  daylightOffset_sec = daylightOffset * 3600; // Convert hours to seconds
+  gmtOffset_sec = gmtOffset;
+  daylightOffset_sec = daylightOffset;
   
-  Serial.println("TimeManager: Initializing NTP time synchronization");
-  Serial.print("TimeManager: NTP Server: ");
-  Serial.println(ntpServer);
-  Serial.print("TimeManager: GMT Offset: ");
-  Serial.print(gmtOffset_sec / 3600);
-  Serial.println(" hours");
+  Serial.println("Initializing NTP time synchronization...");
   
-  // Check WiFi status
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("TimeManager: ⚠️  WiFi not connected - time sync will fail");
-    Serial.println("TimeManager: Connect to WiFi first using 'wifi connect' command");
-    return;
+  // Set timezone with configTime (Smart Fan pattern)
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, "time.nist.gov");
+
+  Serial.print("Waiting for NTP time sync");
+  int retries = 0;
+  while (!getLocalTime(&timeinfo) && retries < 10) {
+    Serial.print(".");
+    delay(1000);
+    retries++;
   }
-  
-  // Sync time with NTP server
-  syncTime();
+
+  if (retries >= 10) {
+    Serial.println("\nFailed to get time from NTP");
+    isTimeSynced = false;
+  } else {
+    Serial.println("\nTime synced from NTP successfully!");
+    isTimeSynced = true;
+    lastSyncTime = millis();
+    
+    // Print current time for verification
+    char timeStringBuff[50];
+    strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    Serial.print("Current time: ");
+    Serial.println(timeStringBuff);
+  }
 }
 
 bool TimeManager::syncTime() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("TimeManager: Cannot sync - WiFi not connected");
+    Serial.println("Cannot sync - WiFi not connected");
     return false;
   }
   
-  Serial.println("TimeManager: Syncing time with NTP server...");
+  Serial.println("Re-syncing time with NTP server...");
   
-  // Configure NTP
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  
-  // Wait for time to be set
-  int retry = 0;
-  while (!getLocalTime(&timeinfo) && retry < 10) {
-    delay(500);
-    Serial.print(".");
-    retry++;
-  }
-  Serial.println();
-  
-  if (retry >= 10) {
-    Serial.println("TimeManager: ❌ Failed to sync with NTP server");
+  // Get current time
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
     isTimeSynced = false;
     return false;
   }
+
+  char timeStringBuff[50];
+  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  Serial.print("Current DateTime: ");
+  Serial.println(timeStringBuff);
   
   isTimeSynced = true;
   lastSyncTime = millis();
-  
-  Serial.println("TimeManager: ✅ Time synchronized successfully");
-  Serial.print("TimeManager: Current time: ");
-  Serial.println(getDateTimeString());
-  
   return true;
 }
 
