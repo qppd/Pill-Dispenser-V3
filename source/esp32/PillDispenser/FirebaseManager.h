@@ -35,6 +35,9 @@ private:
   static void deviceStreamCallback(MultiPathStream stream);
   static void deviceStreamTimeoutCallback(bool timeout);
   
+  // Command processing
+  void processCommand(String command);
+  
 public:
   FirebaseManager();
   bool begin(String apiKey, String databaseURL);
