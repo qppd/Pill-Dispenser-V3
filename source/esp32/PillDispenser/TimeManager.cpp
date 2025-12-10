@@ -140,11 +140,11 @@ String TimeManager::getCurrentLogPrefix() {
 
 String TimeManager::getTimeString() {
   if (!getLocalTime(&timeinfo)) {
-    return "00:00:00";
+    return "Jan 01, 2000 12:00 AM";
   }
   
-  char buffer[9];
-  strftime(buffer, sizeof(buffer), "%H:%M:%S", &timeinfo);
+  char buffer[25];
+  strftime(buffer, sizeof(buffer), "%b %d, %Y %I:%M %p", &timeinfo);
   return String(buffer);
 }
 
