@@ -569,7 +569,7 @@ void processSerialCommand(String cmd) {
     }
     Serial.println("All dispenser tests complete!");
   }
-  else if (cmd == "wifi connect") {
+    setupWiFi(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str(), &timeManager);
     connectWiFi();
   }
   else if (cmd == "schedules" || cmd == "list schedules") {
