@@ -153,14 +153,14 @@ export default function SchedulePage() {
   const currentDispenser = dispensers.find((d) => d.id === selectedDispenser);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 px-2 sm:px-8 md:px-16 lg:px-32 xl:px-64">
+      <div className="max-w-4xl mx-auto px-6 sm:px-12 lg:px-20 py-12">
         {/* Header */}
-        <div className="mb-8 animate-slide-in-down">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-10 animate-slide-in-down">
+          <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
             Medication Schedule 📅
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-lg font-medium">
             Set up to 3 daily schedules for each container
           </p>
         </div>
@@ -168,25 +168,27 @@ export default function SchedulePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Dispenser Selection */}
           <div className="lg:col-span-1">
-            <div className="card animate-slide-in-left">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Containers</h2>
-              <div className="space-y-2">
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100 animate-slide-in-left">
+              <h2 className="text-xl font-bold text-gray-900 mb-5">Containers</h2>
+              <div className="space-y-3">
                 {dispensers.map((dispenser) => (
                   <button
                     key={dispenser.id}
                     onClick={() => setSelectedDispenser(dispenser.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300 font-semibold shadow-md ${
                       selectedDispenser === dispenser.id
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                        ? 'bg-gradient-to-r from-blue-500 via-purple-500 to-purple-600 text-white shadow-lg scale-105'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:shadow-lg hover:scale-[1.02]'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <Pill className="h-5 w-5" />
-                      <span className="font-medium">{dispenser.name}</span>
+                      <Pill className="h-6 w-6" />
+                      <span className="font-bold">{dispenser.name}</span>
                     </div>
-                    <span className={`text-sm ${
-                      selectedDispenser === dispenser.id ? 'text-white' : 'text-gray-500'
+                    <span className={`text-sm px-3 py-1 rounded-lg font-bold ${
+                      selectedDispenser === dispenser.id 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-blue-100 text-blue-600'
                     }`}>
                       {dispenser.schedules.filter((s) => s.enabled).length} active
                     </span>
@@ -198,37 +200,37 @@ export default function SchedulePage() {
 
           {/* Schedule Editor */}
           <div className="lg:col-span-2">
-            <div className="card animate-slide-in-right">
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100 animate-slide-in-right">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-900">
                   {currentDispenser?.name} Schedule
                 </h2>
                 <button
                   onClick={() => addSchedule(selectedDispenser)}
                   disabled={!currentDispenser || currentDispenser.schedules.length >= 3}
-                  className="btn btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center space-x-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-5 w-5" />
                   <span>Add Schedule</span>
                 </button>
               </div>
 
               {/* Schedules List */}
               {currentDispenser && currentDispenser.schedules.length > 0 ? (
-                <div className="space-y-4 mb-6">
+                <div className="space-y-5 mb-6">
                   {currentDispenser.schedules.map((schedule, index) => (
                     <div
                       key={index}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                      className={`p-5 rounded-2xl border-2 transition-all duration-300 shadow-md hover:shadow-xl ${
                         schedule.enabled
-                          ? 'border-green-200 bg-green-50'
-                          : 'border-gray-200 bg-gray-50'
+                          ? 'border-green-300 bg-gradient-to-r from-green-50 to-emerald-50'
+                          : 'border-gray-300 bg-gray-50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4 flex-1">
-                          <div className="flex items-center space-x-2">
-                            <Clock className={`h-5 w-5 ${
+                          <div className="flex items-center space-x-3">
+                            <Clock className={`h-6 w-6 ${
                               schedule.enabled ? 'text-green-600' : 'text-gray-400'
                             }`} />
                             <input
@@ -237,19 +239,19 @@ export default function SchedulePage() {
                               onChange={(e) =>
                                 updateScheduleTime(selectedDispenser, index, e.target.value)
                               }
-                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-gray-900 transition-all duration-300"
                             />
                           </div>
 
-                          <label className="flex items-center space-x-2 cursor-pointer">
+                          <label className="flex items-center space-x-3 cursor-pointer bg-white px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-blue-300 transition-all duration-300">
                             <input
                               type="checkbox"
                               checked={schedule.enabled}
                               onChange={() => toggleSchedule(selectedDispenser, index)}
                               className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
-                            <span className={`font-medium ${
-                              schedule.enabled ? 'text-gray-900' : 'text-gray-500'
+                            <span className={`font-bold ${
+                              schedule.enabled ? 'text-green-600' : 'text-gray-500'
                             }`}>
                               {schedule.enabled ? 'Enabled' : 'Disabled'}
                             </span>
@@ -258,7 +260,7 @@ export default function SchedulePage() {
 
                         <button
                           onClick={() => removeSchedule(selectedDispenser, index)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-3 text-red-600 hover:text-white hover:bg-red-500 rounded-xl transition-all duration-300 border-2 border-red-200 hover:border-red-500 shadow-sm hover:shadow-md"
                         >
                           <Trash2 className="h-5 w-5" />
                         </button>
@@ -267,35 +269,35 @@ export default function SchedulePage() {
                   ))}
                 </div>
               ) : (
-                <div className="empty-state py-12">
-                  <Clock className="empty-state-icon mx-auto" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Schedules Yet</h3>
-                  <p className="text-gray-600 mb-4">Add a schedule to get started</p>
+                <div className="text-center py-16">
+                  <Clock className="h-20 w-20 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">No Schedules Yet</h3>
+                  <p className="text-gray-600 text-lg mb-6">Add a schedule to get started</p>
                   <button
                     onClick={() => addSchedule(selectedDispenser)}
-                    className="btn btn-primary"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     Add First Schedule
                   </button>
                 </div>
               )}
 
               {/* Save Button */}
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-end space-x-3 pt-6 border-t-2 border-gray-100">
                 <button
                   onClick={saveSchedules}
                   disabled={saving}
-                  className="btn btn-success flex items-center space-x-2"
+                  className="flex items-center space-x-2 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
                 >
                   {saving ? (
                     <>
-                      <div className="spinner w-4 h-4 border-2"></div>
+                      <div className="spinner w-5 h-5 border-2 border-white border-t-transparent"></div>
                       <span>Saving...</span>
                     </>
                   ) : (
                     <>
-                      <Save className="h-4 w-4" />
+                      <Save className="h-5 w-5" />
                       <span>Save Changes</span>
                     </>
                   )}

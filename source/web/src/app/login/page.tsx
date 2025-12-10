@@ -44,58 +44,81 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">Sign In</h2>
-          <p className="mt-2 text-sm text-gray-600">Welcome back to Pill Dispenser</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 px-2 sm:px-8 md:px-16 lg:px-32 xl:px-64">
+      <div className="max-w-md w-full space-y-8 p-12 bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-100 card">
+        {/* Header */}
+        <div className="text-center animate-slide-in-down">
+          <div className="inline-flex items-center justify-center mb-4">
+            <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-2xl shadow-lg flex items-center justify-center">
+              <Lock className="h-10 w-10 text-white" />
+            </div>
+          </div>
+          <h2 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Welcome Back</h2>
+          <p className="mt-3 text-base text-gray-600 font-medium">Sign in to your Pill Dispenser account</p>
         </div>
-        <form className="mt-8 space-y-6" suppressHydrationWarning onSubmit={handleLogin}>
-          {error && <p className="text-red-500 text-center">{error}</p>}
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+        
+        <form className="mt-8 space-y-6 animate-scale-in" suppressHydrationWarning onSubmit={handleLogin}>
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg animate-slide-in-down">
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
+          
+          <div className="space-y-7">
+            <div className="relative group mt-2 mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Email Address</label>
+              <Mail className="absolute left-4 top-12 h-6 w-6 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="email"
                 required
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Email address"
+                className="w-full pl-14 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-gray-50 focus:bg-white font-medium mt-1"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <div className="relative group mt-2 mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Password</label>
+              <Lock className="absolute left-4 top-12 h-6 w-6 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Password"
+                className="w-full pl-14 pr-14 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-gray-50 focus:bg-white font-medium mt-1"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="button"
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-12 text-gray-400 hover:text-gray-600 transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
               </button>
             </div>
           </div>
+          
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="w-full flex justify-center items-center py-4 px-4 mt-4 mb-2 border border-transparent rounded-xl shadow-lg text-base font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? (
+              <>
+                <div className="spinner w-5 h-5 border-2 border-white border-t-transparent mr-3"></div>
+                Signing In...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
+        
+        <div className="text-center pt-6 border-t-2 border-gray-100">
+          <p className="text-base text-gray-600">
             Don't have an account?{' '}
-            <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Sign up
+            <a href="/register" className="font-bold text-blue-600 hover:text-purple-600 transition-colors">
+              Create one now
             </a>
           </p>
         </div>

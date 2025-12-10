@@ -48,20 +48,20 @@ export default function Navigation() {
 
   return (
     <nav
-      className={`sticky top-0 z-50 transition-all duration-300 mb-8 ${
+      className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-white/80 backdrop-blur-lg shadow-md'
-          : 'bg-white shadow-sm'
+          ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200'
+          : 'bg-white shadow-md border-b border-gray-100'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div className="flex items-center space-x-3 animate-slide-in-left">
-            <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-xl shadow-lg">
+            <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 p-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
               <Pill className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-purple-700 bg-clip-text text-transparent">
               Pill Dispenser
             </span>
           </div>
@@ -75,10 +75,10 @@ export default function Navigation() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
                     isActive
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md shadow-blue-200'
+                      : 'text-gray-600 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 hover:text-gray-900 hover:shadow-sm'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -92,20 +92,20 @@ export default function Navigation() {
           <div className="hidden md:flex items-center space-x-4 animate-slide-in-right">
             {user ? (
               <>
-                <div className="flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                <div className="flex items-center space-x-3 px-5 py-2.5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
                     {user.email?.[0].toUpperCase()}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-semibold text-gray-800 max-w-[160px] truncate">
                     {user.email}
                   </span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                  className="flex items-center space-x-2 px-5 py-2.5 text-red-600 hover:text-white hover:bg-red-500 rounded-xl transition-all duration-300 font-semibold border border-red-200 hover:border-red-500 shadow-sm hover:shadow-md"
                 >
                   <LogOut className="h-4 w-4" />
-                  <span className="font-medium">Logout</span>
+                  <span>Logout</span>
                 </button>
               </>
             ) : null}
@@ -114,7 +114,7 @@ export default function Navigation() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+            className="md:hidden p-2.5 rounded-xl text-gray-600 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 transition-all duration-300 shadow-sm hover:shadow-md"
           >
             {mobileMenuOpen ? (
               <X className="h-6 w-6" />
@@ -126,8 +126,8 @@ export default function Navigation() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden pb-4 animate-slide-in-down">
-            <div className="flex flex-col space-y-1">
+          <div className="md:hidden pb-6 pt-2 animate-slide-in-down">
+            <div className="flex flex-col space-y-3">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
@@ -135,10 +135,10 @@ export default function Navigation() {
                   <a
                     key={link.href}
                     href={link.href}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 ${
                       isActive
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
                     }`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -149,12 +149,12 @@ export default function Navigation() {
               })}
               {user && (
                 <>
-                  <div className="border-t border-gray-200 my-2"></div>
-                  <div className="flex items-center space-x-3 px-4 py-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="border-t-2 border-gray-200 my-3"></div>
+                  <div className="flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
                       {user.email?.[0].toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-semibold text-gray-800 truncate">
                       {user.email}
                     </span>
                   </div>
@@ -163,7 +163,7 @@ export default function Navigation() {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 font-medium"
+                    className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:text-white hover:bg-red-500 rounded-xl transition-all duration-300 font-semibold border border-red-200 hover:border-red-500"
                   >
                     <LogOut className="h-5 w-5" />
                     <span>Logout</span>
