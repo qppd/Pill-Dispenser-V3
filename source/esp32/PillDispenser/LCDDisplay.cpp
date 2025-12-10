@@ -96,7 +96,14 @@ void LCDDisplay::displayMainScreen() {
 }
 
 void LCDDisplay::displayTime(String timeStr) {
-  print("Time: " + timeStr, 0, 2);
+  // Clear row 2 first to prevent text overlap
+  setCursor(0, 2);
+  for (int i = 0; i < COLS; i++) {
+    lcd.print(" ");
+  }
+  // Display the time
+  setCursor(0, 2);
+  lcd.print(timeStr.substring(0, COLS)); // Truncate if too long
 }
 
 void LCDDisplay::displayPillCount(int count) {

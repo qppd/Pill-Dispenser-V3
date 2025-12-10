@@ -23,6 +23,7 @@ public:
   void begin(const char* server = "pool.ntp.org", long gmtOffset = 0, int daylightOffset = 0);
   void update();
   bool syncTime();
+  void forceSync(); // Force immediate time sync
   
   // Time retrieval functions
   String getTimeString();

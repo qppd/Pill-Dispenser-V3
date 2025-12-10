@@ -15,73 +15,110 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
   ntpServer = server;
   gmtOffset_sec = gmtOffset;
   daylightOffset_sec = daylightOffset;
-  
-  Serial.println("Initializing NTP time synchronization...");
-  
-  // Set timezone with configTime (Smart Fan pattern)
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, "time.nist.gov");
 
-  Serial.print("Waiting for NTP time sync");
+  Serial.println("TimeManager: Initializing NTP time synchronization...");
+  Serial.printf("TimeManager: NTP Server: %s, GMT Offset: %ld, Daylight Offset: %d\n", server, gmtOffset, daylightOffset);
+
+  // Set timezone with configTime
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, "time.nist.gov", "ntp.ubuntu.com");
+
+  Serial.print("TimeManager: Waiting for NTP time sync");
   int retries = 0;
-  while (!getLocalTime(&timeinfo) && retries < 10) {
+  while (!getLocalTime(&timeinfo) && retries < 20) {
     Serial.print(".");
     delay(1000);
     retries++;
   }
 
-  if (retries >= 10) {
-    Serial.println("\nFailed to get time from NTP");
+  if (retries >= 20) {
+    Serial.println("\nTimeManager: ❌ Failed to get time from NTP after 20 attempts");
     isTimeSynced = false;
+
+    // Try to set a fallback time based on compile time
+    Serial.println("TimeManager: Setting fallback time based on compilation time");
+    struct tm compileTime = {0};
+    compileTime.tm_year = 2025 - 1900; // Year since 1900
+    compileTime.tm_mon = 11;  // December (0-based)
+    compileTime.tm_mday = 11; // Day
+    compileTime.tm_hour = 12; // Hour
+    compileTime.tm_min = 0;   // Minute
+    compileTime.tm_sec = 0;   // Second
+    time_t fallbackTime = mktime(&compileTime);
+    struct timeval tv = {fallbackTime, 0};
+    settimeofday(&tv, nullptr);
+    Serial.println("TimeManager: Fallback time set");
   } else {
-    Serial.println("\nTime synced from NTP successfully!");
+    Serial.println("\nTimeManager: ✅ Time synced from NTP successfully!");
     isTimeSynced = true;
     lastSyncTime = millis();
-    
+
     // Print current time for verification
     char timeStringBuff[50];
     strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
-    Serial.print("Current time: ");
+    Serial.print("TimeManager: Current time: ");
     Serial.println(timeStringBuff);
-    
-    // Sync Arduino Time library for TimeAlarms compatibility
-    setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
-            timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
-    Serial.println("Arduino Time library synced for TimeAlarms");
+
+    // Note: Arduino Time library sync removed to avoid conflicts with system time
   }
 }
 
 bool TimeManager::syncTime() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("Cannot sync - WiFi not connected");
+    Serial.println("TimeManager: ❌ Cannot sync - WiFi not connected");
     return false;
   }
-  
-  Serial.println("Re-syncing time with NTP server...");
-  
+
+  Serial.println("TimeManager: 🔄 Re-syncing time with NTP server...");
+
+  // Force reconfigure NTP
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer, "time.nist.gov", "ntp.ubuntu.com");
+
+  // Wait a bit for NTP to update
+  delay(2000);
+
   // Get current time
   if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
+    Serial.println("TimeManager: ❌ Failed to obtain time from NTP");
     isTimeSynced = false;
     return false;
   }
 
   char timeStringBuff[50];
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
-  Serial.print("Current DateTime: ");
+  Serial.print("TimeManager: ✅ Current DateTime: ");
   Serial.println(timeStringBuff);
-  
-  // Sync Arduino Time library for TimeAlarms compatibility
-  setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
-          timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
-  Serial.println("Arduino Time library synced for TimeAlarms");
-  
+
+  // Note: Arduino Time library sync removed to avoid conflicts with system time
+
   isTimeSynced = true;
   lastSyncTime = millis();
   return true;
 }
 
+void TimeManager::forceSync() {
+  Serial.println("TimeManager: 🔄 Force syncing time...");
+  syncTime();
+}
+
 void TimeManager::update() {
-  // Re-sync every 6 hours
+  // Check if time is valid, if not, try to sync immediately
+  time_t currentTime = time(nullptr);
+  if (currentTime < 1000000000) { // Invalid time (before year 2001)
+    Serial.println("TimeManager: System time is invalid, attempting immediate NTP sync...");
+    syncTime();
+    return;
+  }
+
+  // Re-sync every 6 hours or if time seems stuck
+  static time_t lastValidTime = 0;
+  if (currentTime == lastValidTime) {
+    // Time is not advancing, force a sync
+    Serial.println("TimeManager: Time appears stuck, forcing NTP sync...");
+    syncTime();
+  } else {
+    lastValidTime = currentTime;
+  }
+
   if (isTimeSynced && (millis() - lastSyncTime > SYNC_INTERVAL)) {
     Serial.println("TimeManager: Auto-sync triggered (6 hour interval)");
     syncTime();
@@ -151,12 +188,21 @@ String TimeManager::getCurrentLogPrefix() {
 }
 
 String TimeManager::getTimeString() {
-  if (!getLocalTime(&timeinfo)) {
-    return "01/01/2000 12:00 AM";
+  // Always get fresh time from system using ESP32 native functions
+  time_t now = time(nullptr);
+  if (now < 1000000000) {
+    // Invalid time, return fallback
+    return "12/11/2025 12:00:00 PM";
   }
-  
+
+  struct tm timeInfo;
+  localtime_r(&now, &timeInfo);
+
+  // Update the class member for other functions
+  timeinfo = timeInfo;
+
   char buffer[25];
-  strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M %p", &timeinfo);
+  strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", &timeInfo);
   return String(buffer);
 }
 
@@ -171,12 +217,21 @@ String TimeManager::getDateString() {
 }
 
 String TimeManager::getDateTimeString() {
-  if (!getLocalTime(&timeinfo)) {
-    return "0000-00-00 00:00:00";
+  // Always get fresh time from system using ESP32 native functions
+  time_t now = time(nullptr);
+  if (now < 1000000000) {
+    // Invalid time, return fallback
+    return "2025-12-11 12:00:00";
   }
-  
+
+  struct tm timeInfo;
+  localtime_r(&now, &timeInfo);
+
+  // Update the class member for other functions
+  timeinfo = timeInfo;
+
   char buffer[20];
-  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeInfo);
   return String(buffer);
 }
 
