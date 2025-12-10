@@ -54,8 +54,8 @@ void FirebaseManager::printNetworkDiagnostics() {
 }
 
 bool FirebaseManager::begin(String apiKey, String databaseURL) {
-  Serial.println(\"\\nFirebaseManager: Initializing Firebase...\");
-  Serial.printf(\"Firebase Client v%s\\n\\n\", FIREBASE_CLIENT_VERSION);
+  Serial.println("\nFirebaseManager: Initializing Firebase...");
+  Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
   
   // Assign Firebase credentials
   config.api_key = apiKey;

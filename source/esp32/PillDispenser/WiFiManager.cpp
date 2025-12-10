@@ -22,7 +22,7 @@ void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager)
         
         // Initialize NTP after successful WiFi connection
         if (timeManager != nullptr) {
-            timeManager->begin("pool.ntp.org", 0, 0); // GMT+0, adjust as needed
+            timeManager->begin("pool.ntp.org", 8, 0); // GMT+8 Philippine Time
         }
     } else {
         Serial.println();
