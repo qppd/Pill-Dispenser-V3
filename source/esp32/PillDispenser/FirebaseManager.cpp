@@ -57,6 +57,15 @@ bool FirebaseManager::begin(String apiKey, String databaseURL) {
   Serial.println("\nFirebaseManager: Initializing Firebase...");
   Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
   
+  // Check WiFi connection status
+  if (WiFi.status() == WL_CONNECTED) {
+    isConnected = true;
+  } else {
+    Serial.println("FirebaseManager: WiFi not connected!");
+    isConnected = false;
+    return false;
+  }
+  
   // Assign Firebase credentials
   config.api_key = apiKey;
   config.database_url = databaseURL;
