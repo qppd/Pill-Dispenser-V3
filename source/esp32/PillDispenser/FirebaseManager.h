@@ -6,6 +6,9 @@
 #include <Firebase_ESP_Client.h>
 #include "VoltageSensor.h"
 
+// Forward declaration
+class ScheduleManager;
+
 class FirebaseManager {
 private:
   FirebaseData fbdo;
@@ -17,15 +20,21 @@ private:
   bool isAuthenticated;
   bool signupOk;
   String deviceId;
+  String userId;
   unsigned long lastHeartbeat;
   unsigned long sendDataPrevMillis;
+  unsigned long lastScheduleSync;
   
   // Command processing
   bool dispenseCommandReceived;
   int lastDispenseCommand;
   
+  // Schedule manager reference
+  ScheduleManager* scheduleManager;
+  
   static const unsigned long HEARTBEAT_INTERVAL = 60000; // 1 minute
   static const unsigned long SEND_DATA_INTERVAL = 5000;  // 5 seconds
+  static const unsigned long SCHEDULE_SYNC_INTERVAL = 60000; // 1 minute
   
   // Device paths for streaming
   String deviceParentPath;
@@ -61,6 +70,12 @@ public:
   bool checkForCommands();
   bool hasDispenseCommand();
   int getLastDispenseCommand();
+  
+  // Schedule management
+  void setScheduleManager(ScheduleManager* manager);
+  void setUserId(String uid);
+  bool syncSchedulesFromFirebase();
+  bool shouldSyncSchedules();
   
   // Testing functions
   bool testConnection();

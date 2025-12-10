@@ -178,3 +178,15 @@ void LCDDisplay::displayMessage(String title, String message) {
   centerText(title, 0);
   centerText(message, 1);
 }
+
+void LCDDisplay::displayDispenseInfo(int containerNum, String medication) {
+  clear();
+  centerText("DISPENSING", 0);
+  centerText("Container " + String(containerNum), 1);
+  
+  // Truncate medication name if too long
+  if (medication.length() > COLS) {
+    medication = medication.substring(0, COLS - 3) + "...";
+  }
+  centerText(medication, 2);
+}

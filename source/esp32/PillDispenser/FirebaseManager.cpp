@@ -1,5 +1,6 @@
 #include "FirebaseManager.h"
 #include "FirebaseConfig.h"
+#include "ScheduleManager.h"
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
@@ -12,10 +13,13 @@ FirebaseManager::FirebaseManager() {
   signupOk = false;
   lastHeartbeat = 0;
   sendDataPrevMillis = 0;
+  lastScheduleSync = 0;
   dispenseCommandReceived = false;
   lastDispenseCommand = 0;
+  scheduleManager = nullptr;
   deviceId = "PILL_DISPENSER_" + String(ESP.getEfuseMac(), HEX);
   deviceParentPath = "pilldispenser/device/" + deviceId;
+  userId = "";
   
   // Set static instance for callbacks
   instance = this;
@@ -127,8 +131,10 @@ bool FirebaseManager::initializeFirebase() {
   Firebase.reconnectNetwork(true);
   
   // Configure buffer sizes for ESP32
-  fbdo.setBSSLBufferSize(4096, 1024);
+  fbdo.setBSSLBufferSize(8192, 1024);
   fbdo.setResponseSize(2048);
+  deviceStream.setBSSLBufferSize(8192, 1024);
+  deviceStream.setResponseSize(2048);
   
   // Set timeouts to handle slow connections
   config.timeout.serverResponse = 10 * 1000; // 10 seconds
@@ -147,6 +153,9 @@ bool FirebaseManager::initializeFirebase() {
   
   while (retryCount < maxRetries) {
     Firebase.begin(&config, &auth);
+    
+    // Enable TCP KeepAlive for reliable streaming
+    deviceStream.keepAlive(5, 5, 1);
     
     // Wait for Firebase to initialize with timeout
     int initWait = 0;
@@ -227,7 +236,9 @@ void FirebaseManager::deviceStreamCallback(MultiPathStream stream) {
         String schedule = stream.value;
         Serial.print("FirebaseManager: Schedule updated: ");
         Serial.println(schedule);
-        // Handle schedule updates here
+        // Trigger schedule sync
+        Serial.println("FirebaseManager: Triggering schedule sync due to update...");
+        instance->syncSchedulesFromFirebase();
         
       } else if (stream.dataPath == "/system_config") {
         String config = stream.value;
@@ -567,6 +578,132 @@ bool FirebaseManager::testDataDownload() {
     return true;
   } else {
     Serial.print("FirebaseManager: Data download test FAILED - ");
+    Serial.println(fbdo.errorReason());
+    return false;
+  }
+}
+
+void FirebaseManager::setScheduleManager(ScheduleManager* manager) {
+  scheduleManager = manager;
+  Serial.println("FirebaseManager: Schedule manager linked");
+}
+
+void FirebaseManager::setUserId(String uid) {
+  userId = uid;
+  Serial.println("FirebaseManager: User ID set to " + userId);
+}
+
+bool FirebaseManager::shouldSyncSchedules() {
+  return (millis() - lastScheduleSync > SCHEDULE_SYNC_INTERVAL);
+}
+
+bool FirebaseManager::syncSchedulesFromFirebase() {
+  if (!isFirebaseReady()) {
+    Serial.println("FirebaseManager: Cannot sync schedules - Firebase not ready");
+    return false;
+  }
+
+  if (!scheduleManager) {
+    Serial.println("FirebaseManager: Cannot sync schedules - ScheduleManager not set");
+    return false;
+  }
+
+  if (userId.isEmpty()) {
+    Serial.println("FirebaseManager: Cannot sync schedules - User ID not set");
+    return false;
+  }
+
+  Serial.println("FirebaseManager: Syncing schedules from Firebase...");
+  
+  String schedulePath = "pilldispenser/device/schedules/" + userId;
+  Serial.println("FirebaseManager: Schedule path: " + schedulePath);
+  
+  if (Firebase.RTDB.getJSON(&fbdo, schedulePath)) {
+    Serial.println("FirebaseManager: Successfully retrieved data from Firebase");
+    FirebaseJson* json = fbdo.to<FirebaseJson*>();
+    
+    // Clear existing schedules
+    scheduleManager->clearAllSchedules();
+    
+    // Parse and add schedules
+    size_t len = json->iteratorBegin();
+    Serial.println("FirebaseManager: Found " + String(len) + " schedule entries");
+    String key, value = "";
+    int type = 0;
+    int addedCount = 0;
+    
+    for (size_t i = 0; i < len; i++) {
+      json->iteratorGet(i, type, key, value);
+      
+      // Parse individual schedule
+      FirebaseJson scheduleJson;
+      scheduleJson.setJsonData(value);
+      
+      FirebaseJsonData data;
+      
+      int dispenserId = 0;
+      int hour = 0;
+      int minute = 0;
+      bool enabled = true;
+      String medicationName = "";
+      String patientName = "";
+      String pillSize = "medium";
+      String timeStr = "";
+      
+      // Try both field name formats (original schedule page vs schedule-v2)
+      if (scheduleJson.get(data, "dispenserId") || scheduleJson.get(data, "dispenser_id")) {
+        dispenserId = data.to<int>();
+      }
+      if (scheduleJson.get(data, "time")) {
+        timeStr = data.to<String>();
+        // Parse time string "HH:MM"
+        int colonIndex = timeStr.indexOf(':');
+        if (colonIndex > 0) {
+          hour = timeStr.substring(0, colonIndex).toInt();
+          minute = timeStr.substring(colonIndex + 1).toInt();
+        }
+      } else {
+        // Try separate hour/minute fields
+        if (scheduleJson.get(data, "hour")) {
+          hour = data.to<int>();
+        }
+        if (scheduleJson.get(data, "minute")) {
+          minute = data.to<int>();
+        }
+      }
+      if (scheduleJson.get(data, "enabled")) {
+        enabled = data.to<bool>();
+      }
+      if (scheduleJson.get(data, "medicationName") || scheduleJson.get(data, "medication_name")) {
+        medicationName = data.to<String>();
+      }
+      if (scheduleJson.get(data, "patientName") || scheduleJson.get(data, "patient_name")) {
+        patientName = data.to<String>();
+      }
+      if (scheduleJson.get(data, "pillSize") || scheduleJson.get(data, "pill_size")) {
+        pillSize = data.to<String>();
+      }
+      
+      // Add schedule to manager
+      if (scheduleManager->addSchedule(key, dispenserId, hour, minute, 
+                                       medicationName, patientName, pillSize, enabled)) {
+        addedCount++;
+        Serial.printf("Added schedule: %s - %02d:%02d for dispenser %d\n", 
+                     key.c_str(), hour, minute, dispenserId);
+      }
+    }
+    
+    json->iteratorEnd();
+    
+    lastScheduleSync = millis();
+    Serial.printf("FirebaseManager: Schedule sync complete - %d schedules loaded\n", addedCount);
+    
+    // Print all schedules
+    scheduleManager->printSchedules();
+    
+    return true;
+  } else {
+    Serial.print("FirebaseManager: Failed to sync schedules - ");
     Serial.println(fbdo.errorReason());
     return false;
   }

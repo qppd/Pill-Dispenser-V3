@@ -42,6 +42,11 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
     strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
     Serial.print("Current time: ");
     Serial.println(timeStringBuff);
+    
+    // Sync Arduino Time library for TimeAlarms compatibility
+    setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
+            timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
+    Serial.println("Arduino Time library synced for TimeAlarms");
   }
 }
 
@@ -64,6 +69,11 @@ bool TimeManager::syncTime() {
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
   Serial.print("Current DateTime: ");
   Serial.println(timeStringBuff);
+  
+  // Sync Arduino Time library for TimeAlarms compatibility
+  setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
+          timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
+  Serial.println("Arduino Time library synced for TimeAlarms");
   
   isTimeSynced = true;
   lastSyncTime = millis();

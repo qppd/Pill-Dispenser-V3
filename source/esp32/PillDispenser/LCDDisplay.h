@@ -35,6 +35,7 @@ public:
   void displayMainScreen();
   void displayTestMenu();
   void displayMessage(String title, String message);
+  void displayDispenseInfo(int containerNum, String medication);
 };
 
 #endif
