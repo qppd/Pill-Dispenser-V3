@@ -22,9 +22,14 @@ private:
   static const int DISPENSE_DURATION_LARGE = 1200;  // Large pills
   static const int DISPENSE_DURATION_CUSTOM = 1050; // Custom duration
   
-  // Traditional servo constants (for compatibility)
-  static const uint16_t SERVO_MIN = 150;  // Min pulse length out of 4096
-  static const uint16_t SERVO_MAX = 600;  // Max pulse length out of 4096
+  // Traditional servo constants (for MG90S TowerPro compatibility)
+  // MG90S typical range: ~500-2400μs, but mechanical stops limit to ~120-150°
+  static const uint16_t SERVO_MIN = 102;  // ~500μs (102 * 4.88μs ≈ 498μs)
+  static const uint16_t SERVO_MAX = 410;  // ~2000μs (410 * 4.88μs ≈ 2000μs) - reduced for MG90S mechanical limits
+  
+  // MG90S mechanical limits (approximate - may need calibration)
+  static const uint16_t MG90S_MIN_ANGLE = 0;
+  static const uint16_t MG90S_MAX_ANGLE = 120;  // MG90S typically only rotates ~120° due to mechanical stops
   
 public:
   ServoDriver();
@@ -40,6 +45,7 @@ public:
   
   // Custom dispense function for full rotation control
   void dispenseWithRotation(uint8_t servoNum, uint16_t startAngle, uint16_t stopAngle, uint16_t speed);
+  void calibrateServo(uint8_t servoNum);
   
   // Traditional servo control (for compatibility)
   void setServoAngle(uint8_t servoNum, uint16_t angle);
