@@ -3,22 +3,28 @@
 // Firebase Configuration
 // DO NOT COMMIT THIS FILE TO PUBLIC REPOSITORY
 
+
 const char* PillDispenserConfig::getFirebaseHost() {
-    return "your-project-id-default-rtdb.firebaseio.com";
+    return "pilldispenser-5c037-default-rtdb.firebaseio.com";
 }
 
+
 const char* PillDispenserConfig::getFirebaseAuth() {
-    return "YOUR_FIREBASE_API_KEY_HERE";
+    return "sajedhm@gmail.com";
+}
+
+const char* PillDispenserConfig::getFirebasePassword() {
+    return "password123";
 }
 
 const char* PillDispenserConfig::getDatabaseURL() {
-    return "https://your-project-id-default-rtdb.firebaseio.com";
+    return "https://pilldispenser-5c037-default-rtdb.firebaseio.com";
 }
 
 const char* PillDispenserConfig::getApiKey() {
-    return "YOUR_FIREBASE_API_KEY_HERE";
+    return "AIzaSyD4651wd6_Tyub8UfkIOFm-OSLbsDq-dkw";
 }
 
 const char* PillDispenserConfig::getProjectId() {
-    return "your-project-id";
+    return "pilldispenser-5c037";
 }
