@@ -135,6 +135,8 @@ bool FirebaseManager::initializeFirebase() {
   fbdo.setResponseSize(2048);
   deviceStream.setBSSLBufferSize(8192, 1024);
   deviceStream.setResponseSize(2048);
+  scheduleStream.setBSSLBufferSize(8192, 1024);
+  scheduleStream.setResponseSize(2048);
   
   // Set timeouts to handle slow connections
   config.timeout.serverResponse = 10 * 1000; // 10 seconds
@@ -175,6 +177,13 @@ bool FirebaseManager::initializeFirebase() {
       
       // Start data streaming
       beginDataStream();
+      
+      // Start schedule stream (must be done after userId is set)
+      if (!userId.isEmpty()) {
+        beginScheduleStream();
+      } else {
+        Serial.println("FirebaseManager: UserId not set yet, schedule stream will start when setUserId() is called");
+      }
       
       // Send initial heartbeat
       sendHeartbeat();
@@ -258,6 +267,101 @@ void FirebaseManager::deviceStreamTimeoutCallback(bool timeout) {
     Serial.printf("FirebaseManager: Stream error code: %d, reason: %s\n", 
                   instance->deviceStream.httpCode(), 
                   instance->deviceStream.errorReason().c_str());
+  }
+}
+
+bool FirebaseManager::beginScheduleStream() {
+  if (userId.isEmpty()) {
+    Serial.println("FirebaseManager: Cannot start schedule stream - User ID not set");
+    return false;
+  }
+  
+  String schedulePath = "pilldispenser/device/schedules/" + userId;
+  Serial.println("FirebaseManager: 🚀 Starting schedule stream on path: " + schedulePath);
+  Serial.println("FirebaseManager: Firebase ready status: " + String(isAuthenticated ? "YES" : "NO"));
+  
+  // Try to begin stream
+  if (!Firebase.RTDB.beginStream(&scheduleStream, schedulePath)) {
+    Serial.printf("FirebaseManager: ❌ Schedule stream initialization failed: %s\n", 
+                  scheduleStream.errorReason().c_str());
+    Serial.println("FirebaseManager: Trying alternative stream configuration...");
+    
+    // Try with a test path to see if streaming works at all
+    String testPath = schedulePath + "/test";
+    if (!Firebase.RTDB.beginStream(&scheduleStream, testPath)) {
+      Serial.printf("FirebaseManager: ❌ Even test stream failed: %s\n", 
+                    scheduleStream.errorReason().c_str());
+      return false;
+    } else {
+      Serial.println("FirebaseManager: ✅ Test stream works, but using test path");
+    }
+  }
+  
+  Firebase.RTDB.setStreamCallback(&scheduleStream, scheduleStreamCallback, scheduleStreamTimeoutCallback);
+  Serial.println("FirebaseManager: ✅ Schedule stream initialized successfully!");
+  Serial.println("FirebaseManager: Listening for real-time schedule changes...");
+  
+  // Enable TCP KeepAlive for reliable streaming
+  scheduleStream.keepAlive(5, 5, 1);
+  
+  // Check if stream is connected immediately
+  delay(100); // Small delay to let stream establish
+  Serial.println("FirebaseManager: Schedule stream connected: " + String(scheduleStream.httpConnected() ? "YES" : "NO"));
+  
+  // Test the stream by manually triggering a read (for debugging)
+  Serial.println("FirebaseManager: Testing stream with manual read...");
+  if (Firebase.RTDB.getJSON(&fbdo, schedulePath)) {
+    Serial.println("FirebaseManager: Manual read successful - stream path is accessible");
+  } else {
+    Serial.printf("FirebaseManager: Manual read failed: %s\n", fbdo.errorReason().c_str());
+  }
+  
+  return true;
+}
+
+void FirebaseManager::scheduleStreamCallback(FirebaseStream data) {
+  if (!instance) {
+    Serial.println("FirebaseManager: Schedule callback - no instance!");
+    return;
+  }
+  
+  Serial.println("FirebaseManager: 🔥 SCHEDULE DATA CHANGED!");
+  Serial.printf("Stream path: %s\n", data.streamPath().c_str());
+  Serial.printf("Data path: %s\n", data.dataPath().c_str());
+  Serial.printf("Data type: %s\n", data.dataType().c_str());
+  Serial.printf("Event type: %s\n", data.eventType().c_str());
+  
+  // Print the payload for debugging
+  Serial.println("Payload length: " + String(data.payloadLength()));
+  if (data.payloadLength() > 0) {
+    Serial.println("Payload: " + data.jsonString());
+  }
+  
+  // Trigger schedule resync whenever any schedule data changes
+  Serial.println("FirebaseManager: 🔄 Syncing schedules due to real-time update...");
+  instance->syncSchedulesFromFirebase();
+}
+
+void FirebaseManager::scheduleStreamTimeoutCallback(bool timeout) {
+  if (timeout) {
+    Serial.println("FirebaseManager: Schedule stream timed out, resuming...");
+  }
+  if (instance && !instance->scheduleStream.httpConnected()) {
+    Serial.printf("FirebaseManager: Schedule stream error code: %d, reason: %s\n", 
+                  instance->scheduleStream.httpCode(), 
+                  instance->scheduleStream.errorReason().c_str());
+    
+    // Try to restart the stream if it's disconnected
+    Serial.println("FirebaseManager: Attempting to restart schedule stream...");
+    instance->beginScheduleStream();
+  }
+  
+  // Debug: Check stream status periodically
+  static unsigned long lastStatusCheck = 0;
+  if (millis() - lastStatusCheck > 30000) { // Every 30 seconds
+    Serial.println("FirebaseManager: Schedule stream status - Connected: " + 
+                   String(instance && instance->scheduleStream.httpConnected() ? "YES" : "NO"));
+    lastStatusCheck = millis();
   }
 }
 
@@ -591,6 +695,19 @@ void FirebaseManager::setScheduleManager(ScheduleManager* manager) {
 void FirebaseManager::setUserId(String uid) {
   userId = uid;
   Serial.println("FirebaseManager: User ID set to " + userId);
+  
+  // Start schedule stream if Firebase is ready
+  Serial.println("FirebaseManager: Checking authentication status for schedule stream...");
+  Serial.println("FirebaseManager: isAuthenticated = " + String(isAuthenticated ? "TRUE" : "FALSE"));
+  Serial.println("FirebaseManager: isFirebaseReady() = " + String(isFirebaseReady() ? "TRUE" : "FALSE"));
+  
+  if (isAuthenticated) {
+    Serial.println("FirebaseManager: ✅ Firebase authenticated, starting schedule stream...");
+    bool streamStarted = beginScheduleStream();
+    Serial.println("FirebaseManager: Schedule stream start result: " + String(streamStarted ? "SUCCESS" : "FAILED"));
+  } else {
+    Serial.println("FirebaseManager: ❌ Firebase not authenticated yet, schedule stream will start later");
+  }
 }
 
 bool FirebaseManager::shouldSyncSchedules() {

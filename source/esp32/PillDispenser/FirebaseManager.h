@@ -13,6 +13,7 @@ class FirebaseManager {
 private:
   FirebaseData fbdo;
   FirebaseData deviceStream;
+  FirebaseData scheduleStream;
   FirebaseAuth auth;
   FirebaseConfig config;
   
@@ -34,7 +35,7 @@ private:
   
   static const unsigned long HEARTBEAT_INTERVAL = 60000; // 1 minute
   static const unsigned long SEND_DATA_INTERVAL = 5000;  // 5 seconds
-  static const unsigned long SCHEDULE_SYNC_INTERVAL = 60000; // 1 minute
+  static const unsigned long SCHEDULE_SYNC_INTERVAL = 10000; // 10 seconds (reduced for testing)
   
   // Device paths for streaming
   String deviceParentPath;
@@ -43,6 +44,8 @@ private:
   // Callback functions
   static void deviceStreamCallback(MultiPathStream stream);
   static void deviceStreamTimeoutCallback(bool timeout);
+  static void scheduleStreamCallback(FirebaseStream data);
+  static void scheduleStreamTimeoutCallback(bool timeout);
   
   // Command processing
   void processCommand(String command);
@@ -63,6 +66,7 @@ public:
   
   // Streaming and real-time updates
   bool beginDataStream();
+  bool beginScheduleStream();
   void handleStreamUpdates();
   
   // Configuration

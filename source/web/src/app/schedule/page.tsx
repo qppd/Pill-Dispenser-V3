@@ -133,8 +133,8 @@ export default function SchedulePage() {
       await set(schedulesRef, { dispensers });
 
       // Also save to device path for ESP32 to read
-      // Format: pilldispenser/device/schedules/default_user (matches ESP32 USER_ID)
-      const deviceScheduleRef = ref(db, `pilldispenser/device/schedules/default_user`);
+      // Format: pilldispenser/device/schedules/d1SdACjSzbZBNzfhMOFhZixVEX82 (matches ESP32 USER_ID)
+      const deviceScheduleRef = ref(db, `pilldispenser/device/schedules/d1SdACjSzbZBNzfhMOFhZixVEX82`);
       
       // Convert schedules to ESP32-friendly format
       const esp32Schedules: any = {};

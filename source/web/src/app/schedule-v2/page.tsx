@@ -53,7 +53,7 @@ export default function NewSchedulePage() {
   useEffect(() => {
     if (!user || !db) return;
 
-    const schedulesRef = ref(db, `pilldispenser/device/schedules/default_user`);
+    const schedulesRef = ref(db, `pilldispenser/device/schedules/d1SdACjSzbZBNzfhMOFhZixVEX82`);
     const unsubscribe = onValue(schedulesRef, (snapshot) => {
       const data = snapshot.val() || {};
       setSchedules(data);
@@ -74,18 +74,18 @@ export default function NewSchedulePage() {
       days: [0, 1, 2, 3, 4, 5, 6],
     };
 
-    const schedulesRef = ref(db, `pilldispenser/device/schedules/default_user`);
+    const schedulesRef = ref(db, `pilldispenser/device/schedules/d1SdACjSzbZBNzfhMOFhZixVEX82`);
     const newScheduleRef = push(schedulesRef);
     set(newScheduleRef, newSchedule);
   };
 
   const removeSchedule = (scheduleId: string) => {
-    const scheduleRef = ref(db, `pilldispenser/device/schedules/default_user/${scheduleId}`);
+    const scheduleRef = ref(db, `pilldispenser/device/schedules/d1SdACjSzbZBNzfhMOFhZixVEX82/${scheduleId}`);
     remove(scheduleRef);
   };
 
   const updateSchedule = (scheduleId: string, updates: Partial<Schedule>) => {
-    const scheduleRef = ref(db, `pilldispenser/device/schedules/default_user/${scheduleId}`);
+    const scheduleRef = ref(db, `pilldispenser/device/schedules/d1SdACjSzbZBNzfhMOFhZixVEX82/${scheduleId}`);
     const currentSchedule = schedules[scheduleId];
     set(scheduleRef, { ...currentSchedule, ...updates });
   };

@@ -6,7 +6,7 @@
 Open `source/esp32/PillDispenser/PillDispenser.ino` and set your user ID:
 
 ```cpp
-const String USER_ID = "default_user";  // Change this to your Firebase user ID
+const String USER_ID = "d1SdACjSzbZBNzfhMOFhZixVEX82";  // Change this to your Firebase user ID
 ```
 
 > **Note**: In production, this should match the authenticated user's UID from Firebase Auth.
