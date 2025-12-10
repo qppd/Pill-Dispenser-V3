@@ -1,4 +1,6 @@
 #include "TimeManager.h"
+#include <Arduino.h>
+#include <WiFi.h>
 
 TimeManager::TimeManager() {
   ntpServer = "pool.ntp.org";

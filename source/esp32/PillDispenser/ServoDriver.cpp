@@ -1,4 +1,5 @@
 #include "ServoDriver.h"
+#include <Wire.h>
 
 ServoDriver::ServoDriver() : pwm(I2C_ADDRESS) {
   // Constructor uses default I2C address

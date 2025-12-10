@@ -1,4 +1,5 @@
 #include "ScheduleManager.h"
+#include <Arduino.h>
 
 // Static instance for callbacks
 ScheduleManager* ScheduleManager::instance = nullptr;

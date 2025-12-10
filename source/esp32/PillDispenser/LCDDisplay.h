@@ -2,7 +2,11 @@
 #define LCD_DISPLAY_H
 
 #include <Arduino.h>
+// Suppress architecture warnings for LiquidCrystal_I2C (library works fine with ESP32)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-W#warnings"
 #include <LiquidCrystal_I2C.h>
+#pragma GCC diagnostic pop
 
 class LCDDisplay {
 private:

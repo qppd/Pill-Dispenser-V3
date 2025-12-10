@@ -1,4 +1,5 @@
 #include "LCDDisplay.h"
+#include <Wire.h>
 
 LCDDisplay::LCDDisplay(uint8_t address) : lcd(address, COLS, ROWS) {
   i2cAddress = address;

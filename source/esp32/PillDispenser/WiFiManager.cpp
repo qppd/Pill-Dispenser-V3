@@ -1,4 +1,6 @@
 #include "WiFiManager.h"
+#include <Arduino.h>
+#include <WiFi.h>
 
 void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager) {
     Serial.println("\n=== WiFi Setup ===");

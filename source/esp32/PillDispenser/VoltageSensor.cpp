@@ -1,4 +1,5 @@
 #include "VoltageSensor.h"
+#include <Arduino.h>
 
 // Initialize static constants
 const float VoltageSensor::ADC_VOLTAGE_STEP = 0.00080566;   // 3.3V / 4095 ≈ 0.00080566V (ESP32 12-bit ADC with 11dB attenuation)

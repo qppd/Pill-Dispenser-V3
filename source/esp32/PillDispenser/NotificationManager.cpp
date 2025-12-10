@@ -1,4 +1,5 @@
 #include "NotificationManager.h"
+#include <Arduino.h>
 
 NotificationManager::NotificationManager(SIM800L* sim800Module, TimeManager* timeMgr) {
   sim800 = sim800Module;

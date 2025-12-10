@@ -1,5 +1,5 @@
-
 #include "SIM800L.h"
+#include <Arduino.h>
 
 SIM800L::SIM800L(uint8_t rxPin, uint8_t txPin, uint8_t rstPin, HardwareSerial& serialPort)
   : sim800(&serialPort), rxPin(rxPin), txPin(txPin), rstPin(rstPin) {
