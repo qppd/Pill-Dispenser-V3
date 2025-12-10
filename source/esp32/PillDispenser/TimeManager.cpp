@@ -47,6 +47,8 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
     setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
             timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
     Serial.println("Arduino Time library synced for TimeAlarms");
+    Serial.printf("Arduino Time set to: %02d:%02d:%02d %02d/%02d/%04d\n", 
+                  hour(), minute(), second(), month(), day(), year());
   }
 }
 
@@ -74,6 +76,8 @@ bool TimeManager::syncTime() {
   setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
           timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
   Serial.println("Arduino Time library synced for TimeAlarms");
+  Serial.printf("Arduino Time set to: %02d:%02d:%02d %02d/%02d/%04d\n", 
+                hour(), minute(), second(), month(), day(), year());
   
   isTimeSynced = true;
   lastSyncTime = millis();

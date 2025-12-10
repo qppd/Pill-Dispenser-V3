@@ -76,8 +76,8 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
     OnTick_t callback = getCallbackFunction(index);
     if (callback != nullptr) {
       schedules[index].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
-      Serial.printf("ScheduleManager: Alarm set for %02d:%02d - %s (%s)\n", 
-                    hour, minute, medicationName.c_str(), patientName.c_str());
+      Serial.printf("ScheduleManager: Alarm set for %02d:%02d - %s (ID: %d)\n", 
+                    hour, minute, medicationName.c_str(), schedules[index].alarmId);
     } else {
       Serial.println("ScheduleManager: Warning - No callback available for schedule " + String(index));
     }
