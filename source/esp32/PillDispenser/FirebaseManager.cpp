@@ -312,13 +312,17 @@ bool FirebaseManager::sendHeartbeat(VoltageSensor* voltageSensor) {
     return true; // Not time for heartbeat yet
   }
   
+  Serial.println("FirebaseManager: Attempting to send heartbeat...");
   lastHeartbeat = currentTime;
   
   if (!isFirebaseReady()) {
+    Serial.println("FirebaseManager: Cannot send heartbeat - Firebase not ready");
     return false;
   }
   
   String path = deviceParentPath + "/heartbeat";
+  Serial.print("FirebaseManager: Sending heartbeat to path: ");
+  Serial.println(path);
   
   FirebaseJson json;
   json.set("timestamp", String(currentTime));
@@ -331,13 +335,20 @@ bool FirebaseManager::sendHeartbeat(VoltageSensor* voltageSensor) {
   if (voltageSensor != nullptr) {
     json.set("battery_voltage", String(voltageSensor->readActualVoltage()));
     json.set("battery_percentage", String(voltageSensor->readBatteryPercentage()));
+    Serial.print("FirebaseManager: Battery voltage: ");
+    Serial.print(voltageSensor->readActualVoltage());
+    Serial.print("V, Percentage: ");
+    Serial.print(voltageSensor->readBatteryPercentage());
+    Serial.println("%");
+  } else {
+    Serial.println("FirebaseManager: No voltage sensor available");
   }
   
   if (Firebase.RTDB.setJSON(&fbdo, path, &json)) {
-    Serial.println("FirebaseManager: Heartbeat sent");
+    Serial.println("FirebaseManager: ✅ Heartbeat sent successfully!");
     return true;
   } else {
-    Serial.print("FirebaseManager: Heartbeat failed - ");
+    Serial.print("FirebaseManager: ❌ Heartbeat failed - ");
     Serial.println(fbdo.errorReason());
     return false;
   }
