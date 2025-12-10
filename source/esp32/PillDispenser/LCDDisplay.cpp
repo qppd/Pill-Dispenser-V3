@@ -171,3 +171,9 @@ void LCDDisplay::testDisplay() {
   displayMainScreen();
   Serial.println("LCDDisplay: Test complete");
 }
+
+void LCDDisplay::displayMessage(String title, String message) {
+  clear();
+  centerText(title, 0);
+  centerText(message, 1);
+}

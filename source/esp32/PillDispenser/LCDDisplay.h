@@ -30,6 +30,7 @@ public:
   void backlight(bool on);
   void displayMainScreen();
   void displayTestMenu();
+  void displayMessage(String title, String message);
 };
 
 #endif
