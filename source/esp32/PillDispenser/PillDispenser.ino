@@ -947,16 +947,6 @@ void testSMSNotification() {
   }
 }
 
-void connectWiFi() {
-  if (WIFI_SSID == "YOUR_WIFI_SSID") {
-    Serial.println("❌ Please configure WiFi credentials in the code");
-    return;
-  }
-  
-  Serial.println("🌐 Connecting to WiFi...");
-  firebase.connectWiFi(WIFI_SSID, WIFI_PASSWORD);
-}
-
 void testFirebaseConnection() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("❌ WiFi not connected. Use 'wifi connect' first.");
