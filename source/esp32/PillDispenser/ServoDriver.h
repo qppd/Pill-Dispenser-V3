@@ -24,9 +24,10 @@ private:
   static const int DISPENSE_DURATION_CUSTOM = 1050; // Custom duration
   
   // Traditional servo constants (for MG90S TowerPro compatibility)
-  // MG90S typical range: ~500-2500μs, extended for wider servo compatibility
-  static const uint16_t SERVO_MIN = 102;  // ~500μs (102 * 4.88μs ≈ 498μs)
-  static const uint16_t SERVO_MAX = 512;  // ~2500μs (512 * 4.88μs ≈ 2500μs) - extended range
+  // Servo range: 500-2500μs for full 0-180° travel
+  // PCA9685: 50Hz, 12-bit (4096 steps), 1 tick = 4.88μs
+  static const uint16_t SERVO_MIN = 102;  // 500μs (102 * 4.88μs ≈ 498μs)
+  static const uint16_t SERVO_MAX = 512;  // 2500μs (512 * 4.88μs ≈ 2500μs)
   
   // MG90S mechanical limits (configurable - test with your servos)
   static const uint16_t MG90S_MIN_ANGLE = 0;

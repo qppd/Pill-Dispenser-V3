@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <TimeAlarms.h>
 #include <Firebase_ESP_Client.h>
+#include "TimeManager.h"
 
 #define MAX_SCHEDULES 15  // Maximum number of schedules (3 per dispenser x 5 dispensers)
 
@@ -25,6 +26,7 @@ private:
   MedicationSchedule schedules[MAX_SCHEDULES];
   int scheduleCount;
   String deviceId;
+  TimeManager* timeManager;
   
   // Callback function pointers
   void (*onDispenseCallback)(int dispenserId, String pillSize, String medication, String patient);
@@ -56,6 +58,7 @@ private:
 public:
   ScheduleManager();
   void begin(String deviceId);
+  void setTimeManager(TimeManager* tm) { timeManager = tm; }
   void update();  // Call in loop() to process alarms
   
   // Schedule management
@@ -82,6 +85,7 @@ public:
   String getNextScheduleTime();
   int getActiveScheduleCount();
   bool isScheduleTime(int hour, int minute);
+  void testTriggerSchedule(int scheduleIndex); // Manual trigger for testing
 };
 
 #endif

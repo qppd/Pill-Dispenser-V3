@@ -8,6 +8,7 @@ ScheduleManager::ScheduleManager() {
   scheduleCount = 0;
   onDispenseCallback = nullptr;
   onNotifyCallback = nullptr;
+  timeManager = nullptr;
   instance = this;
   
   // Initialize all schedules
@@ -31,8 +32,29 @@ void ScheduleManager::begin(String deviceId) {
 }
 
 void ScheduleManager::update() {
-  // Call TimeAlarms service routine
-  Alarm.delay(0);
+  // TimeAlarms service routine is called via Alarm.delay() in main loop
+  // No need to call it here
+  
+  // Debug: Print current time every 30 seconds
+  static unsigned long lastDebug = 0;
+  if (millis() - lastDebug > 30000) {
+    Serial.println();
+    Serial.println("═══════════════════════════════════════════════════");
+    Serial.print("⏰ ScheduleManager: TimeLib shows: ");
+    Serial.printf("%02d:%02d:%02d", hour(), minute(), second());
+    if (timeManager) {
+      Serial.print(" | Software RTC: ");
+      Serial.print(timeManager->getTimeString());
+    }
+    Serial.println();
+    Serial.print("📋 Active alarms in TimeAlarms library: ");
+    Serial.println(Alarm.count());
+    Serial.print("📅 Schedules in ScheduleManager: ");
+    Serial.println(scheduleCount);
+    Serial.println("═══════════════════════════════════════════════════");
+    Serial.println();
+    lastDebug = millis();
+  }
 }
 
 bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minute,
@@ -53,11 +75,37 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
     return false;
   }
   
-  // Check if schedule ID already exists
+  // Check if schedule ID already exists - update it instead of rejecting
   for (int i = 0; i < scheduleCount; i++) {
     if (schedules[i].id == id) {
-      Serial.println("ScheduleManager: Schedule ID already exists");
-      return false;
+      Serial.println("ScheduleManager: Schedule ID exists - updating instead");
+      // Free the old alarm first
+      if (schedules[i].alarmId != dtINVALID_ALARM_ID) {
+        Alarm.free(schedules[i].alarmId);
+      }
+      
+      // Update the schedule
+      schedules[i].dispenserId = dispenserId;
+      schedules[i].hour = hour;
+      schedules[i].minute = minute;
+      schedules[i].enabled = enabled;
+      schedules[i].medicationName = medicationName;
+      schedules[i].patientName = patientName;
+      schedules[i].pillSize = pillSize;
+      
+      // Create new alarm if enabled
+      if (enabled) {
+        OnTick_t callback = getCallbackFunction(i);
+        if (callback != nullptr) {
+          schedules[i].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
+          Serial.printf("ScheduleManager: ✅ Alarm updated for %02d:%02d - %s (%s) - AlarmID: %d\n", 
+                        schedules[i].hour, schedules[i].minute, medicationName.c_str(), patientName.c_str(), schedules[i].alarmId);
+        }
+      } else {
+        schedules[i].alarmId = dtINVALID_ALARM_ID;
+      }
+      
+      return true;
     }
   }
   
@@ -76,11 +124,22 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
     OnTick_t callback = getCallbackFunction(index);
     if (callback != nullptr) {
       schedules[index].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
-      Serial.printf("ScheduleManager: Alarm set for %02d:%02d - %s (%s)\n", 
-                    hour, minute, medicationName.c_str(), patientName.c_str());
+      Serial.println("\n" + String('─', 60));
+      Serial.println("✅ ALARM CREATED SUCCESSFULLY");
+      Serial.printf("   Schedule Index: %d\n", index);
+      Serial.printf("   Trigger Time: %02d:%02d:00\n", schedules[index].hour, schedules[index].minute);
+      Serial.printf("   Medication: %s\n", medicationName.c_str());
+      Serial.printf("   Patient: %s\n", patientName.c_str());
+      Serial.printf("   Dispenser ID: %d\n", dispenserId);
+      Serial.printf("   AlarmID: %d\n", schedules[index].alarmId);
+      Serial.printf("   Current TimeLib time: %02d:%02d:%02d\n", ::hour(), ::minute(), ::second());
+      Serial.printf("   Total alarms active: %d\n", Alarm.count());
+      Serial.println(String('─', 60) + "\n");
     } else {
-      Serial.println("ScheduleManager: Warning - No callback available for schedule " + String(index));
+      Serial.println("ScheduleManager: ❌ Warning - No callback available for schedule " + String(index));
     }
+  } else {
+    Serial.println("⚠️  Schedule disabled, no alarm created");
   }
   
   scheduleCount++;
@@ -131,7 +190,7 @@ bool ScheduleManager::updateSchedule(String id, int hour, int minute, bool enabl
         OnTick_t callback = getCallbackFunction(i);
         if (callback != nullptr) {
           schedules[i].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
-          Serial.printf("ScheduleManager: Schedule updated - %02d:%02d\n", hour, minute);
+          Serial.printf("ScheduleManager: Schedule updated - %02d:%02d\n", schedules[i].hour, schedules[i].minute);
         }
       } else {
         Serial.println("ScheduleManager: Schedule disabled - " + id);
@@ -191,27 +250,44 @@ bool ScheduleManager::isTodayScheduled(int scheduleIndex) {
   // Adjust to our format (0=Monday, 6=Sunday)
   int dow = (weekday() + 5) % 7;  // weekday() is from Time library
   
-  return schedules[scheduleIndex].weekdays[dow];
+  bool scheduled = schedules[scheduleIndex].weekdays[dow];
+  
+  // Debug: Print weekday check
+  static unsigned long lastWeekdayDebug = 0;
+  if (millis() - lastWeekdayDebug > 60000) { // Every minute
+    const char* dayNames[] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+    Serial.printf("ScheduleManager: Today is %s (dow=%d), Schedule %d enabled for today: %s\n", 
+                  dayNames[dow], dow, scheduleIndex, scheduled ? "YES" : "NO");
+    lastWeekdayDebug = millis();
+  }
+  
+  return scheduled;
 }
 
 void ScheduleManager::triggerSchedule(int scheduleIndex) {
+  Serial.println("\n" + String('=', 50));
+  Serial.println("⏰ ALARM CALLBACK TRIGGERED - Schedule Index: " + String(scheduleIndex));
+  Serial.println(String('=', 50));
+  
   if (scheduleIndex < 0 || scheduleIndex >= scheduleCount) {
+    Serial.println("❌ Invalid schedule index: " + String(scheduleIndex));
     return;
   }
   
   MedicationSchedule* schedule = &schedules[scheduleIndex];
   
   if (!schedule->enabled) {
-    Serial.println("ScheduleManager: Schedule disabled, skipping");
+    Serial.println("❌ Schedule disabled, skipping");
     return;
   }
   
   // Check if today is a scheduled day
   if (!isTodayScheduled(scheduleIndex)) {
-    Serial.println("ScheduleManager: Not scheduled for today, skipping");
+    Serial.println("❌ Not scheduled for today, skipping");
     return;
   }
   
+  Serial.println("✅ Schedule validation passed - proceeding with dispense");
   Serial.println("\n" + String('=', 50));
   Serial.println("⏰ SCHEDULED DISPENSING TRIGGERED");
   Serial.println(String('=', 50));
@@ -313,6 +389,41 @@ bool ScheduleManager::isScheduleTime(int hour, int minute) {
     }
   }
   return false;
+}
+
+void ScheduleManager::testTriggerSchedule(int scheduleIndex) {
+  Serial.println("\n" + String('=', 60));
+  Serial.println("🧪 MANUAL SCHEDULE TRIGGER TEST - Schedule Index: " + String(scheduleIndex));
+  Serial.println(String('=', 60));
+  
+  if (scheduleIndex < 0 || scheduleIndex >= scheduleCount) {
+    Serial.println("❌ Invalid schedule index: " + String(scheduleIndex));
+    return;
+  }
+  
+  MedicationSchedule* schedule = &schedules[scheduleIndex];
+  Serial.printf("Schedule ID: %s\n", schedule->id.c_str());
+  Serial.printf("Time: %02d:%02d\n", schedule->hour, schedule->minute);
+  Serial.println("Patient: " + schedule->patientName);
+  Serial.println("Medication: " + schedule->medicationName);
+  Serial.println("Dispenser: " + String(schedule->dispenserId));
+  Serial.println("Size: " + schedule->pillSize);
+  Serial.println("Enabled: " + String(schedule->enabled ? "YES" : "NO"));
+  
+  // Check if today is scheduled
+  bool todayScheduled = isTodayScheduled(scheduleIndex);
+  Serial.println("Today scheduled: " + String(todayScheduled ? "YES" : "NO"));
+  
+  Serial.println("Triggering dispense callback...");
+  Serial.println(String('=', 60) + "\n");
+  
+  // Trigger the callback regardless of time/day checks for testing
+  if (onDispenseCallback != nullptr) {
+    onDispenseCallback(schedule->dispenserId, schedule->pillSize, 
+                      schedule->medicationName, schedule->patientName);
+  } else {
+    Serial.println("❌ No dispense callback set!");
+  }
 }
 
 // Static callback functions

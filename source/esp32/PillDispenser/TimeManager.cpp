@@ -1,6 +1,7 @@
 #include "TimeManager.h"
 #include <Arduino.h>
 #include <WiFi.h>
+#include <TimeLib.h>
 
 TimeManager::TimeManager() {
   ntpServer = "pool.ntp.org";
@@ -63,7 +64,13 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
     Serial.print("TimeManager: Current time: ");
     Serial.println(timeStringBuff);
 
-    // Note: Arduino Time library sync removed to avoid conflicts with system time
+    // CRITICAL: Sync Arduino Time library for TimeAlarms compatibility
+    // TimeAlarms library uses hour(), minute(), second() from TimeLib.h
+    // We must call setTime() to sync the Time library with NTP time
+    setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
+            timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
+    Serial.println("TimeManager: ✅ Arduino Time library synced for TimeAlarms");
+    Serial.printf("TimeManager: TimeLib shows: %02d:%02d:%02d\n", hour(), minute(), second());
     
     // Initialize software RTC with NTP time
     initializeSoftwareRTC();
@@ -96,7 +103,11 @@ bool TimeManager::syncTime() {
   Serial.print("TimeManager: ✅ Current DateTime: ");
   Serial.println(timeStringBuff);
 
-  // Note: Arduino Time library sync removed to avoid conflicts with system time
+  // CRITICAL: Sync Arduino Time library for TimeAlarms compatibility
+  setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, 
+          timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
+  Serial.println("TimeManager: ✅ Arduino Time library synced for TimeAlarms");
+  Serial.printf("TimeManager: TimeLib shows: %02d:%02d:%02d\n", hour(), minute(), second());
 
   isTimeSynced = true;
   lastSyncTime = millis();
@@ -221,6 +232,17 @@ void TimeManager::update() {
   // Update software RTC every call (it handles its own timing internally)
   updateSoftwareRTC();
   
+  // CRITICAL: Keep TimeLib synchronized with software RTC for TimeAlarms
+  // This ensures hour(), minute(), second() functions return current time
+  static unsigned long lastTimeSyncUpdate = 0;
+  if (millis() - lastTimeSyncUpdate >= 1000) { // Sync every second
+    if (softwareRTCInitialized) {
+      setTime(softwareRTC.tm_hour, softwareRTC.tm_min, softwareRTC.tm_sec,
+              softwareRTC.tm_mday, softwareRTC.tm_mon + 1, softwareRTC.tm_year + 1900);
+    }
+    lastTimeSyncUpdate = millis();
+  }
+  
   // Check if time is valid, if not, try to sync immediately
   time_t currentTime = time(nullptr);
   if (currentTime < 1000000000) { // Invalid time (before year 2001)
@@ -303,9 +325,10 @@ String TimeManager::getCurrentLogPrefix() {
 }
 
 String TimeManager::getTimeString() {
-  updateSoftwareRTC(); // Ensure software RTC is updated
   return getSoftwareRTCTimeString();
-}String TimeManager::getDateString() {
+}
+
+String TimeManager::getDateString() {
   if (!getLocalTime(&timeinfo)) {
     return "0000-00-00";
   }
@@ -316,9 +339,10 @@ String TimeManager::getTimeString() {
 }
 
 String TimeManager::getDateTimeString() {
-  updateSoftwareRTC(); // Ensure software RTC is updated
   return getSoftwareRTCDateTimeString();
-}time_t TimeManager::getTimestamp() {
+}
+
+time_t TimeManager::getTimestamp() {
   return time(nullptr);
 }
 
