@@ -1,0 +1,40 @@
+# Firebase Configuration
+# DO NOT commit FirebaseConfig.cpp with real credentials
+source/esp32/PillDispenser/FirebaseConfig.cpp
+
+# ESP32 build files
+source/esp32/PillDispenser/build/
+source/esp32/PillDispenser/.pio/
+
+# Node.js dependencies
+source/web/node_modules/
+source/web/.next/
+source/web/out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Firebase service account keys
+*-firebase-adminsdk-*.json
+
+# Temporary files
+*.tmp
+*.temp
