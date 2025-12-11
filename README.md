@@ -168,6 +168,13 @@ The Pill Dispenser V3 is a sophisticated, multi-component IoT-enabled medication
 - **Internet Access**: Required for Firebase connectivity
 - **SIM Card**: For GSM functionality (optional)
 
+### Wiring Diagrams
+
+The wiring diagrams for the system are available in the `diagram/` directory:
+
+- `Wiring.fzz`: Fritzing diagram file for circuit design
+- `Wiring.png`: PNG image of the wiring diagram
+
 ## Software Dependencies
 
 ### ESP32 Arduino Dependencies
