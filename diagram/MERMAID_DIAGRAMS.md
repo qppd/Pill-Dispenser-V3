@@ -1033,10 +1033,10 @@ graph TB
     end
     
     subgraph "Firebase Database Paths"
-        DISP_PATH["/dispensers/{userId}"]
-        CONT_PATH["/dispensers/{userId}/containers"]
-        DEV_PATH["/dispensers/{userId}/device"]
-        SCHED_PATH["/schedules/{userId}"]
+        DISP_PATH["/pilldispenser/device/{deviceId}/status"]
+        CONT_PATH["/pilldispenser/device/{deviceId}/dispensers"]
+        DEV_PATH["/pilldispenser/device/{deviceId}"]
+        SCHED_PATH["/pilldispenser/device/{deviceId}/schedules"]
         LOGS_PATH["/pilldispenser/pill_logs"]
         REP_PATH["/pilldispenser/reports"]
     end
