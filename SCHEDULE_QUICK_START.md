@@ -1,175 +1,203 @@
-# Quick Start: Schedule Management
+# Schedule Quick Start - Pill Dispenser V3
 
-## 🚀 Getting Started in 5 Minutes
+## Creating Your First Schedule
 
-### Step 1: Configure ESP32 User ID
-Open `source/esp32/PillDispenser/PillDispenser.ino` and set your user ID:
+### Prerequisites
+- ✅ ESP32 firmware uploaded and running
+- ✅ Web dashboard accessible
+- ✅ Firebase connection established
+- ✅ At least one dispenser tested
 
-```cpp
-const String USER_ID = "d1SdACjSzbZBNzfhMOFhZixVEX82";  // Change this to your Firebase user ID
+### Step 1: Access Web Dashboard
+1. Open browser to `http://localhost:3000`
+2. Login or register new account
+3. Navigate to **Schedule** page
+
+### Step 2: Add New Schedule
+1. Click **"Add Schedule"** button
+2. Select **Container 0** (first dispenser)
+3. Configure schedule details:
+   - **Time**: 08:00 (8:00 AM)
+   - **Patient**: John Doe
+   - **Medication**: Aspirin 81mg
+   - **Pill Size**: Small
+   - **Days**: Monday, Tuesday, Wednesday, Thursday, Friday
+4. Click **"Save"** button
+
+### Step 3: Verify Schedule Sync
+1. Check ESP32 serial monitor
+2. Look for sync confirmation message
+3. Run `schedules` command to list active schedules
+
+**Expected Serial Output**:
+```
+📅 SCHEDULE SYNC - New schedule added
+Container: 0, Time: 08:00, Medication: Aspirin 81mg
+✅ Schedule synchronized successfully
 ```
 
-> **Note**: In production, this should match the authenticated user's UID from Firebase Auth.
+## Testing the Schedule
 
-### Step 2: Upload ESP32 Code
-1. Open Arduino IDE
-2. Load `PillDispenser.ino`
-3. Select ESP32 board
-4. Upload to device
-5. Open Serial Monitor (115200 baud)
+### Manual Testing
+1. Wait for scheduled time OR use manual dispense
+2. Check serial monitor for dispensing activity
+3. Verify SMS notification sent (if configured)
+4. Confirm Firebase logging
 
-You should see:
+### Serial Commands for Testing
 ```
-📅 Loading schedules from Firebase...
-FirebaseManager: Syncing schedules from Firebase...
-✅ Schedules loaded successfully
-```
-
-### Step 3: Start Web Application
-```bash
-cd source/web
-npm install
-npm run dev
+schedules         # List all schedules
+status           # Show system status
+dispense 0 small # Manual dispense test
+battery          # Check battery status
 ```
 
-Open: http://localhost:3000
+## Schedule Management Basics
 
-### Step 4: Create Your First Schedule
+### Schedule Components
+- **Container**: Dispenser number (0-4)
+- **Time**: Hour and minute (24-hour format)
+- **Patient**: Person receiving medication
+- **Medication**: Drug name and dosage
+- **Pill Size**: Small/Medium/Large timing
+- **Days**: Active days of the week
 
-1. **Login** to the web app
-2. **Navigate** to Schedule page
-3. **Select** Container 1
-4. **Click** "Add Schedule"
-5. **Set** time (e.g., 2 minutes from now for testing)
-6. **Enable** the checkbox
-7. **Click** "Save Changes"
+### Basic Operations
+- **Add**: Create new medication schedules
+- **Edit**: Modify existing schedule details
+- **Delete**: Remove unwanted schedules
+- **Enable/Disable**: Control schedule activation
 
-### Step 5: Watch It Work!
+## Common Schedule Scenarios
 
-Monitor the ESP32 Serial output:
+### Daily Medication (Mon-Fri)
+- **Time**: 08:00, 14:00, 20:00
+- **Days**: Monday through Friday
+- **Patient**: Regular daily medication
 
-**Before scheduled time:**
-```
-💓 System heartbeat - 14:28:30
-Next schedule: 14:30
-```
+### Weekly Medication
+- **Time**: 09:00
+- **Days**: Sunday only
+- **Patient**: Weekly supplement
 
-**At scheduled time:**
-```
-============================================================
-⏰ SCHEDULED DISPENSE TRIGGERED
-============================================================
-Container: 1
-Medication: Container 1 Medication
-Time: 14:30:00
-============================================================
-🔄 Dispensing from container 1...
-✅ Dispense complete
-```
+### Multiple Patients
+- **Patient A**: Morning medications
+- **Patient B**: Evening medications
+- **Separate Schedules**: Track individually
 
-## 🎯 Common Use Cases
+## Schedule Limits and Best Practices
 
-### Daily Medication Schedule
-```
-Container 1: Morning pills - 08:00
-Container 2: Afternoon pills - 14:00
-Container 3: Evening pills - 20:00
-```
+### System Limits
+- **Max Schedules**: 15 total (3 per dispenser)
+- **Containers**: 5 available (0-4)
+- **Timing**: Minute precision
+- **Days**: Full week selection
 
-### Multiple Daily Doses
-```
-Container 1:
-  - 08:00 (Morning dose)
-  - 12:00 (Midday dose)
-  - 20:00 (Evening dose)
-```
+### Best Practices
+- **Consistent Timing**: Use standard times when possible
+- **Patient Organization**: Group schedules by patient
+- **Regular Review**: Check schedules weekly
+- **Backup Planning**: Have caregiver backup contacts
 
-### Mixed Schedule
-```
-Container 1: 08:00 (enabled)
-Container 2: 12:00 (enabled)
-Container 3: 16:00 (enabled)
-Container 4: 20:00 (enabled)
-Container 5: 22:00 (disabled - weekend only, manually enable)
-```
-
-## 🔧 Testing Tips
-
-### Test Real-time Sync
-1. Open Serial Monitor
-2. Add schedule in web app
-3. Save changes
-4. Watch ESP32 immediately sync:
-```
-FirebaseManager: Updated Path: /pill_schedule
-FirebaseManager: Triggering schedule sync due to update...
-```
-
-### Test Schedule Trigger
-Set a schedule for 1-2 minutes in the future to quickly verify it works.
-
-### Test Manual Override
-Use "Dispense Now" button alongside schedules - both work independently!
-
-## 📱 Monitoring
-
-### ESP32 Serial Monitor
-- System heartbeat every 30 seconds
-- Next scheduled time displayed
-- Detailed logging of all events
-
-### Firebase Console
-- Check `schedules/{userId}` for user data
-- Check `pilldispenser/device/schedules/{userId}` for device data
-- View logs in real-time
-
-### Web App
-- Current schedules displayed
-- Enable/disable toggle
-- Visual feedback on save
-
-## ⚠️ Important Notes
-
-1. **Time Sync**: ESP32 must have correct time via NTP
-2. **WiFi**: Device must be connected to internet
-3. **User ID**: Must match between web app and ESP32
-4. **Maximum**: 3 schedules per container (15 total)
-5. **Persistence**: Schedules reload automatically after ESP32 reboot
-
-## 🐛 Troubleshooting
-
-### Schedule Not Triggering
-- ✅ Check ESP32 time is correct
-- ✅ Verify schedule is enabled
-- ✅ Check `Next schedule:` in heartbeat
-- ✅ Ensure alarm was created successfully
+## Troubleshooting Schedules
 
 ### Schedule Not Syncing
-- ✅ Verify WiFi connection
-- ✅ Check USER_ID matches
-- ✅ Confirm Firebase rules allow access
-- ✅ Check Serial Monitor for error messages
+**Problem**: Changes not appearing on ESP32
+**Solution**:
+- Check Firebase connection
+- Verify web dashboard saves successfully
+- Restart ESP32 to force sync
+- Check serial monitor for error messages
 
-### Web App Not Saving
-- ✅ Check browser console for errors
-- ✅ Verify Firebase config in `.env`
-- ✅ Ensure user is logged in
-- ✅ Check network tab for Firebase requests
+### Missed Dispensing
+**Problem**: Scheduled time passed without dispensing
+**Solution**:
+- Verify ESP32 time is correct (NTP sync)
+- Check schedule is enabled
+- Confirm dispenser is functional
+- Review Firebase logs for errors
 
-## 📚 Additional Resources
+### SMS Not Received
+**Problem**: No notification for scheduled dispense
+**Solution**:
+- Verify phone number format (+1234567890)
+- Check GSM signal strength
+- Confirm SIM card is active
+- Test SMS with manual dispense
 
-- `SCHEDULE_MANAGEMENT_GUIDE.md` - Complete feature documentation
-- `SCHEDULE_IMPLEMENTATION.md` - Technical implementation details
-- `API_REFERENCE.md` - Full API documentation
+## Advanced Schedule Features
 
-## ✨ Success Indicators
+### Multiple Daily Doses
+- **Container 0**: Morning medication
+- **Container 1**: Afternoon medication
+- **Container 2**: Evening medication
 
-You know it's working when:
-- ✅ Serial Monitor shows "Schedules loaded successfully"
-- ✅ Web app displays your saved schedules
-- ✅ ESP32 dispenses at scheduled times
-- ✅ LCD shows "DISPENSING" message
-- ✅ Firebase logs show dispense events
+### Different Pill Sizes
+- **Small**: Vitamins, regular pills
+- **Medium**: Standard tablets
+- **Large**: Large capsules, supplements
+
+### Day-Specific Scheduling
+- **Weekdays**: Work/school day medications
+- **Weekends**: Different timing or medications
+- **Custom**: Specific days only
+
+## Monitoring and Maintenance
+
+### Daily Checks
+- [ ] Schedules are active and correct
+- [ ] Next dispense time is reasonable
+- [ ] Battery level is adequate
+- [ ] System status is normal
+
+### Weekly Maintenance
+- [ ] Review medication compliance
+- [ ] Update medication information
+- [ ] Test dispenser functionality
+- [ ] Check SMS delivery
+
+### Monthly Review
+- [ ] Audit all active schedules
+- [ ] Verify patient information
+- [ ] Update contact phone numbers
+- [ ] Review system performance
+
+## Emergency Procedures
+
+### Manual Dispense
+1. Access web dashboard
+2. Go to dispenser control
+3. Click "Dispense Now"
+4. Select pill size
+5. Confirm dispensing
+
+### Schedule Override
+1. Disable problematic schedule
+2. Perform manual dispense if needed
+3. Re-enable schedule when resolved
+4. Monitor for proper operation
+
+### System Reset
+1. Restart ESP32 device
+2. Verify Firebase reconnection
+3. Check schedule sync status
+4. Test dispensing functionality
+
+## Getting Help
+
+### Quick Reference
+- **Web Dashboard**: Schedule management interface
+- **Serial Monitor**: Real-time system status
+- **Firebase Console**: Data verification and logs
+
+### Support Commands
+```
+help             # Show all available commands
+status           # System health check
+schedules        # List active schedules
+diagnostics      # Network and system diagnostics
+```
 
 ---
-**Ready to go!** Your pill dispenser is now fully automated with smart scheduling! 🎉
+
+**Schedule Quick Start Complete!** Your medication schedules are now active and monitored.

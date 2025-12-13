@@ -1,6 +1,6 @@
-# Testing Documentation
+# Testing Documentation - Pill Dispenser V3
 
-This document provides comprehensive testing procedures and protocols for the Pill Dispenser V3 multi-component system including ESP32 hardware, Raspberry Pi ML processing, ESP32-CAM imaging, and web dashboard.
+This document provides comprehensive testing procedures and protocols for the Pill Dispenser V3 ESP32-based medication dispensing system.
 
 ## Table of Contents
 
@@ -26,18 +26,16 @@ The Pill Dispenser V3 implements a comprehensive testing framework with four dis
 
 ### Verified Working Components
 
-As of December 10, 2025, the following ESP32 components have been tested and verified working via serial monitor test commands:
+As of December 2025, the following ESP32 components have been tested and verified working:
 
-- **Servo Driver (PCA9685)**: All 16 channels functional with individual and pair dispensing
+- **Servo Driver (PCA9685)**: All 5 dispenser channels functional with pill size calibration
 - **LCD Display (I2C 20x4)**: Text display, status updates, and real-time information working
-- **SIM800L GSM Module**: SMS notifications, calls, and GPRS connectivity verified
-- **Voltage Sensor**: Battery monitoring, voltage readings, and low-power detection operational
-- **IR Sensors**: Pill detection, entrance/middle/exit verification, and state changes working
-- **RTC Module (DS1302)**: Timekeeping, date/time management, and scheduling functional
-- **Firebase Manager**: Cloud connectivity, real-time database, and authentication working
-- **Time Manager**: NTP synchronization, timezone handling, and medication scheduling operational
-
-All ESP32 main controller components are fully operational and ready for system integration testing.
+- **SIM800L GSM Module**: SMS notifications and connectivity verified
+- **Voltage Sensor**: Battery monitoring, voltage readings, and percentage calculation operational
+- **Firebase Manager**: Cloud connectivity, real-time database, and service account authentication working
+- **Time Manager**: NTP synchronization and medication scheduling operational
+- **Schedule Manager**: TimeAlarms-based scheduling with up to 15 schedules
+- **Notification Manager**: SMS alerts for reminders and dispensing confirmations
 
 ### Testing Modes
 
@@ -57,45 +55,683 @@ Activated by setting `DEVELOPMENT_MODE = false`:
 
 ### Serial Command Interface
 
-The ESP32 system provides a comprehensive serial command interface accessible through the Arduino Serial Monitor or terminal:
+The ESP32 system provides a comprehensive serial command interface accessible through the Arduino Serial Monitor:
 
 ```
 📚 AVAILABLE COMMANDS:
 ─────────────────────────────────────
 System Commands:
-  help                 - Show this menu
-  status              - System status
-  reset               - Restart system
-  clear               - Clear screen
-  time                - Show current time
-  wifi connect        - Connect to WiFi
-  i2c scan            - Scan I2C devices
+  help              - Show this menu
+  status            - System status
+  time              - Show current time
+  battery           - Show battery status
+  schedules         - List all schedules
 
 Component Testing:
-  test servo          - Test single servo (will ask for number)
-  test all servos     - Test all 16 servos
-  test pill dispenser - Test pill dispensing on channel
-  test all dispensers - Test all dispenser pairs
-  test lcd            - Test LCD display
-  test time           - Test NTP time sync (continuous)
-  test sim800         - Test SIM800L module
-  test firebase       - Test Firebase connection
-  test voltage        - Test voltage sensor (continuous)
-  voltage             - Show current voltage reading
+  test dispenser N  - Test dispenser N (0-4)
+  test all dispensers - Test all 5 dispensers
+  test servo        - Test servo functionality
+  test all servos   - Test all 16 servo channels
+  test lcd          - Test LCD display
+  test sim800       - Test GSM module
+  test firebase     - Test Firebase connection
+  test voltage      - Test battery sensor (continuous)
 
-Pill Dispenser Operations:
-  dispense            - Test pill dispensing sequence
-  dispense [ch] [size] - Dispense pill (ch=0-15, size=small/medium/large)
-  dispense pair [ch1] [ch2] [size] - Dispense using servo pair
+Operations:
+  dispense N size   - Manual dispense (N=0-4, size=small/medium/large)
+  wifi connect      - Connect to WiFi
+  diagnostics       - Show network diagnostics
 
-Servo Control:
-  servo [num] [angle] - Move servo to angle (0-180)
-  servo reset         - Reset all servos to 90°
-  servo stop [num]    - Stop specific servo
-  servo stop all      - Stop all servos
-  servo speed [num] [speed] - Set servo speed (300-450)
+Development Only:
+  reset             - Restart system
+  clear             - Clear screen
 ─────────────────────────────────────
 ```
+
+## Hardware Testing
+
+### ESP32 Board Testing
+
+**Objective**: Verify ESP32 functionality and basic operation
+
+**Prerequisites**:
+- ESP32 Dev Module connected to computer
+- Arduino IDE with ESP32 support installed
+- USB cable for programming
+
+**Test Procedure**:
+1. Open Arduino IDE
+2. Select "ESP32 Dev Module" board
+3. Upload blink sketch
+4. Verify onboard LED blinks
+5. Open Serial Monitor at 115200 baud
+6. Verify serial communication
+
+**Expected Results**:
+- LED blinks every second
+- Serial output shows setup completion
+- No compilation errors
+
+**Troubleshooting**:
+- Check USB driver installation
+- Verify board selection
+- Test with different USB port
+
+### I2C Bus Testing
+
+**Objective**: Verify I2C communication with connected devices
+
+**Prerequisites**:
+- PCA9685 and LCD connected to ESP32
+- I2C pull-up resistors installed (4.7kΩ)
+
+**Test Procedure**:
+```cpp
+#include <Wire.h>
+
+void setup() {
+  Wire.begin();
+  Serial.begin(115200);
+  Serial.println("I2C Scanner");
+}
+
+void loop() {
+  Serial.println("Scanning...");
+  for (byte address = 1; address < 127; address++) {
+    Wire.beginTransmission(address);
+    if (Wire.endTransmission() == 0) {
+      Serial.print("Found device at 0x");
+      Serial.println(address, HEX);
+    }
+  }
+  delay(5000);
+}
+```
+
+**Expected Results**:
+- PCA9685 detected at 0x40
+- LCD detected at 0x27 or 0x3F
+
+**Troubleshooting**:
+- Check SDA/SCL connections (GPIO 21/22)
+- Verify pull-up resistors
+- Test individual device connections
+
+### Servo Motor Testing
+
+**Objective**: Verify servo motor control and dispensing mechanism
+
+**Prerequisites**:
+- PCA9685 connected and powered
+- Servo motors connected to channels 0-4
+- External 5V power supply for servos
+
+**Test Procedure**:
+1. Upload PillDispenser firmware
+2. Open Serial Monitor
+3. Send command: `test dispenser 0`
+4. Observe servo rotation
+5. Test all dispensers: `test all dispensers`
+
+**Expected Results**:
+- Servo rotates for appropriate duration based on pill size
+- Smooth rotation without jerking
+- Consistent behavior across all channels
+
+**Troubleshooting**:
+- Check servo power supply (5V 2A+)
+- Verify PCA9685 connections
+- Test individual servo channels
+- Check PWM frequency (50Hz)
+
+### LCD Display Testing
+
+**Objective**: Verify LCD display functionality
+
+**Prerequisites**:
+- LCD connected to I2C bus
+- Correct I2C address configured
+
+**Test Procedure**:
+1. Upload firmware
+2. Send command: `test lcd`
+3. Observe display output
+
+**Expected Results**:
+- LCD backlight turns on
+- Text displays correctly
+- No garbled characters
+- Proper line wrapping
+
+**Troubleshooting**:
+- Check I2C address (0x27 or 0x3F)
+- Verify power connections (5V)
+- Test I2C bus connectivity
+
+### SIM800L GSM Testing
+
+**Objective**: Verify GSM module functionality and SMS capability
+
+**Prerequisites**:
+- SIM800L connected to ESP32
+- Activated SIM card inserted
+- GSM antenna connected
+- Proper power supply (3.7-4.2V)
+
+**Test Procedure**:
+1. Upload firmware
+2. Send command: `test sim800`
+3. Send command: `test sms` (if available)
+
+**Expected Results**:
+- Module responds to AT commands
+- Signal strength reported
+- SMS sent successfully (if test command available)
+
+**Troubleshooting**:
+- Check power supply voltage and current
+- Verify serial connections (GPIO 16/17)
+- Test SIM card validity
+- Check antenna connection
+
+### Voltage Sensor Testing
+
+**Objective**: Verify battery monitoring functionality
+
+**Prerequisites**:
+- Voltage divider connected to GPIO 34
+- Battery or known voltage source connected
+
+**Test Procedure**:
+1. Upload firmware
+2. Send command: `test voltage`
+3. Send command: `battery`
+
+**Expected Results**:
+- Voltage readings within expected range
+- Percentage calculation accurate
+- Battery status reported correctly
+
+**Troubleshooting**:
+- Check voltage divider circuit
+- Verify ADC pin connection (GPIO 34)
+- Calibrate voltage multiplier
+- Test with known voltage source
+
+## Software Testing
+
+### Firebase Connection Testing
+
+**Objective**: Verify Firebase connectivity and authentication
+
+**Prerequisites**:
+- Firebase project configured
+- Service account credentials in FirebaseConfig.cpp
+- WiFi connected
+
+**Test Procedure**:
+1. Upload firmware with Firebase enabled
+2. Monitor serial output for connection messages
+3. Send command: `test firebase`
+
+**Expected Results**:
+- Service account authentication successful
+- Firebase connection established
+- Real-time streaming active
+
+**Troubleshooting**:
+- Check WiFi connectivity
+- Verify service account credentials
+- Check Firebase security rules
+- Test with Firebase console
+
+### NTP Time Synchronization Testing
+
+**Objective**: Verify accurate timekeeping
+
+**Prerequisites**:
+- Internet connectivity
+- NTP server accessible
+
+**Test Procedure**:
+1. Upload firmware
+2. Send command: `time`
+3. Send command: `test time`
+
+**Expected Results**:
+- Current time displayed
+- NTP sync successful
+- Time updates automatically
+
+**Troubleshooting**:
+- Check WiFi connectivity
+- Verify NTP server accessibility
+- Test with different NTP servers
+
+### Schedule Management Testing
+
+**Objective**: Verify medication scheduling functionality
+
+**Prerequisites**:
+- Time synchronized
+- Firebase connected
+- ScheduleManager initialized
+
+**Test Procedure**:
+1. Create schedule via web dashboard
+2. Verify ESP32 receives schedule
+3. Send command: `schedules`
+4. Wait for scheduled time or test manually
+
+**Expected Results**:
+- Schedules sync from Firebase
+- TimeAlarms triggers at correct time
+- Dispensing occurs automatically
+
+**Troubleshooting**:
+- Check Firebase connectivity
+- Verify schedule data format
+- Test TimeAlarms functionality
+
+## Integration Testing
+
+### End-to-End Dispensing Test
+
+**Objective**: Verify complete dispensing workflow
+
+**Prerequisites**:
+- All hardware components connected
+- Software uploaded and configured
+- Test schedule created
+
+**Test Procedure**:
+1. Create schedule for 2 minutes in future
+2. Monitor serial output
+3. Wait for scheduled time
+4. Verify dispensing sequence:
+   - LCD shows dispensing info
+   - Servo activates
+   - SMS notification sent
+   - Event logged to Firebase
+
+**Expected Results**:
+- Complete workflow executes successfully
+- All components work together
+- User receives notifications
+
+### Battery Monitoring Integration
+
+**Objective**: Verify battery monitoring in full system
+
+**Prerequisites**:
+- Voltage sensor connected
+- Battery power source
+- Firebase connected
+
+**Test Procedure**:
+1. Monitor battery status: `battery`
+2. Check Firebase for battery data
+3. Verify low battery SMS alerts
+4. Test percentage calculations
+
+**Expected Results**:
+- Battery data updates regularly
+- Firebase receives battery telemetry
+- Low battery alerts trigger
+
+### Web Dashboard Integration
+
+**Objective**: Verify web-ESP32 communication
+
+**Prerequisites**:
+- Web dashboard running
+- ESP32 connected to Firebase
+- User authentication configured
+
+**Test Procedure**:
+1. Login to web dashboard
+2. Create new schedule
+3. Verify ESP32 receives update
+4. Test manual dispense button
+5. Check real-time status updates
+
+**Expected Results**:
+- Real-time synchronization
+- Manual dispense works
+- Status updates display correctly
+
+## Component Testing
+
+### Individual Component Tests
+
+#### ServoDriver Component Test
+
+```cpp
+// Test individual servo functions
+void testServoDriver() {
+    ServoDriver servoDriver;
+    if (servoDriver.begin()) {
+        // Test basic dispensing
+        servoDriver.dispensePill(0, "medium");
+        delay(2000);
+        
+        // Test servo control
+        servoDriver.setServoSpeed(0, 400); // Forward
+        delay(1000);
+        servoDriver.stopServo(0);
+        
+        Serial.println("ServoDriver test passed");
+    }
+}
+```
+
+#### LCDDisplay Component Test
+
+```cpp
+// Test LCD display functions
+void testLCDDisplay() {
+    LCDDisplay lcd;
+    if (lcd.begin()) {
+        lcd.clear();
+        lcd.print("Testing LCD");
+        lcd.setCursor(0, 1);
+        lcd.print("Line 2");
+        lcd.showStatus("Test", "Complete");
+        
+        Serial.println("LCD test passed");
+    }
+}
+```
+
+#### SIM800L Component Test
+
+```cpp
+// Test GSM module functions
+void testSIM800L() {
+    SIM800L sim(Serial2);
+    if (sim.begin()) {
+        int signal = sim.checkSignal();
+        Serial.print("Signal strength: ");
+        Serial.println(signal);
+        
+        // Test SMS sending
+        bool smsSent = sim.sendSMS("+1234567890", "Test SMS");
+        if (smsSent) {
+            Serial.println("SMS test passed");
+        }
+    }
+}
+```
+
+#### VoltageSensor Component Test
+
+```cpp
+// Test voltage sensor functions
+void testVoltageSensor() {
+    VoltageSensor sensor;
+    float voltage = sensor.readVoltage();
+    float percentage = sensor.getBatteryPercentage();
+    String status = sensor.getBatteryStatus();
+    
+    Serial.print("Voltage: ");
+    Serial.print(voltage);
+    Serial.print("V (");
+    Serial.print(percentage);
+    Serial.print("%) Status: ");
+    Serial.println(status);
+}
+```
+
+### Firebase Integration Tests
+
+#### Authentication Test
+
+```cpp
+// Test Firebase authentication
+void testFirebaseAuth() {
+    FirebaseManager firebase;
+    if (firebase.begin("TEST_DEVICE")) {
+        Serial.println("Firebase authentication successful");
+        
+        // Test data operations
+        firebase.sendHeartbeat();
+        Serial.println("Heartbeat sent");
+    }
+}
+```
+
+#### Real-time Streaming Test
+
+```cpp
+// Test Firebase streaming
+void testFirebaseStreaming() {
+    FirebaseManager firebase;
+    if (firebase.begin("TEST_DEVICE")) {
+        // Test stream setup
+        if (firebase.beginStream("/test/path")) {
+            Serial.println("Firebase streaming active");
+        }
+    }
+}
+```
+
+## Performance Testing
+
+### System Performance Metrics
+
+**ESP32 Performance**:
+- Boot time: < 5 seconds
+- Memory usage: < 70% heap
+- WiFi reconnect time: < 10 seconds
+- Firebase sync time: < 2 seconds
+
+**Servo Performance**:
+- Dispensing accuracy: ±5%
+- Response time: < 100ms
+- Power consumption: < 1A peak
+
+**Communication Performance**:
+- SMS send time: < 10 seconds
+- Firebase update latency: < 1 second
+- Web dashboard sync: < 2 seconds
+
+### Load Testing
+
+#### Schedule Load Test
+
+**Objective**: Test system with maximum schedules
+
+**Procedure**:
+1. Create 15 schedules (3 per dispenser)
+2. Set various times throughout day
+3. Monitor system performance
+4. Verify all schedules execute
+
+**Expected Results**:
+- All schedules stored and managed
+- System remains responsive
+- No memory issues
+
+#### Concurrent Operation Test
+
+**Objective**: Test multiple operations simultaneously
+
+**Procedure**:
+1. Active Firebase streaming
+2. Battery monitoring active
+3. Schedule checking active
+4. Manual dispense request
+5. SMS notification sending
+
+**Expected Results**:
+- All operations complete successfully
+- No timing conflicts
+- System stability maintained
+
+### Stress Testing
+
+#### Extended Runtime Test
+
+**Objective**: Test system stability over time
+
+**Procedure**:
+1. Run system for 24+ hours
+2. Monitor memory usage
+3. Check for memory leaks
+4. Verify schedule accuracy
+
+**Expected Results**:
+- No crashes or restarts
+- Stable memory usage
+- Accurate timekeeping
+
+#### Network Interruption Test
+
+**Objective**: Test behavior during network issues
+
+**Procedure**:
+1. Disconnect WiFi during operation
+2. Monitor system behavior
+3. Reconnect network
+4. Verify recovery
+
+**Expected Results**:
+- Graceful degradation
+- Automatic reconnection
+- Data synchronization on recovery
+
+## Safety Testing
+
+### Electrical Safety Tests
+
+**Power Supply Testing**:
+- Verify voltage levels within specifications
+- Check current draw under load
+- Test power supply stability
+- Verify overcurrent protection
+
+**Component Safety**:
+- Check for overheating
+- Verify proper grounding
+- Test ESD protection
+- Check component ratings
+
+### Operational Safety Tests
+
+**Dispensing Safety**:
+- Verify pill size calibration
+- Test dispenser mechanism safety
+- Check for jamming prevention
+- Verify emergency stop functionality
+
+**Communication Safety**:
+- Test SMS rate limiting
+- Verify secure Firebase communication
+- Check authentication security
+- Test data encryption
+
+### Environmental Safety Tests
+
+**Temperature Testing**:
+- Test operation at various temperatures
+- Check component temperature limits
+- Verify thermal protection
+
+**Humidity Testing**:
+- Test in humid environments
+- Check for condensation issues
+- Verify moisture protection
+
+## Troubleshooting Guide
+
+### Common Issues and Solutions
+
+**ESP32 Won't Program**:
+- Check USB driver installation
+- Verify board selection in Arduino IDE
+- Test with different USB cable/port
+- Check ESP32 power supply
+
+**I2C Communication Fails**:
+- Verify pull-up resistors (4.7kΩ)
+- Check SDA/SCL connections
+- Test I2C bus with scanner
+- Verify device addresses
+
+**Servos Don't Move**:
+- Check external power supply (5V 2A+)
+- Verify PCA9685 connections
+- Test individual servo channels
+- Check PWM signal with oscilloscope
+
+**SMS Not Sending**:
+- Verify SIM800L power (3.7-4.2V)
+- Check SIM card validity
+- Test signal strength
+- Verify serial communication
+
+**Firebase Connection Fails**:
+- Check WiFi connectivity
+- Verify service account credentials
+- Test Firebase security rules
+- Check internet connectivity
+
+**Time Not Synchronizing**:
+- Verify NTP server accessibility
+- Check WiFi connection
+- Test with different NTP servers
+- Verify timezone settings
+
+**Battery Reading Incorrect**:
+- Check voltage divider circuit
+- Verify ADC calibration
+- Test with known voltage source
+- Check battery connections
+
+### Diagnostic Commands
+
+**System Diagnostics**:
+```
+status          # Overall system health
+diagnostics     # Network diagnostics
+battery         # Battery status
+time            # Time synchronization
+```
+
+**Component Diagnostics**:
+```
+test firebase   # Firebase connectivity
+test sim800     # GSM module
+test voltage    # Battery sensor
+test dispenser 0 # Individual dispenser
+```
+
+**Performance Diagnostics**:
+```
+wifi connect    # WiFi reconnection
+reset           # System restart
+help            # Command reference
+```
+
+### Log Analysis
+
+**Serial Log Patterns**:
+- `[INIT]` - System initialization
+- `[SYNC]` - Firebase synchronization
+- `[DISPENSE]` - Pill dispensing events
+- `[ERROR]` - Error conditions
+- `[WARN]` - Warning conditions
+
+**Firebase Log Patterns**:
+- Heartbeat events every 30 seconds
+- Dispense events with timestamps
+- Battery updates every minute
+- Schedule synchronization events
+
+---
+
+**Last Updated**: December 2025
+**Testing Version**: 3.0.0
 
 ## Hardware Testing
 

@@ -1,6 +1,6 @@
-# Deployment Guide
+# Deployment Guide - Pill Dispenser V3
 
-This document provides comprehensive deployment procedures for the Pill Dispenser V3 system, covering installation, configuration, and production setup for all system components including ESP32, Raspberry Pi, ESP32-CAM, and web dashboard.
+This document provides comprehensive deployment procedures for the Pill Dispenser V3 ESP32-based medication dispensing system.
 
 ## Table of Contents
 
@@ -18,8 +18,8 @@ This document provides comprehensive deployment procedures for the Pill Dispense
 ### ESP32 Main Controller Requirements
 
 **ESP32 Development Board**:
-- [ ] ESP32-WROOM-32 or compatible
-- [ ] Built-in WiFi and Bluetooth capability
+- [ ] ESP32-WROOM-32 or compatible (ESP32 Dev Module)
+- [ ] Built-in WiFi capability
 - [ ] Minimum 4MB Flash memory
 - [ ] 520KB SRAM
 - [ ] 30+ GPIO pins
@@ -30,74 +30,536 @@ This document provides comprehensive deployment procedures for the Pill Dispense
 - [ ] 5V power supply compatibility
 - [ ] External power terminal for servos
 
-**IR Sensors (3x units)**:
-- [ ] Digital output IR obstacle sensors
-- [ ] 2-10cm detection range
-- [ ] 5V power supply compatibility
-- [ ] Fast response time (<100ms)
-
 **LCD Display**:
 - [ ] 20x4 character I2C LCD
 - [ ] HD44780 compatible controller
 - [ ] I2C backpack module
 - [ ] 5V power supply
 
-**Real-Time Clock Module**:
-- [ ] DS1302 RTC module
-- [ ] Battery backup capability
-- [ ] SPI/3-wire interface
-- [ ] Crystal oscillator accuracy
-
-**GSM Module**:
+**SIM800L GSM Module**:
 - [ ] SIM800L GSM/GPRS module
 - [ ] Quad-band compatibility
-- [ ] SMS and voice call capability
+- [ ] SMS capability
 - [ ] External antenna connection
 
-### Raspberry Pi ML Processing Requirements
+**Voltage Sensor**:
+- [ ] Analog voltage divider circuit
+- [ ] Connected to ESP32 ADC pin (GPIO34)
+- [ ] 9V-12.6V input range for Li-ion battery monitoring
 
-**Raspberry Pi 4**:
-- [ ] Raspberry Pi 4 Model B (4GB RAM recommended)
-- [ ] MicroSD card (32GB Class 10 minimum)
-- [ ] Power supply (5V 3A USB-C)
-- [ ] Ethernet cable (recommended for stability)
-- [ ] Heat sinks and case
-
-**Camera Components**:
-- [ ] ESP32-CAM module with camera
-- [ ] Camera ribbon cable
-- [ ] External WiFi antenna for ESP32-CAM
-
-### ESP32-CAM Image Capture Requirements
-
-**ESP32-CAM Module**:
-- [ ] AI-Thinker ESP32-CAM or compatible
-- [ ] OV2640 camera module
-- [ ] External antenna
-- [ ] 3.3V-5V power supply
-- [ ] Flash LED capability
+**Servo Motors**:
+- [ ] 5x Continuous rotation servos
+- [ ] 5V power supply compatibility
+- [ ] Compatible with PCA9685 control
 
 ### Web Dashboard Requirements
 
-**Server Environment**:
+**Development Environment**:
 - [ ] Node.js 18+ runtime
-- [ ] npm or yarn package manager
-- [ ] SSL certificate for production
-- [ ] Domain name (optional)
+- [ ] npm package manager
+- [ ] Git for version control
 
 **Firebase Services**:
 - [ ] Firebase project created
 - [ ] Authentication enabled
 - [ ] Realtime Database enabled
-- [ ] Hosting configured (optional)
+- [ ] Service account configured
 
 ### Documentation and Tools
 
 **Documentation**:
-- [ ] Hardware assembly guide
+- [ ] Hardware setup guide
 - [ ] Software installation guide
 - [ ] User operation manual
 - [ ] Troubleshooting guide
+
+**Tools Required**:
+- [ ] Arduino IDE with ESP32 support
+- [ ] Soldering iron and solder
+- [ ] Wire strippers and cutters
+- [ ] Multimeter for testing
+- [ ] Screwdrivers
+- [ ] Computer for programming
+
+## Hardware Assembly
+
+### Step 1: Power Distribution Setup
+
+**Objective**: Establish stable power distribution for all components
+
+**Components**: Power supply, breadboard/PCB, jumper wires
+
+**Procedure**:
+
+1. **Main Power Rails**:
+   ```
+   Connect power sources to appropriate rails:
+   - 5V rail: For servos, LCD, PCA9685 logic
+   - 3.3V rail: For ESP32, SIM800L (through regulator)
+   - Ground rail: Common ground for all components
+   ```
+
+2. **ESP32 Power Connection**:
+   ```
+   ESP32 VIN  -> 5V power rail (or USB power)
+   ESP32 GND  -> Ground rail
+   ```
+
+3. **Component Power Distribution**:
+   ```
+   PCA9685 VCC   -> 3.3V rail (logic power)
+   PCA9685 V+    -> 5V rail (servo power)
+   PCA9685 GND   -> Ground rail
+   LCD VCC       -> 5V rail
+   LCD GND       -> Ground rail
+   SIM800L VCC   -> 3.7-4.2V (dedicated supply)
+   SIM800L GND   -> Ground rail
+   Servo VCC     -> 5V rail (all 5 servos)
+   Servo GND     -> Ground rail (all 5 servos)
+   ```
+
+**Safety Check**:
+- Verify all connections before applying power
+- Check for short circuits with multimeter
+- Ensure proper polarity on all connections
+- SIM800L requires clean power supply (add capacitors)
+
+### Step 2: I2C Bus Configuration
+
+**Objective**: Establish I2C communication bus for digital components
+
+**Components**: ESP32, PCA9685, LCD Display
+
+**Wiring Diagram**:
+```
+ESP32 GPIO 21 (SDA) -> PCA9685 SDA -> LCD SDA
+ESP32 GPIO 22 (SCL) -> PCA9685 SCL -> LCD SCL
+
+Add 4.7kΩ pullup resistors:
+- SDA line to 3.3V
+- SCL line to 3.3V
+```
+
+**I2C Address Configuration**:
+- PCA9685 Servo Driver: 0x40 (default)
+- LCD Display: 0x27 or 0x3F (check with I2C scanner)
+
+### Step 3: Serial Communication Setup
+
+**Objective**: Connect GSM module for SMS notifications
+
+**SIM800L Connections**:
+```
+SIM800L TX  -> ESP32 GPIO 16 (RX)
+SIM800L RX  -> ESP32 GPIO 17 (TX)
+SIM800L RST -> ESP32 GPIO 4 (Reset)
+SIM800L GND -> Ground rail
+```
+
+**SIM Card Setup**:
+- Insert activated SIM card into SIM800L
+- Ensure SIM card has SMS capability
+- Disable PIN if required
+- Connect GSM antenna
+
+### Step 4: Analog Sensor Connection
+
+**Objective**: Connect battery monitoring circuit
+
+**Voltage Sensor Connections**:
+```
+Battery + -> Voltage Divider -> ESP32 GPIO 34 (ADC)
+Battery - -> Ground rail
+```
+
+**Voltage Divider Circuit**:
+```
+Battery + --[10kΩ]--|--[10kΩ]-- GND
+                   |
+                   +--> ESP32 GPIO 34
+```
+
+**Calibration**:
+- Ratio: 5.0 (10kΩ + 10kΩ) / 10kΩ = 2:1, but effective ratio is 5:1 due to ESP32 ADC
+- Input range: 9.0V - 12.6V (3S Li-ion)
+- ADC reading: ~372 (9V) to ~516 (12.6V)
+
+### Step 5: Servo Motor Connections
+
+**Objective**: Connect dispenser servo motors
+
+**Servo Connections**:
+```
+PCA9685 Channel 0 -> Dispenser 0 Servo
+PCA9685 Channel 1 -> Dispenser 1 Servo
+PCA9685 Channel 2 -> Dispenser 2 Servo
+PCA9685 Channel 3 -> Dispenser 3 Servo
+PCA9685 Channel 4 -> Dispenser 4 Servo
+```
+
+**Servo Power**:
+- Signal wires: Connected to PCA9685 channels
+- Power wires: Connected to external 5V 2-3A supply
+- Ground wires: Connected to common ground
+
+### Step 6: Status LED Connection
+
+**Objective**: Connect status indicator
+
+**LED Connection**:
+```
+ESP32 GPIO 2 -> 220Ω Resistor -> LED Anode
+LED Cathode -> Ground rail
+```
+
+## Software Installation
+
+### ESP32 Firmware Installation
+
+**Prerequisites**:
+- Arduino IDE 2.0+ installed
+- ESP32 board support package installed
+- All required libraries installed
+
+**Library Installation**:
+1. Open Arduino IDE
+2. Go to Tools → Manage Libraries
+3. Install the following libraries:
+   - Time by Michael Margolis
+   - TimeAlarms by Michael Margolis
+   - Adafruit PWM Servo Driver Library
+   - LiquidCrystal I2C by Frank de Brabander
+   - Firebase ESP Client by Mobizt
+
+**Firmware Upload**:
+1. Open `source/esp32/PillDispenser/PillDispenser.ino`
+2. Select board: ESP32 Dev Module
+3. Configure settings:
+   - Upload Speed: 921600
+   - CPU Frequency: 240MHz
+   - Flash Frequency: 80MHz
+   - Partition Scheme: Default 4MB
+4. Click Upload
+
+### Web Dashboard Installation
+
+**Prerequisites**:
+- Node.js 18+ installed
+- npm package manager
+
+**Installation Steps**:
+```bash
+cd source/web
+npm install
+```
+
+**Environment Configuration**:
+Create `.env.local` with Firebase credentials:
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.firebaseio.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abcdef
+```
+
+**Development Server**:
+```bash
+npm run dev
+```
+
+**Production Build**:
+```bash
+npm run build
+npm start
+```
+
+## System Configuration
+
+### ESP32 Configuration
+
+**WiFi Setup**:
+Edit `PillDispenser.ino`:
+```cpp
+const String WIFI_SSID = "YourWiFiName";
+const String WIFI_PASSWORD = "YourWiFiPassword";
+```
+
+**Firebase Service Account**:
+Follow `FIREBASE_SERVICE_ACCOUNT_SETUP.md` to configure service account authentication.
+
+**Phone Numbers for SMS**:
+```cpp
+notificationManager.addPhoneNumber("+1234567890", "Caregiver");
+```
+
+**Device Identification**:
+```cpp
+const String DEVICE_ID = "PILL_DISPENSER_V3";
+```
+
+### Firebase Database Rules
+
+**Development Rules**:
+```json
+{
+  "rules": {
+    "pilldispenser": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
+```
+
+**Production Rules**:
+```json
+{
+  "rules": {
+    "pilldispenser": {
+      "devices": {
+        "$deviceId": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}
+```
+
+### Web Dashboard Configuration
+
+**Firebase Configuration**:
+Update `source/web/src/lib/firebase.ts` with your Firebase config.
+
+**Authentication Setup**:
+- Enable Email/Password authentication in Firebase Console
+- Configure authorized domains
+
+## Production Setup
+
+### ESP32 Production Mode
+
+**Enable Production Mode**:
+Edit `PillDispenser.ino`:
+```cpp
+#define DEVELOPMENT_MODE false
+```
+
+**Production Features**:
+- Schedule enforcement active
+- SMS notifications enabled
+- Development commands locked
+- Automatic error recovery
+
+### Web Dashboard Deployment
+
+**Vercel Deployment** (Recommended):
+```bash
+npm i -g vercel
+vercel --prod
+```
+
+**Manual Deployment**:
+```bash
+npm run build
+npm start
+```
+
+### Monitoring Setup
+
+**Firebase Monitoring**:
+- Enable Firebase Analytics (optional)
+- Set up billing alerts
+- Monitor Realtime Database usage
+
+**System Monitoring**:
+- ESP32 sends heartbeat every 30 seconds
+- Battery status updates every minute
+- Dispense events logged in real-time
+
+## Quality Assurance
+
+### ESP32 Testing
+
+**Component Tests**:
+```
+status              # Check all systems
+battery             # Verify battery monitoring
+test dispenser 0    # Test servo motors
+test sim800         # Test GSM module
+test firebase       # Test cloud connectivity
+```
+
+**Integration Tests**:
+- Create schedule via web app
+- Verify ESP32 receives schedule
+- Test automatic dispensing
+- Verify SMS notifications
+
+### Web Dashboard Testing
+
+**Authentication Tests**:
+- User registration/login
+- Password reset functionality
+- Session management
+
+**Schedule Management Tests**:
+- Add/edit/delete schedules
+- Real-time sync with ESP32
+- Schedule validation
+
+**Monitoring Tests**:
+- Real-time status updates
+- Battery level display
+- Activity log viewing
+
+### Performance Testing
+
+**ESP32 Performance**:
+- Memory usage monitoring
+- WiFi stability testing
+- NTP sync reliability
+- Firebase connection stability
+
+**Web Dashboard Performance**:
+- Page load times
+- Real-time update latency
+- Concurrent user handling
+
+## Go-Live Procedures
+
+### Pre-Launch Checklist
+
+**Hardware Verification**:
+- [ ] All connections secure
+- [ ] Power supplies stable
+- [ ] SIM card activated
+- [ ] Antenna connected
+- [ ] Battery voltage normal
+
+**Software Verification**:
+- [ ] Firmware uploaded successfully
+- [ ] WiFi connected
+- [ ] Firebase authenticated
+- [ ] Time synchronized
+- [ ] All components initialized
+
+**Configuration Verification**:
+- [ ] WiFi credentials correct
+- [ ] Firebase credentials valid
+- [ ] Phone numbers configured
+- [ ] Device ID set
+
+### Launch Sequence
+
+1. **Power On System**:
+   - Connect power supplies
+   - Monitor serial output
+   - Verify initialization sequence
+
+2. **Initial Testing**:
+   - Run status command
+   - Test manual dispense
+   - Verify SMS capability
+
+3. **Web Dashboard Setup**:
+   - Access dashboard URL
+   - Create administrator account
+   - Configure initial settings
+
+4. **First Schedule Creation**:
+   - Add test schedule
+   - Verify sync with ESP32
+   - Test automatic dispensing
+
+5. **System Validation**:
+   - Monitor for 24 hours
+   - Verify all notifications
+   - Check battery monitoring
+
+### Rollback Procedures
+
+**Firmware Rollback**:
+- Keep backup of previous firmware version
+- Use Arduino IDE to upload previous version
+- Verify system functionality
+
+**Configuration Rollback**:
+- Backup configuration files
+- Document all changes
+- Have restore procedures ready
+
+## Post-Deployment Support
+
+### Monitoring Procedures
+
+**Daily Checks**:
+- Battery level monitoring
+- Schedule execution verification
+- SMS delivery confirmation
+- Firebase connectivity status
+
+**Weekly Maintenance**:
+- Firmware update checks
+- Database cleanup
+- Performance monitoring
+- User feedback review
+
+**Monthly Reviews**:
+- System reliability assessment
+- Feature usage analysis
+- Security update implementation
+- Documentation updates
+
+### User Support
+
+**Common Issues**:
+- WiFi connectivity problems
+- Schedule not executing
+- SMS delivery failures
+- Battery monitoring issues
+
+**Support Channels**:
+- User documentation
+- Troubleshooting guides
+- Issue tracking system
+- Direct technical support
+
+### System Updates
+
+**Firmware Updates**:
+- Regular security patches
+- Feature enhancements
+- Bug fixes
+- Performance improvements
+
+**Web Dashboard Updates**:
+- UI/UX improvements
+- New features
+- Security updates
+- Compatibility fixes
+
+### Backup and Recovery
+
+**Data Backup**:
+- Firebase automatic backups
+- Configuration file backups
+- User data export capabilities
+
+**Disaster Recovery**:
+- System restore procedures
+- Data recovery processes
+- Failover mechanisms
+- Business continuity plans
+
+---
+
+**Last Updated**: December 2025
+**Version**: 3.0.0
 
 **Tools Required**:
 - [ ] Soldering iron and solder

@@ -1,32 +1,783 @@
-# API Documentation
+# API Documentation - Pill Dispenser V3
 
-This document provides comprehensive API documentation for the Pill Dispenser V3 multi-component system including ESP32 hardware, Raspberry Pi ML processing, and web dashboard APIs.
+This document provides comprehensive API documentation for the Pill Dispenser V3 ESP32-based medication dispensing system.
 
 ## Table of Contents
 
 - [ESP32 Component APIs](#esp32-component-apis)
-  - [ServoDriver API](#servodriver-api)
-  - [IRSensor API](#irsensor-api)
-  - [LCDDisplay API](#lcddisplay-api)
-  - [RTClock API](#rtclock-api)
+  - [FirebaseConfig API](#firebaseconfig-api)
   - [FirebaseManager API](#firebasemanager-api)
+  - [LCDDisplay API](#lcddisplay-api)
+  - [NotificationManager API](#notificationmanager-api)
+  - [ScheduleManager API](#schedulemanager-api)
+  - [ServoDriver API](#servodriver-api)
   - [SIM800L API](#sim800l-api)
+  - [TimeManager API](#timemanager-api)
+  - [VoltageSensor API](#voltagesensor-api)
+  - [WiFiManager API](#wifimanager-api)
   - [Main Application API](#main-application-api)
-- [Raspberry Pi APIs](#raspberry-pi-apis)
-  - [ESP32CamInterface API](#esp32caminterface-api)
-  - [EnsemblePillDetector API](#ensemblepilldetector-api)
-  - [ESP32Communicator API](#esp32communicator-api)
-  - [DatabaseManager API](#databasemanager-api)
 - [Web Dashboard APIs](#web-dashboard-apis)
   - [Authentication API](#authentication-api)
   - [Dispenser Management API](#dispenser-management-api)
-  - [Dispense Control API](#dispense-control-api)
+  - [Schedule Management API](#schedule-management-api)
 
 ## ESP32 Component APIs
 
+## FirebaseConfig API
+
+The FirebaseConfig class provides centralized configuration management for Firebase connection settings.
+
+### Class Declaration
+
+```cpp
+class PillDispenserConfig {
+public:
+    static const char* getApiKey();
+    static const char* getDatabaseURL();
+    static const char* getProjectId();
+    static const char* getUserEmail();
+    static const char* getUserPassword();
+};
+```
+
+### Methods
+
+#### getApiKey()
+
+```cpp
+static const char* getApiKey()
+```
+
+**Description**: Returns the Firebase API key for authentication.
+
+**Parameters**: None
+
+**Returns**: Firebase API key as string
+
+#### getDatabaseURL()
+
+```cpp
+static const char* getDatabaseURL()
+```
+
+**Description**: Returns the Firebase Realtime Database URL.
+
+**Parameters**: None
+
+**Returns**: Database URL as string
+
+#### getProjectId()
+
+```cpp
+static const char* getProjectId()
+```
+
+**Description**: Returns the Firebase project ID.
+
+**Parameters**: None
+
+**Returns**: Project ID as string
+
+#### getUserEmail()
+
+```cpp
+static const char* getUserEmail()
+```
+
+**Description**: Returns the service account email for authentication.
+
+**Parameters**: None
+
+**Returns**: Email address as string
+
+#### getUserPassword()
+
+```cpp
+static const char* getUserPassword()
+```
+
+**Description**: Returns the service account password/key.
+
+**Parameters**: None
+
+**Returns**: Password/key as string
+
+## FirebaseManager API
+
+The FirebaseManager class handles all Firebase Realtime Database operations including authentication, data synchronization, and real-time streaming.
+
+### Class Declaration
+
+```cpp
+class FirebaseManager {
+private:
+    FirebaseData fbdo;
+    FirebaseAuth auth;
+    FirebaseConfig config;
+    String deviceId;
+    bool initialized;
+
+public:
+    FirebaseManager();
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+FirebaseManager::FirebaseManager()
+```
+
+**Description**: Initializes a new FirebaseManager instance.
+
+**Parameters**: None
+
+**Returns**: FirebaseManager instance
+
+### Initialization Methods
+
+#### begin()
+
+```cpp
+bool begin(const String& deviceId)
+```
+
+**Description**: Initializes Firebase connection with service account authentication.
+
+**Parameters**:
+- `deviceId` (String): Unique device identifier
+
+**Returns**:
+- `true` - Initialization successful
+- `false` - Initialization failed
+
+**Example**:
+```cpp
+FirebaseManager firebase;
+if (firebase.begin("PILL_DISPENSER_001")) {
+    Serial.println("Firebase initialized successfully");
+}
+```
+
+#### isInitialized()
+
+```cpp
+bool isInitialized()
+```
+
+**Description**: Checks if Firebase is properly initialized.
+
+**Parameters**: None
+
+**Returns**:
+- `true` - Firebase is initialized
+- `false` - Firebase is not initialized
+
+### Data Synchronization Methods
+
+#### syncSchedulesFromFirebase()
+
+```cpp
+bool syncSchedulesFromFirebase()
+```
+
+**Description**: Downloads all schedules from Firebase and updates the local ScheduleManager.
+
+**Parameters**: None
+
+**Returns**:
+- `true` - Sync successful
+- `false` - Sync failed
+
+**Example**:
+```cpp
+if (firebase.syncSchedulesFromFirebase()) {
+    Serial.println("Schedules synced successfully");
+}
+```
+
+#### sendHeartbeat()
+
+```cpp
+void sendHeartbeat()
+```
+
+**Description**: Sends device status heartbeat to Firebase including battery level, WiFi signal, and online status.
+
+**Parameters**: None
+
+**Returns**: None
+
+**Example**:
+```cpp
+firebase.sendHeartbeat();  // Called every 30 seconds
+```
+
+#### logDispenseEvent()
+
+```cpp
+void logDispenseEvent(int dispenserId, const String& medicationName, const String& patientName, int pillCount, const String& trigger)
+```
+
+**Description**: Logs a dispense event to Firebase with timestamp and details.
+
+**Parameters**:
+- `dispenserId` (int): Dispenser number (0-4)
+- `medicationName` (String): Name of medication dispensed
+- `patientName` (String): Patient name
+- `pillCount` (int): Number of pills dispensed
+- `trigger` (String): Trigger type ("schedule", "manual", "remote")
+
+**Returns**: None
+
+**Example**:
+```cpp
+firebase.logDispenseEvent(0, "Aspirin", "John Doe", 1, "schedule");
+```
+
+### Real-time Streaming Methods
+
+#### beginStream()
+
+```cpp
+bool beginStream(const String& path)
+```
+
+**Description**: Starts real-time streaming for a specific Firebase path.
+
+**Parameters**:
+- `path` (String): Firebase path to stream
+
+**Returns**:
+- `true` - Stream started successfully
+- `false` - Stream failed to start
+
+#### handleStreamCallback()
+
+```cpp
+void handleStreamCallback(MultiPathStreamData stream)
+```
+
+**Description**: Processes real-time stream data updates from Firebase.
+
+**Parameters**:
+- `stream` (MultiPathStreamData): Stream data from Firebase
+
+**Returns**: None
+
+### Utility Methods
+
+#### getDevicePath()
+
+```cpp
+String getDevicePath(const String& subPath = "")
+```
+
+**Description**: Generates the full Firebase path for device-specific data.
+
+**Parameters**:
+- `subPath` (String): Optional sub-path to append
+
+**Returns**: Complete Firebase path as string
+
+**Example**:
+```cpp
+String batteryPath = firebase.getDevicePath("battery");
+// Returns: "/pilldispenser/devices/PILL_DISPENSER_001/battery"
+```
+
+#### uploadBatteryData()
+
+```cpp
+void uploadBatteryData(float voltage, float percentage, const String& status)
+```
+
+**Description**: Uploads battery monitoring data to Firebase.
+
+**Parameters**:
+- `voltage` (float): Battery voltage in volts
+- `percentage` (float): Battery percentage (0-100)
+- `status` (String): Battery status ("Full", "Good", "Low", "Critical")
+
+**Returns**: None
+
+## LCDDisplay API
+
+The LCDDisplay class provides control for the 20x4 I2C LCD display used for status information and user feedback.
+
+### Class Declaration
+
+```cpp
+class LCDDisplay {
+private:
+    LiquidCrystal_I2C lcd;
+    static const uint8_t LCD_ADDRESS = 0x27;
+    static const uint8_t LCD_COLS = 20;
+    static const uint8_t LCD_ROWS = 4;
+
+public:
+    LCDDisplay();
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+LCDDisplay::LCDDisplay()
+```
+
+**Description**: Initializes LCD display with default I2C address (0x27).
+
+**Parameters**: None
+
+**Returns**: LCDDisplay instance
+
+### Initialization Methods
+
+#### begin()
+
+```cpp
+bool begin()
+```
+
+**Description**: Initializes the I2C LCD display and performs backlight test.
+
+**Parameters**: None
+
+**Returns**:
+- `true` - LCD initialized successfully
+- `false` - LCD initialization failed
+
+**Example**:
+```cpp
+LCDDisplay lcd;
+if (lcd.begin()) {
+    Serial.println("LCD initialized successfully");
+}
+```
+
+### Display Control Methods
+
+#### clear()
+
+```cpp
+void clear()
+```
+
+**Description**: Clears the LCD display and returns cursor to home position.
+
+**Parameters**: None
+
+**Returns**: None
+
+#### print()
+
+```cpp
+void print(const String& text)
+```
+
+**Description**: Prints text to the LCD at current cursor position.
+
+**Parameters**:
+- `text` (String): Text to display
+
+**Returns**: None
+
+**Example**:
+```cpp
+lcd.clear();
+lcd.print("Pill Dispenser V3");
+```
+
+#### setCursor()
+
+```cpp
+void setCursor(uint8_t col, uint8_t row)
+```
+
+**Description**: Sets the cursor position for subsequent text output.
+
+**Parameters**:
+- `col` (uint8_t): Column position (0-19)
+- `row` (uint8_t): Row position (0-3)
+
+**Returns**: None
+
+**Example**:
+```cpp
+lcd.setCursor(0, 1);  // Move to start of second row
+lcd.print("Status: Ready");
+```
+
+#### showStatus()
+
+```cpp
+void showStatus(const String& status, const String& detail = "")
+```
+
+**Description**: Displays system status information on the LCD.
+
+**Parameters**:
+- `status` (String): Main status message
+- `detail` (String): Optional detail message
+
+**Returns**: None
+
+**Example**:
+```cpp
+lcd.showStatus("Initializing", "WiFi connecting...");
+```
+
+#### showDispensing()
+
+```cpp
+void showDispensing(int dispenserId, const String& medication, const String& patient)
+```
+
+**Description**: Shows dispensing information during pill dispensing.
+
+**Parameters**:
+- `dispenserId` (int): Dispenser number (0-4)
+- `medication` (String): Medication name
+- `patient` (String): Patient name
+
+**Returns**: None
+
+## NotificationManager API
+
+The NotificationManager class handles SMS notifications for medication reminders and system alerts.
+
+### Class Declaration
+
+```cpp
+class NotificationManager {
+private:
+    SIM800L& sim800;
+    std::vector<PhoneNumber> phoneNumbers;
+    static const int MAX_PHONE_NUMBERS = 5;
+
+public:
+    NotificationManager(SIM800L& sim);
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+NotificationManager::NotificationManager(SIM800L& sim)
+```
+
+**Description**: Initializes notification manager with SIM800L reference.
+
+**Parameters**:
+- `sim` (SIM800L&): Reference to SIM800L instance
+
+**Returns**: NotificationManager instance
+
+### Phone Number Management
+
+#### addPhoneNumber()
+
+```cpp
+bool addPhoneNumber(const String& number, const String& name)
+```
+
+**Description**: Adds a phone number for SMS notifications.
+
+**Parameters**:
+- `number` (String): Phone number in international format (+1234567890)
+- `name` (String): Contact name identifier
+
+**Returns**:
+- `true` - Phone number added successfully
+- `false` - Failed to add (max limit reached or invalid)
+
+**Example**:
+```cpp
+notificationManager.addPhoneNumber("+1234567890", "Caregiver");
+```
+
+#### removePhoneNumber()
+
+```cpp
+bool removePhoneNumber(const String& number)
+```
+
+**Description**: Removes a phone number from the notification list.
+
+**Parameters**:
+- `number` (String): Phone number to remove
+
+**Returns**:
+- `true` - Phone number removed successfully
+- `false` - Phone number not found
+
+### Notification Methods
+
+#### sendReminder()
+
+```cpp
+bool sendReminder(int dispenserId, const String& medication, const String& patient, int minutesUntil)
+```
+
+**Description**: Sends a medication reminder SMS before scheduled dispensing.
+
+**Parameters**:
+- `dispenserId` (int): Dispenser number (0-4)
+- `medication` (String): Medication name
+- `patient` (String): Patient name
+- `minutesUntil` (int): Minutes until dispensing
+
+**Returns**:
+- `true` - SMS sent successfully
+- `false` - SMS failed to send
+
+#### sendDispenseNotification()
+
+```cpp
+bool sendDispenseNotification(int dispenserId, const String& medication, const String& patient)
+```
+
+**Description**: Sends notification after successful pill dispensing.
+
+**Parameters**:
+- `dispenserId` (int): Dispenser number (0-4)
+- `medication` (String): Medication name
+- `patient` (String): Patient name
+
+**Returns**:
+- `true` - SMS sent successfully
+- `false` - SMS failed to send
+
+#### sendLowBatteryAlert()
+
+```cpp
+bool sendLowBatteryAlert(float percentage)
+```
+
+**Description**: Sends low battery warning SMS.
+
+**Parameters**:
+- `percentage` (float): Current battery percentage
+
+**Returns**:
+- `true` - SMS sent successfully
+- `false` - SMS failed to send
+
+#### sendSystemAlert()
+
+```cpp
+bool sendSystemAlert(const String& message)
+```
+
+**Description**: Sends system error or status alert SMS.
+
+**Parameters**:
+- `message` (String): Alert message
+
+**Returns**:
+- `true` - SMS sent successfully
+- `false` - SMS failed to send
+
+## ScheduleManager API
+
+The ScheduleManager class manages medication dispensing schedules using the TimeAlarms library.
+
+### Class Declaration
+
+```cpp
+class ScheduleManager {
+private:
+    FirebaseManager* firebase;
+    std::vector<Schedule> schedules;
+    static const int MAX_SCHEDULES = 15;
+    AlarmID_t alarmIds[MAX_SCHEDULES];
+
+public:
+    ScheduleManager();
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+ScheduleManager::ScheduleManager()
+```
+
+**Description**: Initializes schedule manager with empty schedule list.
+
+**Parameters**: None
+
+**Returns**: ScheduleManager instance
+
+### Initialization Methods
+
+#### begin()
+
+```cpp
+void begin(FirebaseManager* fb)
+```
+
+**Description**: Initializes schedule manager with Firebase reference.
+
+**Parameters**:
+- `fb` (FirebaseManager*): Pointer to FirebaseManager instance
+
+**Returns**: None
+
+### Schedule Management Methods
+
+#### addSchedule()
+
+```cpp
+bool addSchedule(int dispenserId, int hour, int minute, bool enabled, const String& medicationName, const String& patientName, const String& pillSize, const std::vector<int>& days)
+```
+
+**Description**: Adds a new medication schedule.
+
+**Parameters**:
+- `dispenserId` (int): Dispenser number (0-4)
+- `hour` (int): Hour (0-23)
+- `minute` (int): Minute (0-59)
+- `enabled` (bool): Schedule enabled status
+- `medicationName` (String): Medication name
+- `patientName` (String): Patient name
+- `pillSize` (String): Pill size ("small", "medium", "large")
+- `days` (std::vector<int>): Days of week (0=Sun, 1=Mon, ..., 6=Sat)
+
+**Returns**:
+- `true` - Schedule added successfully
+- `false` - Failed to add schedule
+
+**Example**:
+```cpp
+std::vector<int> days = {1, 2, 3, 4, 5};  // Monday to Friday
+scheduleManager.addSchedule(0, 8, 0, true, "Aspirin", "John Doe", "medium", days);
+```
+
+#### removeSchedule()
+
+```cpp
+bool removeSchedule(int scheduleId)
+```
+
+**Description**: Removes a schedule by ID.
+
+**Parameters**:
+- `scheduleId` (int): Schedule identifier
+
+**Returns**:
+- `true` - Schedule removed successfully
+- `false` - Schedule not found
+
+#### updateSchedule()
+
+```cpp
+bool updateSchedule(int scheduleId, int dispenserId, int hour, int minute, bool enabled, const String& medicationName, const String& patientName, const String& pillSize, const std::vector<int>& days)
+```
+
+**Description**: Updates an existing schedule.
+
+**Parameters**:
+- `scheduleId` (int): Schedule identifier
+- `dispenserId` (int): Dispenser number (0-4)
+- `hour` (int): Hour (0-23)
+- `minute` (int): Minute (0-59)
+- `enabled` (bool): Schedule enabled status
+- `medicationName` (String): Medication name
+- `patientName` (String): Patient name
+- `pillSize` (String): Pill size ("small", "medium", "large")
+- `days` (std::vector<int>): Days of week
+
+**Returns**:
+- `true` - Schedule updated successfully
+- `false` - Schedule not found
+
+### Schedule Control Methods
+
+#### enableSchedule()
+
+```cpp
+bool enableSchedule(int scheduleId)
+```
+
+**Description**: Enables a schedule for execution.
+
+**Parameters**:
+- `scheduleId` (int): Schedule identifier
+
+**Returns**:
+- `true` - Schedule enabled successfully
+- `false` - Schedule not found
+
+#### disableSchedule()
+
+```cpp
+bool disableSchedule(int scheduleId)
+```
+
+**Description**: Disables a schedule from execution.
+
+**Parameters**:
+- `scheduleId` (int): Schedule identifier
+
+**Returns**:
+- `true` - Schedule disabled successfully
+- `false` - Schedule not found
+
+### Utility Methods
+
+#### getScheduleCount()
+
+```cpp
+int getScheduleCount()
+```
+
+**Description**: Returns the total number of active schedules.
+
+**Parameters**: None
+
+**Returns**: Number of schedules (int)
+
+#### printSchedules()
+
+```cpp
+void printSchedules()
+```
+
+**Description**: Prints all schedules to serial monitor for debugging.
+
+**Parameters**: None
+
+**Returns**: None
+
+#### update()
+
+```cpp
+void update()
+```
+
+**Description**: Updates the TimeAlarms system. Must be called in main loop.
+
+**Parameters**: None
+
+**Returns**: None
+
+**Example**:
+```cpp
+void loop() {
+    scheduleManager.update();  // Check for alarms
+    // Other loop code...
+}
+```
+
 ## ServoDriver API
 
-The ServoDriver class provides comprehensive control for the PCA9685 16-channel PWM servo driver, supporting both standard angle-controlled servos and continuous rotation servos for pill dispensing.
+The ServoDriver class provides control for the PCA9685 16-channel PWM servo driver for pill dispensing.
 
 ### Class Declaration
 
@@ -36,7 +787,7 @@ private:
     Adafruit_PWMServoDriver pwm;
     static const uint8_t PWM_FREQ = 50;
     static const uint8_t I2C_ADDRESS = 0x40;
-    
+
 public:
     ServoDriver();
     // Method declarations...
@@ -49,7 +800,7 @@ public:
 ServoDriver::ServoDriver()
 ```
 
-**Description**: Initializes a new ServoDriver instance with default I2C address (0x40).
+**Description**: Initializes servo driver with default I2C address (0x40).
 
 **Parameters**: None
 
@@ -63,11 +814,11 @@ ServoDriver::ServoDriver()
 bool begin()
 ```
 
-**Description**: Initializes the PCA9685 servo driver, sets PWM frequency, and performs I2C device scanning.
+**Description**: Initializes PCA9685 servo driver and sets PWM frequency.
 
 **Parameters**: None
 
-**Returns**: 
+**Returns**:
 - `true` - Initialization successful
 - `false` - Initialization failed
 
@@ -75,30 +826,763 @@ bool begin()
 ```cpp
 ServoDriver servoDriver;
 if (servoDriver.begin()) {
-    Serial.println("Servo driver initialized successfully");
-} else {
-    Serial.println("Servo driver initialization failed");
+    Serial.println("Servo driver ready");
 }
 ```
 
-#### scanI2CDevices()
+### Dispensing Methods
+
+#### dispensePill()
 
 ```cpp
-void scanI2CDevices()
+void dispensePill(int dispenserId, const String& pillSize)
 ```
 
-**Description**: Scans the I2C bus for connected devices and reports their addresses.
+**Description**: Dispenses a pill from specified dispenser with size-based timing.
 
-**Parameters**: None
+**Parameters**:
+- `dispenserId` (int): Dispenser number (0-4)
+- `pillSize` (String): Pill size ("small", "medium", "large")
 
-**Returns**: None (outputs to Serial)
+**Returns**: None
 
 **Example**:
 ```cpp
-servoDriver.scanI2CDevices();
-// Output: "I2C device found at address 0x40 (PCA9685 Servo Driver)"
+servoDriver.dispensePill(0, "medium");  // Dispense from dispenser 0
 ```
 
+#### testDispenser()
+
+```cpp
+void testDispenser(int dispenserId)
+```
+
+**Description**: Tests a dispenser by performing a short rotation.
+
+**Parameters**:
+- `dispenserId` (int): Dispenser number (0-4)
+
+**Returns**: None
+
+**Example**:
+```cpp
+servoDriver.testDispenser(2);  // Test dispenser 2
+```
+
+#### testAllDispensers()
+
+```cpp
+void testAllDispensers()
+```
+
+**Description**: Tests all 5 dispensers sequentially.
+
+**Parameters**: None
+
+**Returns**: None
+
+### Servo Control Methods
+
+#### setServoSpeed()
+
+```cpp
+void setServoSpeed(uint8_t channel, int speed)
+```
+
+**Description**: Sets continuous rotation servo speed.
+
+**Parameters**:
+- `channel` (uint8_t): Servo channel (0-15)
+- `speed` (int): Speed value (300-450, 375=stop)
+
+**Returns**: None
+
+#### stopServo()
+
+```cpp
+void stopServo(uint8_t channel)
+```
+
+**Description**: Stops a servo by setting PWM to 0.
+
+**Parameters**:
+- `channel` (uint8_t): Servo channel (0-15)
+
+**Returns**: None
+
+#### stopAllServos()
+
+```cpp
+void stopAllServos()
+```
+
+**Description**: Stops all servos on all channels.
+
+**Parameters**: None
+
+**Returns**: None
+
+## SIM800L API
+
+The SIM800L class provides GSM/GPRS functionality for SMS notifications.
+
+### Class Declaration
+
+```cpp
+class SIM800L {
+private:
+    HardwareSerial& serial;
+    static const uint32_t BAUD_RATE = 9600;
+    bool initialized;
+
+public:
+    SIM800L(HardwareSerial& s);
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+SIM800L::SIM800L(HardwareSerial& s)
+```
+
+**Description**: Initializes SIM800L with hardware serial reference.
+
+**Parameters**:
+- `s` (HardwareSerial&): Hardware serial port reference
+
+**Returns**: SIM800L instance
+
+### Initialization Methods
+
+#### begin()
+
+```cpp
+bool begin()
+```
+
+**Description**: Initializes SIM800L module and checks communication.
+
+**Parameters**: None
+
+**Returns**:
+- `true` - SIM800L ready
+- `false` - Initialization failed
+
+**Example**:
+```cpp
+SIM800L sim(Serial2);
+if (sim.begin()) {
+    Serial.println("SIM800L ready for SMS");
+}
+```
+
+### SMS Methods
+
+#### sendSMS()
+
+```cpp
+bool sendSMS(const String& number, const String& message)
+```
+
+**Description**: Sends an SMS message to specified number.
+
+**Parameters**:
+- `number` (String): Phone number in international format
+- `message` (String): SMS message content
+
+**Returns**:
+- `true` - SMS sent successfully
+- `false` - SMS failed to send
+
+**Example**:
+```cpp
+sim.sendSMS("+1234567890", "Medication reminder: Take aspirin now");
+```
+
+#### readSMS()
+
+```cpp
+String readSMS(int index)
+```
+
+**Description**: Reads SMS message at specified index.
+
+**Parameters**:
+- `index` (int): SMS index number
+
+**Returns**: SMS message content as string
+
+### Utility Methods
+
+#### checkSignal()
+
+```cpp
+int checkSignal()
+```
+
+**Description**: Checks GSM signal strength.
+
+**Parameters**: None
+
+**Returns**: Signal strength (0-31, higher is better)
+
+#### getNetworkStatus()
+
+```cpp
+String getNetworkStatus()
+```
+
+**Description**: Gets current network registration status.
+
+**Parameters**: None
+
+**Returns**: Network status as string
+
+## TimeManager API
+
+The TimeManager class handles NTP time synchronization and provides time-related utilities.
+
+### Class Declaration
+
+```cpp
+class TimeManager {
+private:
+    const char* ntpServer;
+    long gmtOffset;
+    int daylightOffset;
+    bool initialized;
+
+public:
+    TimeManager();
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+TimeManager::TimeManager()
+```
+
+**Description**: Initializes time manager with default NTP server.
+
+**Parameters**: None
+
+**Returns**: TimeManager instance
+
+### Initialization Methods
+
+#### begin()
+
+```cpp
+bool begin(const char* server = "pool.ntp.org", long gmt = 0, int daylight = 0)
+```
+
+**Description**: Initializes NTP time synchronization.
+
+**Parameters**:
+- `server` (const char*): NTP server address
+- `gmt` (long): GMT offset in seconds
+- `daylight` (int): Daylight saving offset in seconds
+
+**Returns**:
+- `true` - NTP sync successful
+- `false` - NTP sync failed
+
+**Example**:
+```cpp
+TimeManager timeManager;
+if (timeManager.begin("time.google.com", 0, 0)) {
+    Serial.println("Time synchronized");
+}
+```
+
+### Time Methods
+
+#### getCurrentTime()
+
+```cpp
+String getCurrentTime()
+```
+
+**Description**: Gets current time as formatted string.
+
+**Parameters**: None
+
+**Returns**: Time string in "HH:MM:SS" format
+
+#### getCurrentDateTime()
+
+```cpp
+String getCurrentDateTime()
+```
+
+**Description**: Gets current date and time as formatted string.
+
+**Parameters**: None
+
+**Returns**: DateTime string in "YYYY-MM-DD HH:MM:SS" format
+
+#### syncTime()
+
+```cpp
+bool syncTime()
+```
+
+**Description**: Manually synchronizes time with NTP server.
+
+**Parameters**: None
+
+**Returns**:
+- `true` - Sync successful
+- `false` - Sync failed
+
+## VoltageSensor API
+
+The VoltageSensor class monitors battery voltage and calculates battery percentage.
+
+### Class Declaration
+
+```cpp
+class VoltageSensor {
+private:
+    static const uint8_t ADC_PIN = 34;
+    static const float VOLTAGE_DIVIDER_RATIO = 5.0;
+    static const float MIN_VOLTAGE = 9.0;
+    static const float MAX_VOLTAGE = 12.6;
+
+public:
+    VoltageSensor();
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+VoltageSensor::VoltageSensor()
+```
+
+**Description**: Initializes voltage sensor with default ADC pin.
+
+**Parameters**: None
+
+**Returns**: VoltageSensor instance
+
+### Measurement Methods
+
+#### readVoltage()
+
+```cpp
+float readVoltage()
+```
+
+**Description**: Reads battery voltage from ADC pin.
+
+**Parameters**: None
+
+**Returns**: Voltage in volts (float)
+
+**Example**:
+```cpp
+VoltageSensor battery;
+float voltage = battery.readVoltage();
+// Returns: 11.8 (for 11.8V battery)
+```
+
+#### getBatteryPercentage()
+
+```cpp
+float getBatteryPercentage()
+```
+
+**Description**: Calculates battery percentage from voltage reading.
+
+**Parameters**: None
+
+**Returns**: Battery percentage (0-100)
+
+**Example**:
+```cpp
+float percentage = battery.getBatteryPercentage();
+// Returns: 85.0 (for healthy battery)
+```
+
+#### getBatteryStatus()
+
+```cpp
+String getBatteryStatus()
+```
+
+**Description**: Gets battery status based on voltage level.
+
+**Parameters**: None
+
+**Returns**: Status string ("Full", "Good", "Low", "Critical")
+
+**Example**:
+```cpp
+String status = battery.getBatteryStatus();
+// Returns: "Good" (for normal battery)
+```
+
+## WiFiManager API
+
+The WiFiManager class handles WiFi connection and management.
+
+### Class Declaration
+
+```cpp
+class WiFiManager {
+private:
+    String ssid;
+    String password;
+    bool connected;
+
+public:
+    WiFiManager();
+    // Method declarations...
+};
+```
+
+### Constructor
+
+```cpp
+WiFiManager::WiFiManager()
+```
+
+**Description**: Initializes WiFi manager.
+
+**Parameters**: None
+
+**Returns**: WiFiManager instance
+
+### Connection Methods
+
+#### connect()
+
+```cpp
+bool connect(const String& ssid, const String& password)
+```
+
+**Description**: Connects to WiFi network.
+
+**Parameters**:
+- `ssid` (String): WiFi network name
+- `password` (String): WiFi password
+
+**Returns**:
+- `true` - Connection successful
+- `false` - Connection failed
+
+**Example**:
+```cpp
+WiFiManager wifi;
+if (wifi.connect("MyWiFi", "password123")) {
+    Serial.println("WiFi connected");
+}
+```
+
+#### disconnect()
+
+```cpp
+void disconnect()
+```
+
+**Description**: Disconnects from current WiFi network.
+
+**Parameters**: None
+
+**Returns**: None
+
+#### isConnected()
+
+```cpp
+bool isConnected()
+```
+
+**Description**: Checks WiFi connection status.
+
+**Parameters**: None
+
+**Returns**:
+- `true` - Connected to WiFi
+- `false` - Not connected
+
+#### getSignalStrength()
+
+```cpp
+int getSignalStrength()
+```
+
+**Description**: Gets WiFi signal strength (RSSI).
+
+**Parameters**: None
+
+**Returns**: RSSI value (negative dBm, higher is better)
+
+#### getIPAddress()
+
+```cpp
+String getIPAddress()
+```
+
+**Description**: Gets current IP address.
+
+**Parameters**: None
+
+**Returns**: IP address as string
+
+## Main Application API
+
+The main PillDispenser.ino application coordinates all system components.
+
+### Global Variables
+
+```cpp
+// Core components
+ServoDriver servoDriver;
+LCDDisplay lcd;
+SIM800L sim800(Serial2);
+NotificationManager notificationManager(sim800);
+ScheduleManager scheduleManager;
+TimeManager timeManager;
+VoltageSensor voltageSensor;
+WiFiManager wifiManager;
+FirebaseManager firebase;
+
+// Configuration
+const String WIFI_SSID = "YOUR_WIFI_SSID";
+const String WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const String DEVICE_ID = "PILL_DISPENSER_V3";
+```
+
+### Setup Function
+
+```cpp
+void setup()
+```
+
+**Description**: Initializes all system components in production mode.
+
+**Components Initialized**:
+1. Serial communication
+2. LCD display
+3. WiFi connection
+4. Time synchronization (NTP)
+5. Firebase connection
+6. Servo driver
+7. GSM module
+8. Battery monitoring
+9. Notification system
+10. Schedule management
+
+### Loop Function
+
+```cpp
+void loop()
+```
+
+**Description**: Main system loop handling real-time operations.
+
+**Operations**:
+- Firebase data streaming
+- Schedule updates
+- Battery monitoring
+- Serial command processing
+
+### Serial Commands
+
+The system supports various serial commands for testing and debugging:
+
+#### Status Commands
+- `status` - Show full system status
+- `battery` - Show battery information
+- `schedules` - List all schedules
+
+#### Testing Commands
+- `test dispenser N` - Test dispenser N (0-4)
+- `test sms` - Send test SMS
+- `test firebase` - Test Firebase connection
+- `test time` - Test NTP sync
+
+#### Control Commands
+- `dispense N size` - Manual dispense (N=0-4, size=small/medium/large)
+- `help` - Show all available commands
+
+### Production vs Development Mode
+
+The system operates in two modes:
+
+#### Production Mode (Default)
+- Schedule enforcement active
+- Development commands locked
+- Automatic dispensing enabled
+- SMS notifications active
+
+#### Development Mode
+- All commands available
+- Manual override allowed
+- Debug output enabled
+- Test functions accessible
+
+## Web Dashboard APIs
+
+## Authentication API
+
+The web dashboard uses Firebase Authentication for user management.
+
+### Authentication Methods
+
+#### signInWithEmailAndPassword()
+
+```typescript
+async function signInWithEmailAndPassword(email: string, password: string)
+```
+
+**Description**: Signs in user with email and password.
+
+**Parameters**:
+- `email` (string): User email
+- `password` (string): User password
+
+**Returns**: Promise<UserCredential>
+
+#### signOut()
+
+```typescript
+async function signOut()
+```
+
+**Description**: Signs out current user.
+
+**Parameters**: None
+
+**Returns**: Promise<void>
+
+#### onAuthStateChanged()
+
+```typescript
+function onAuthStateChanged(callback: (user: User | null) => void)
+```
+
+**Description**: Listens for authentication state changes.
+
+**Parameters**:
+- `callback` (function): Callback function called on auth state change
+
+**Returns**: Unsubscribe function
+
+## Dispenser Management API
+
+### Manual Dispense
+
+#### dispensePill()
+
+```typescript
+async function dispensePill(dispenserId: number)
+```
+
+**Description**: Triggers manual pill dispensing from web dashboard.
+
+**Parameters**:
+- `dispenserId` (number): Dispenser number (0-4)
+
+**Returns**: Promise<void>
+
+### Real-time Status
+
+#### subscribeToDeviceStatus()
+
+```typescript
+function subscribeToDeviceStatus(callback: (status: DeviceStatus) => void)
+```
+
+**Description**: Subscribes to real-time device status updates.
+
+**Parameters**:
+- `callback` (function): Callback for status updates
+
+**Returns**: Unsubscribe function
+
+## Schedule Management API
+
+### Schedule CRUD Operations
+
+#### addSchedule()
+
+```typescript
+async function addSchedule(dispenserId: number, schedule: ScheduleData)
+```
+
+**Description**: Adds a new medication schedule.
+
+**Parameters**:
+- `dispenserId` (number): Dispenser number (0-4)
+- `schedule` (ScheduleData): Schedule configuration
+
+**Returns**: Promise<void>
+
+#### updateSchedule()
+
+```typescript
+async function updateSchedule(scheduleId: string, schedule: ScheduleData)
+```
+
+**Description**: Updates an existing schedule.
+
+**Parameters**:
+- `scheduleId` (string): Schedule identifier
+- `schedule` (ScheduleData): Updated schedule data
+
+**Returns**: Promise<void>
+
+#### deleteSchedule()
+
+```typescript
+async function deleteSchedule(scheduleId: string)
+```
+
+**Description**: Deletes a schedule.
+
+**Parameters**:
+- `scheduleId` (string): Schedule identifier
+
+**Returns**: Promise<void>
+
+### Schedule Data Types
+
+```typescript
+interface ScheduleData {
+  time: string;          // "HH:MM" format
+  enabled: boolean;
+  medicationName: string;
+  patientName: string;
+  pillSize: 'small' | 'medium' | 'large';
+  days: number[];        // [0,1,2,3,4,5,6] for Sun-Sat
+}
+
+interface DeviceStatus {
+  online: boolean;
+  lastHeartbeat: number;
+  battery: {
+    voltage: number;
+    percentage: number;
+    status: string;
+  };
+  wifi: {
+    rssi: number;
+    ipAddress: string;
+  };
+}
+```
+
+---
+
+**Last Updated**: December 2025  
+**API Version**: 3.0.0
 ### Standard Servo Control
 
 #### setServoAngle()

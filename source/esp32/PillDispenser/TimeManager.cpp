@@ -232,17 +232,6 @@ void TimeManager::update() {
   // Update software RTC every call (it handles its own timing internally)
   updateSoftwareRTC();
   
-  // CRITICAL: Keep TimeLib synchronized with software RTC for TimeAlarms
-  // This ensures hour(), minute(), second() functions return current time
-  static unsigned long lastTimeSyncUpdate = 0;
-  if (millis() - lastTimeSyncUpdate >= 1000) { // Sync every second
-    if (softwareRTCInitialized) {
-      setTime(softwareRTC.tm_hour, softwareRTC.tm_min, softwareRTC.tm_sec,
-              softwareRTC.tm_mday, softwareRTC.tm_mon + 1, softwareRTC.tm_year + 1900);
-    }
-    lastTimeSyncUpdate = millis();
-  }
-  
   // Check if time is valid, if not, try to sync immediately
   time_t currentTime = time(nullptr);
   if (currentTime < 1000000000) { // Invalid time (before year 2001)

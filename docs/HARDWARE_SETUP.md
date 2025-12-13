@@ -1,6 +1,6 @@
-# Hardware Setup Guide
+# Hardware Setup Guide - Pill Dispenser V3
 
-This document provides detailed instructions for assembling and configuring the hardware components of the Pill Dispenser V3 multi-component system including ESP32, Raspberry Pi, and ESP32-CAM.
+This document provides detailed instructions for assembling and configuring the hardware components of the Pill Dispenser V3 ESP32-based medication dispensing system.
 
 ## Prerequisites
 
@@ -11,14 +11,14 @@ This document provides detailed instructions for assembling and configuring the 
 - Screwdrivers (Phillips and flathead)
 - Heat shrink tubing
 - Breadboard or prototyping board
-- MicroSD card writer (for Raspberry Pi)
+- Computer for programming
 
 ### Safety Considerations
 - Always disconnect power before making connections
 - Use appropriate voltage levels (3.3V for ESP32 GPIO)
 - Ensure proper grounding of all components
 - Use surge protection for power supplies
-- Handle Raspberry Pi with ESD protection
+- Handle components with ESD protection
 
 ## Component Overview
 
@@ -28,11 +28,395 @@ This document provides detailed instructions for assembling and configuring the 
 |-----------|---------------|---------|
 | ESP32 Development Board | ESP32-WROOM-32, 32 GPIO pins | Main microcontroller for dispensing |
 | PCA9685 PWM Driver | 16-channel, 12-bit resolution | Servo motor control |
-| IR Obstacle Sensors | Digital output, 3-5V operation | Pill detection |
 | I2C LCD Display | 20x4 characters, I2C interface | Status display |
-| DS1302 RTC Module | Real-time clock with backup battery | Timing functions |
-| SIM800L GSM Module | Quad-band GSM/GPRS | Communication |
-| Servo Motors | Standard or continuous rotation | Pill dispensing |
+| SIM800L GSM Module | Quad-band GSM/GPRS | SMS notifications |
+| Voltage Sensor | Analog divider circuit | Battery monitoring |
+| Servo Motors | 5x continuous rotation | Pill dispensing |
+
+### Power Supply Requirements
+
+| Component | Voltage | Current | Notes |
+|-----------|---------|---------|-------|
+| ESP32 Main | 3.3V/5V | 250mA | Via USB or external |
+| PCA9685 | 3.3V/5V | 20mA | Logic supply / servo power |
+| Servos | 5V | 1-2A each | External supply required |
+| LCD | 5V | 50mA | Via I2C backpack |
+| SIM800L | 3.7-4.2V | 2A peak | Dedicated supply during transmission |
+| Voltage Sensor | Battery voltage | <1mA | ADC input |
+
+## Wiring Diagram
+
+### ESP32 Pin Assignments
+
+```
+ESP32 GPIO Pins:
+├── I2C Bus
+│   ├── GPIO 21 (SDA) → PCA9685 SDA, LCD SDA
+│   └── GPIO 22 (SCL) → PCA9685 SCL, LCD SCL
+├── Serial Communication
+│   ├── GPIO 16 → SIM800L TX
+│   ├── GPIO 17 → SIM800L RX
+│   └── GPIO 4  → SIM800L RST
+├── Analog Input
+│   └── GPIO 34 → Voltage Sensor (ADC1_CH5)
+└── Status LED
+    └── GPIO 2  → Status LED (with resistor)
+```
+
+### Power Distribution
+
+```
+Power Distribution:
+├── 5V Main Supply → 5V Rail
+│   ├── PCA9685 V+ (servo power)
+│   ├── LCD VCC
+│   └── Servo Motors VCC (all 5)
+├── 3.3V Supply → 3.3V Rail
+│   ├── ESP32 VCC
+│   └── PCA9685 VCC (logic)
+├── Battery Supply → Voltage Sensor
+│   └── Battery + → Voltage Divider → GPIO 34
+└── SIM800L Supply → 3.7-4.2V Rail
+    └── SIM800L VCC (dedicated regulator)
+```
+
+## Assembly Instructions
+
+### Step 1: ESP32 Setup
+
+1. **Prepare ESP32 Development Board**
+   - Ensure ESP32 Dev Module is selected in Arduino IDE
+   - Verify board has 4MB flash memory
+   - Check USB connection for programming
+
+2. **Initial Testing**
+   - Connect ESP32 to computer via USB
+   - Open Arduino IDE Serial Monitor
+   - Verify basic communication at 115200 baud
+
+### Step 2: I2C Bus Setup
+
+1. **Connect PCA9685 PWM Driver**
+   ```
+   PCA9685 → ESP32
+   SDA    → GPIO 21
+   SCL    → GPIO 22
+   VCC    → 3.3V (logic power)
+   V+     → 5V (servo power)
+   GND    → Ground
+   ```
+
+2. **Connect LCD Display**
+   ```
+   LCD → ESP32 (via I2C)
+   SDA → GPIO 21 (shared)
+   SCL → GPIO 22 (shared)
+   VCC → 5V
+   GND → Ground
+   ```
+
+3. **I2C Pull-up Resistors**
+   - Add 4.7kΩ resistors between SDA/SCL and 3.3V
+   - Required for reliable I2C communication
+
+4. **Address Configuration**
+   - PCA9685: Default address 0x40
+   - LCD: Usually 0x27 or 0x3F (check with scanner)
+
+### Step 3: Servo Motor Connections
+
+1. **Connect Servo Motors to PCA9685**
+   ```
+   Servo 0 → PCA9685 Channel 0 (Dispenser 1)
+   Servo 1 → PCA9685 Channel 1 (Dispenser 2)
+   Servo 2 → PCA9685 Channel 2 (Dispenser 3)
+   Servo 3 → PCA9685 Channel 3 (Dispenser 4)
+   Servo 4 → PCA9685 Channel 4 (Dispenser 5)
+   ```
+
+2. **Servo Power Distribution**
+   - All servo VCC wires → 5V rail
+   - All servo GND wires → Ground rail
+   - Signal wires → PCA9685 PWM channels 0-4
+
+3. **External Power Supply**
+   - Use dedicated 5V 2-3A supply for servos
+   - Do not power servos from ESP32
+   - Ensure common ground with ESP32
+
+### Step 4: SIM800L GSM Module Setup
+
+1. **Power Supply Requirements**
+   - SIM800L requires 3.7-4.2V (typically 4V)
+   - Peak current up to 2A during transmission
+   - Use dedicated regulator, not shared with ESP32
+
+2. **Serial Connections**
+   ```
+   SIM800L → ESP32
+   TX     → GPIO 16
+   RX     → GPIO 17
+   RST    → GPIO 4
+   GND    → Ground
+   ```
+
+3. **SIM Card Installation**
+   - Insert activated SIM card
+   - Ensure SIM has SMS capability
+   - Disable PIN lock if present
+   - Check for sufficient balance/credits
+
+4. **Antenna Connection**
+   - Connect GSM antenna to SIM800L antenna connector
+   - Ensure antenna is properly seated
+   - External antenna required for reliable signal
+
+5. **Power Filtering**
+   - Add 100µF electrolytic capacitor near power pins
+   - Add 10µF ceramic capacitor for noise filtering
+   - Use thick wires for power connections
+
+### Step 5: Voltage Sensor Setup
+
+1. **Voltage Divider Circuit**
+   ```
+   Battery +
+   │
+   ├─[10kΩ]─┬─[10kΩ]── GND
+   │        │
+   └────────┼─ ESP32 GPIO 34 (ADC)
+   ```
+
+2. **Calibration**
+   - Ratio: 5:1 (10kΩ + 10kΩ) / 10kΩ = 2:1, but ESP32 ADC reference makes effective ratio 5:1
+   - Input range: 9.0V - 12.6V (3S Li-ion battery)
+   - ADC readings: ~372 (9V) to ~516 (12.6V)
+
+3. **Battery Connection**
+   - Connect battery positive to voltage divider input
+   - Connect battery negative to ground
+   - Ensure secure connections
+
+### Step 6: Status LED Setup
+
+1. **LED Connection**
+   ```
+   ESP32 GPIO 2 → 220Ω Resistor → LED Anode
+   LED Cathode → Ground
+   ```
+
+2. **LED States**
+   - OFF: System off or error
+   - ON: System running normally
+   - Blinking: Initialization or activity
+
+## Testing Procedures
+
+### I2C Bus Testing
+
+1. **Upload I2C Scanner Sketch**
+   ```cpp
+   #include <Wire.h>
+   
+   void setup() {
+     Wire.begin();
+     Serial.begin(115200);
+   }
+   
+   void loop() {
+     Serial.println("Scanning I2C bus...");
+     for (byte address = 1; address < 127; address++) {
+       Wire.beginTransmission(address);
+       if (Wire.endTransmission() == 0) {
+         Serial.print("Device found at 0x");
+         Serial.println(address, HEX);
+       }
+     }
+     delay(5000);
+   }
+   ```
+
+2. **Expected Results**
+   - PCA9685 at address 0x40
+   - LCD at address 0x27 or 0x3F
+
+### Servo Testing
+
+1. **Individual Servo Test**
+   ```cpp
+   // Test each servo channel
+   servoDriver.setServoSpeed(0, 400); // Forward
+   delay(1000);
+   servoDriver.setServoSpeed(0, 375); // Stop
+   ```
+
+2. **Calibration**
+   - Adjust speed values for consistent rotation
+   - Verify pill dispensing mechanism
+   - Test all 5 dispensers
+
+### SIM800L Testing
+
+1. **Basic Communication**
+   - Open Serial Monitor at 9600 baud
+   - Send AT command
+   - Expect OK response
+
+2. **Signal Strength**
+   - Send AT+CSQ command
+   - Check signal quality (0-31, higher better)
+
+3. **SMS Test**
+   - Send test SMS to verify functionality
+   - Check delivery and format
+
+### Voltage Sensor Testing
+
+1. **ADC Reading Test**
+   ```cpp
+   int rawValue = analogRead(34);
+   float voltage = rawValue * (3.3 / 4095.0) * 5.0; // Adjust multiplier
+   Serial.println(voltage);
+   ```
+
+2. **Calibration**
+   - Measure actual battery voltage
+   - Adjust voltage divider multiplier
+   - Verify percentage calculation
+
+## Troubleshooting
+
+### Common Issues
+
+**I2C Communication Problems**
+- Check pull-up resistors (4.7kΩ)
+- Verify wiring connections
+- Check I2C addresses
+- Test with I2C scanner
+
+**Servo Motor Issues**
+- Verify external power supply (5V 2A+)
+- Check PCA9685 power connections
+- Test individual servo channels
+- Verify PWM frequency (50Hz)
+
+**SIM800L Problems**
+- Check power supply (3.7-4.2V, 2A peak)
+- Verify serial connections and baud rate
+- Test with AT commands
+- Check SIM card and antenna
+
+**Voltage Reading Issues**
+- Verify voltage divider circuit
+- Check ADC pin connection (GPIO34)
+- Calibrate voltage multiplier
+- Test with known voltage source
+
+**ESP32 Connection Problems**
+- Check USB driver installation
+- Verify board selection in Arduino IDE
+- Test with blink sketch
+- Check power supply stability
+
+## Final Assembly
+
+### Enclosure Considerations
+
+1. **Component Placement**
+   - ESP32 accessible for programming
+   - LCD visible for status display
+   - SIM800L antenna accessible
+   - Servo motors securely mounted
+
+2. **Cable Management**
+   - Use cable ties for organization
+   - Secure connections to prevent vibration
+   - Label wires for maintenance
+
+3. **Power Distribution**
+   - Central power distribution point
+   - Fused protection for servo power
+   - Easy access to power switches
+
+### Environmental Considerations
+
+1. **Temperature**
+   - Operating range: 0-40°C
+   - Avoid direct sunlight
+   - Ensure ventilation for heat dissipation
+
+2. **Humidity**
+   - Avoid condensation
+   - Use desiccant packs if needed
+   - Protect electronics from moisture
+
+3. **Vibration**
+   - Secure all components
+   - Use vibration-damping mounts
+   - Test in operating environment
+
+## Maintenance Procedures
+
+### Regular Maintenance
+
+**Weekly Checks**
+- Verify all connections secure
+- Check servo motor operation
+- Test LCD display functionality
+- Verify battery voltage readings
+
+**Monthly Maintenance**
+- Clean dust from components
+- Check antenna connections
+- Verify SIM card functionality
+- Update firmware if available
+
+### Component Replacement
+
+**Servo Motor Replacement**
+1. Disconnect power
+2. Remove old servo
+3. Connect new servo to same channel
+4. Test operation
+5. Calibrate if necessary
+
+**SIM Card Replacement**
+1. Power off system
+2. Remove old SIM card
+3. Insert new SIM card
+4. Configure phone number in software
+5. Test SMS functionality
+
+**Battery Replacement**
+1. Disconnect old battery
+2. Connect new battery
+3. Verify voltage readings
+4. Update battery calibration if needed
+
+## Safety Guidelines
+
+### Electrical Safety
+- Always disconnect power before working
+- Use insulated tools
+- Avoid short circuits
+- Test voltage levels before connecting
+
+### Component Handling
+- Handle ESP32 by edges only
+- Avoid static discharge
+- Use proper soldering techniques
+- Verify connections before power-on
+
+### System Operation
+- Monitor system status regularly
+- Respond to error conditions promptly
+- Keep backup power available
+- Maintain system logs for troubleshooting
+
+---
+
+**Last Updated**: December 2025
+**Hardware Version**: 3.0.0
 
 ### Raspberry Pi ML Processing Components
 

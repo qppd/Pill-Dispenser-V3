@@ -5,26 +5,19 @@
 ### Prerequisites
 - ✅ Arduino IDE installed
 - ✅ ESP32 board support installed
-- ✅ All libraries installed (see INSTALLATION_GUIDE.md)
+- ✅ All libraries installed
 - ✅ Hardware assembled and connected
 - ✅ Firebase project created
 
----
+### Step 1: Configure Credentials (2 minutes)
 
-## Step 1: Configure Credentials (2 minutes)
-
-### A. WiFi Settings
-Edit `source/esp32/PillDispenser/PillDispenser.ino`:
-
+**WiFi Settings** - Edit `source/esp32/PillDispenser/PillDispenser.ino`:
 ```cpp
-// Line ~40
 const String WIFI_SSID = "YourWiFiName";
 const String WIFI_PASSWORD = "YourWiFiPassword";
 ```
 
-### B. Firebase Settings
-Edit `source/esp32/PillDispenser/FirebaseConfig.cpp`:
-
+**Firebase Settings** - Copy `FirebaseConfig.template.cpp` to `FirebaseConfig.cpp` and fill in your credentials:
 ```cpp
 const char* PillDispenserConfig::getApiKey() {
     return "YOUR_FIREBASE_API_KEY_HERE";
@@ -39,18 +32,12 @@ const char* PillDispenserConfig::getProjectId() {
 }
 ```
 
-### C. Phone Number (Optional but recommended)
-Edit `source/esp32/PillDispenser/PillDispenser.ino`:
-
+**Phone Number** - Edit `PillDispenser.ino`:
 ```cpp
-// Line ~55
-const String CAREGIVER_1_PHONE = "+1234567890";  // Your phone number
-const String CAREGIVER_1_NAME = "Caregiver Name";
+notificationManager.addPhoneNumber("+1234567890", "Caregiver Name");
 ```
 
----
-
-## Step 2: Upload Firmware (1 minute)
+### Step 2: Upload Firmware (1 minute)
 
 1. Open `PillDispenser.ino` in Arduino IDE
 2. Select:
@@ -58,17 +45,14 @@ const String CAREGIVER_1_NAME = "Caregiver Name";
    - Port: Your ESP32 COM port
    - Upload Speed: **921600**
 3. Click **Upload** (Ctrl+U)
-4. Wait for "Done uploading"
 
----
-
-## Step 3: Verify System (1 minute)
+### Step 3: Verify System (1 minute)
 
 1. Open **Serial Monitor** (Ctrl+Shift+M)
 2. Set baud rate to **115200**
 3. Press **Reset** button on ESP32
 
-### Expected Output:
+**Expected Output**:
 ```
 ═══════════════════════════════════════════════════════════
      PILL DISPENSER V3 - PRODUCTION SYSTEM
@@ -91,170 +75,153 @@ const String CAREGIVER_1_NAME = "Caregiver Name";
 ✅ Production mode initialization complete!
 ```
 
-### ❌ If Any Component Shows Failed:
-- **WiFi**: Check credentials and signal
-- **Time**: Check internet connection
-- **Firebase**: Verify API key and database URL
-- **Servo**: Check I2C connections (address 0x40)
-- **SIM800L**: Check SIM card and antenna
-- **LCD**: Check I2C connection (address 0x27 or 0x3F)
-
----
-
-## Step 4: Test Components (1 minute)
-
-Type these commands in Serial Monitor:
-
+### Step 4: Test Components
 ```
 status          # Check all systems
 battery         # Check battery reading
 test dispenser 0    # Test one dispenser
 ```
 
-### Expected Results:
-- `status` shows all components ✅
-- `battery` shows voltage and percentage
-- `test dispenser 0` makes servo rotate
+### Step 5: Create First Schedule
 
----
-
-## Step 5: Create First Schedule (Web App)
-
-### A. Setup Web App (if not done):
+1. **Start Web App**:
 ```bash
 cd source/web
 npm install
 npm run dev
 ```
 
-### B. Access Dashboard:
-Open [http://localhost:3000](http://localhost:3000)
+2. **Access Dashboard**: Open [http://localhost:3000](http://localhost:3000)
 
-### C. Create Schedule:
-1. Login/Register
-2. Go to **Schedule** page
-3. Select **Container 0**
-4. Click **Add Schedule**
-5. Set:
-   - Time: `14:00`
-   - Patient: `Test Patient`
-   - Medication: `Test Med`
-   - Pill Size: `Medium`
-   - Days: All selected
-   - Enabled: ✅ Checked
-6. Schedule automatically saves to Firebase
+3. **Create Schedule**:
+   - Login/Register
+   - Go to **Schedule** page
+   - Select **Container 0**
+   - Set time, patient, medication, pill size
+   - Enable schedule
+   - Save changes
 
-### D. Verify on ESP32:
-In Serial Monitor, type:
-```
-schedules
-```
+4. **Verify**: Check ESP32 serial monitor for schedule sync confirmation
 
-You should see your schedule listed!
+## System Requirements
+
+### Hardware
+- ESP32 Development Board
+- PCA9685 PWM Servo Driver
+- 5x Continuous Rotation Servos
+- I2C LCD Display (20x4)
+- SIM800L GSM Module
+- Voltage Sensor Circuit
+- Power Supply (5V/2A)
+
+### Software
+- Arduino IDE with ESP32 support
+- Required Arduino libraries
+- Node.js 18+ (for web dashboard)
+- Firebase project with Realtime Database
+
+## First Time Setup Checklist
+
+### ESP32 Firmware
+- [ ] Arduino IDE installed
+- [ ] ESP32 board support added
+- [ ] Required libraries installed
+- [ ] WiFi credentials configured
+- [ ] Firebase credentials set up
+- [ ] Phone number added
+- [ ] Firmware uploaded successfully
+
+### Hardware Assembly
+- [ ] ESP32 connected to computer
+- [ ] I2C devices wired correctly
+- [ ] Servo motors connected
+- [ ] GSM module installed
+- [ ] Power supply connected
+- [ ] Voltage sensor circuit complete
+
+### Web Dashboard
+- [ ] Node.js installed
+- [ ] Dependencies installed (`npm install`)
+- [ ] Firebase config added
+- [ ] Development server running
+- [ ] Authentication working
+
+### Testing
+- [ ] Serial monitor shows proper initialization
+- [ ] All components report OK status
+- [ ] WiFi connection established
+- [ ] Firebase connection confirmed
+- [ ] Test schedule created and synced
+
+## Common Quick Start Issues
+
+### ESP32 Won't Upload
+**Problem**: Upload fails or times out
+**Solution**:
+- Check COM port selection
+- Verify board type (ESP32 Dev Module)
+- Try different upload speeds
+- Press and hold BOOT button during upload
+
+### WiFi Won't Connect
+**Problem**: ESP32 can't connect to WiFi
+**Solution**:
+- Verify SSID and password
+- Check WiFi signal strength
+- Ensure 2.4GHz network (ESP32 limitation)
+- Test with different network
+
+### Firebase Connection Failed
+**Problem**: Can't connect to Firebase
+**Solution**:
+- Verify API key and database URL
+- Check Firebase project settings
+- Ensure Realtime Database is enabled
+- Test with Firebase console
+
+### Web App Won't Start
+**Problem**: Development server fails to start
+**Solution**:
+- Check Node.js version (18+ required)
+- Run `npm install` to install dependencies
+- Verify Firebase configuration
+- Check for port conflicts (default 3000)
+
+## Next Steps
+
+### After Quick Start
+1. **Configure Additional Schedules**: Set up medication routines
+2. **Test SMS Notifications**: Verify caregiver alerts work
+3. **Monitor Battery Levels**: Track device power consumption
+4. **Review System Logs**: Check Firebase for activity logs
+5. **Customize Settings**: Adjust timing and notification preferences
+
+### Advanced Configuration
+- Set up multiple phone numbers for notifications
+- Configure pill size timing for different medications
+- Set up production mode for live deployment
+- Implement backup power solutions
+- Configure remote monitoring alerts
+
+### Maintenance
+- Regularly check battery levels
+- Test servo motors weekly
+- Update firmware when available
+- Monitor Firebase usage and costs
+- Backup configuration settings
+
+## Getting Help
+
+### Documentation
+- **README.md**: Complete system documentation
+- **INSTALLATION_GUIDE.md**: Detailed setup instructions
+- **IMPLEMENTATION_SUMMARY.md**: Technical architecture details
+
+### Support
+- **Serial Commands**: Use `help` command for ESP32 assistance
+- **Web Dashboard**: Built-in help and tooltips
+- **Firebase Console**: Monitor system activity and logs
 
 ---
 
-## ✅ System Ready!
-
-The system will now:
-1. **30 minutes before** schedule: Send SMS reminder
-2. **At scheduled time**: Dispense pill automatically
-3. **After dispensing**: Send SMS confirmation
-4. **Every minute**: Update battery status to Firebase
-5. **Continuously**: Sync with web dashboard
-
----
-
-## 🧪 Quick Tests
-
-### Test Manual Dispense:
-```
-dispense 0 medium
-```
-
-### Test SMS:
-```
-test sms
-```
-
-### Check Next Schedule:
-```
-status
-```
-(Look for "Next Schedule" in output)
-
-### View All Schedules:
-```
-schedules
-```
-
----
-
-## 🎯 Production Mode vs Development Mode
-
-### Switch to Development Mode (for testing):
-Edit `PillDispenser.ino` line ~17:
-```cpp
-#define DEVELOPMENT_MODE true   // Enable dev mode
-```
-
-Upload again. Now you have:
-- Full serial command access
-- Manual dispense anytime
-- Verbose debugging output
-
-### Switch Back to Production:
-```cpp
-#define DEVELOPMENT_MODE false  // Production mode
-```
-
----
-
-## 📱 Mobile Access
-
-### Deploy Web App (Vercel):
-```bash
-cd source/web
-vercel --prod
-```
-
-Access from anywhere: `https://your-app.vercel.app`
-
----
-
-## 🆘 Quick Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| WiFi won't connect | Check SSID/password, signal strength |
-| Time not syncing | Check internet, try `pool.ntp.org` |
-| Firebase fails | Verify API key, check database rules |
-| Servos don't move | Check power supply, I2C connection |
-| SMS not sending | Check SIM card, signal, credits |
-| Battery shows 0% | Check GPIO34 connection |
-
----
-
-## 📞 Get Help
-
-1. Check Serial Monitor output
-2. Type `status` to see component status
-3. Read `PRODUCTION_README.md` for detailed docs
-4. Review `INSTALLATION_GUIDE.md` for setup details
-
----
-
-## 🎉 You're Done!
-
-System is now:
-- ✅ Monitoring battery
-- ✅ Ready to dispense on schedule
-- ✅ Sending SMS notifications
-- ✅ Syncing with web dashboard
-- ✅ Logging all activities
-
-Add more schedules via web dashboard and enjoy automated medication management!
-
----
-
-**Next**: See `PRODUCTION_README.md` for advanced features and full documentation.
+**Quick Start Complete!** Your Pill Dispenser V3 is now ready for medication management.

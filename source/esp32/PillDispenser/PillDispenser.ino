@@ -39,9 +39,9 @@ unsigned long lastLcdUpdate = 0;
 int pillCount = 0;
 
 // WiFi credentials (for development - move to secure storage in production)
-const String WIFI_SSID = "QPPD";
-const String WIFI_PASSWORD = "Programmer136";
-const String USER_ID = "d1SdACjSzbZBNzfhMOFhZixVEX82";  // This should come from Firebase auth in production
+const String WIFI_SSID = "jayron";
+const String WIFI_PASSWORD = "12345678";
+const String USER_ID = "MmRwYAQXJiZcA7jgvkjCOw0m5Uz2";  // This should come from Firebase auth in production
 
 // Firebase credentials loaded from FirebaseConfig.h
 // Edit FirebaseConfig.cpp to set your actual credentials
@@ -329,7 +329,7 @@ void dispenseFromContainer(int dispenserId) {
   Serial.println("🔄 Dispensing from container " + String(dispenserId + 1) + "...");
   
   // Rotate servo 90 degrees to dispense
-  servoDriver.setServoAngle(dispenserId, 90);
+  servoDriver.setServoAngle(dispenserId, 180);
   delay(1000);  // Wait for pill to drop
   
   // Return servo to 0 degrees

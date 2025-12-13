@@ -1,240 +1,232 @@
-# Security Policy
+# Security Guide - Pill Dispenser V3
 
 ## Supported Versions
 
-The following versions of Pill Dispenser V3 are currently supported with security updates:
+| Version | Supported | Security Updates |
+|---------|-----------|------------------|
+| 3.0.x   | ✅ Yes    | Active |
+| < 3.0   | ❌ No     | None |
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 3.0.x   | :white_check_mark: |
-| 2.1.x   | :x:                |
-| 2.0.x   | :x:                |
-| < 2.0   | :x:                |
+## Reporting Vulnerabilities
 
-## Reporting a Vulnerability
+### Do NOT Report Publicly
+- **Do not** create public GitHub issues for security vulnerabilities
+- **Do not** discuss vulnerabilities in public forums
+- **Do not** share vulnerability details with unauthorized parties
 
-We take the security of Pill Dispenser V3 seriously. If you discover a security vulnerability, please follow these guidelines:
+### Secure Reporting Process
+1. **Email**: security@pilldispenser-v3.com
+2. **Include**: Detailed reproduction steps
+3. **Include**: Impact assessment
+4. **Include**: Suggested remediation
+5. **Response**: Within 48 hours acknowledgment
 
-### Reporting Process
-
-1. **Do NOT** create a public GitHub issue for security vulnerabilities
-2. **Do NOT** discuss the vulnerability publicly until it has been addressed
-3. **Do** send a detailed report to our security team
-
-### Contact Information
-
-Report security vulnerabilities to:
-- **Email**: security@qppd.com
-- **Subject**: [SECURITY] Pill Dispenser V3 Vulnerability Report
-
-### What to Include
-
-Please include the following information in your report:
-
-- **Description** of the vulnerability
-- **Steps to reproduce** the issue
-- **Potential impact** assessment
-- **Suggested mitigation** if known
-- **Your contact information** for follow-up
-
-### Response Timeline
-
-We commit to the following response times:
-
-- **Acknowledgment**: Within 48 hours
-- **Initial Assessment**: Within 1 week
-- **Status Update**: Weekly until resolved
-- **Resolution**: Target 30 days for critical issues
+### Vulnerability Assessment
+- **Critical**: Remote code execution, data breaches
+- **High**: Authentication bypass, privilege escalation
+- **Medium**: Information disclosure, DoS attacks
+- **Low**: Minor security improvements
 
 ## Security Considerations
 
 ### Network Security
 
-#### WiFi Configuration
-- Use WPA3 or WPA2 encryption
-- Avoid open or WEP networks
-- Consider network isolation for IoT devices
-- Regularly update WiFi passwords
+#### WiFi Encryption
+- **Minimum**: WPA3 encryption required
+- **Fallback**: WPA2 acceptable for legacy networks
+- **Avoid**: WEP and open networks
+- **Monitoring**: Regular security audits
 
 #### Firebase Security
-- Enable Firebase security rules
-- Use authentication for production deployments
-- Regularly rotate API keys
-- Monitor access logs for suspicious activity
-
-#### GSM Communication
-- Validate SMS sources before processing
-- Implement rate limiting for SMS commands
-- Use encrypted communication when possible
-- Monitor for unusual network activity
+- **Authentication**: Service account with minimal permissions
+- **Database Rules**: Production security rules enforced
+- **API Keys**: Restricted to specific domains
+- **Access Logging**: All operations logged and monitored
 
 ### Device Security
 
-#### Firmware Protection
-- Enable secure boot on ESP32 (production)
-- Use encrypted firmware storage
-- Implement rollback protection
-- Regular security updates
-
 #### Physical Security
-- Secure device enclosure
-- Tamper detection mechanisms
-- Access control for maintenance
-- Secure key storage
+- **Access Control**: Secure physical access to ESP32
+- **Tamper Detection**: Hardware tamper sensors
+- **Secure Boot**: Firmware integrity verification
+- **Secure Storage**: Encrypted credential storage
+
+#### Firmware Security
+- **Code Signing**: All firmware digitally signed
+- **Update Verification**: Secure OTA update process
+- **Rollback Protection**: Prevent downgrade attacks
+- **Memory Protection**: Buffer overflow prevention
 
 ### Data Security
 
-#### Sensitive Information
-- Encrypt stored credentials
-- Avoid hardcoded passwords
-- Use secure key derivation
-- Implement data sanitization
+#### Data Encryption
+- **At Rest**: Firebase automatic encryption
+- **In Transit**: TLS 1.3 encryption
+- **Local Storage**: Encrypted ESP32 flash storage
+- **Backup Security**: Encrypted backup files
 
-#### Logging and Monitoring
-- Log security events
-- Monitor for anomalous behavior
-- Implement alerting for critical events
-- Regular security audits
+#### Data Privacy
+- **Minimal Data**: Only necessary medical information
+- **Access Control**: Role-based permissions
+- **Audit Logging**: All data access tracked
+- **Retention Policy**: Automatic data cleanup
 
-## Known Security Considerations
+## Best Practices
 
-### Development Mode
-- Development mode should NEVER be used in production
-- Serial interface provides full system access
-- No authentication required for commands
-- All system functions accessible
+### Development Security
 
-### Default Configurations
-- Change default WiFi credentials
-- Update Firebase configuration
-- Modify default device identifiers
-- Review and update all passwords
+#### Code Security
+- **Input Validation**: All inputs validated and sanitized
+- **Secure Coding**: OWASP guidelines followed
+- **Dependency Scanning**: Regular vulnerability checks
+- **Code Reviews**: Security-focused review process
 
-### Network Exposure
-- Limit network access to required services
-- Use firewalls to restrict traffic
-- Monitor network communications
-- Implement intrusion detection
+#### Credential Management
+- **Never Commit**: Firebase credentials to repository
+- **Environment Variables**: Use secure configuration
+- **Key Rotation**: Regular credential updates
+- **Access Monitoring**: Track credential usage
 
-## Security Best Practices
+### Production Security
 
-### For Developers
+#### System Hardening
+- **Minimal Services**: Only required services running
+- **Firewall Rules**: Restrict network access
+- **Regular Updates**: Security patches applied promptly
+- **Monitoring**: Continuous security monitoring
 
-1. **Code Review**: All code changes must be reviewed
-2. **Static Analysis**: Use security scanning tools
-3. **Dependency Management**: Keep libraries updated
-4. **Secure Coding**: Follow OWASP guidelines
-5. **Testing**: Include security test cases
+#### Incident Response
+- **Detection**: Automated threat detection
+- **Response**: Defined incident response procedures
+- **Recovery**: Backup and recovery procedures
+- **Lessons Learned**: Post-incident analysis
 
-### For Deployers
+## Firebase Security Rules
 
-1. **Configuration Management**: Secure configuration storage
-2. **Access Control**: Limit administrative access
-3. **Monitoring**: Implement comprehensive logging
-4. **Updates**: Regular security updates
-5. **Incident Response**: Have response procedures
+### Development Rules (Permissive)
+```json
+{
+  "rules": {
+    "pilldispenser": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
+```
 
-### For Users
+### Production Rules (Secure)
+```json
+{
+  "rules": {
+    "pilldispenser": {
+      "devices": {
+        "$deviceId": {
+          ".read": "auth != null && auth.uid == $deviceId",
+          ".write": "auth != null && auth.uid == $deviceId",
+          "schedules": {
+            ".validate": "newData.hasChildren(['dispenserId', 'hour', 'minute', 'enabled'])"
+          },
+          "logs": {
+            ".write": "auth != null && auth.uid == $deviceId"
+          }
+        }
+      }
+    }
+  }
+}
+```
 
-1. **Network Security**: Use secure networks
-2. **Device Updates**: Keep firmware updated
-3. **Physical Security**: Secure device location
-4. **Monitoring**: Monitor for unusual behavior
-5. **Reporting**: Report suspected security issues
+## Access Control
 
-## Security Architecture
+### User Authentication
+- **Firebase Auth**: Secure user authentication
+- **Multi-Factor**: Optional 2FA for sensitive operations
+- **Session Management**: Secure session handling
+- **Password Policy**: Strong password requirements
 
-### Threat Model
+### API Security
+- **Rate Limiting**: Prevent abuse and DoS attacks
+- **Request Validation**: Input sanitization and validation
+- **CORS Policy**: Restrict cross-origin requests
+- **API Keys**: Secure key management
 
-#### Asset Classification
-- **Critical**: Patient medication data, device control
-- **High**: Network credentials, API keys
-- **Medium**: Sensor data, status information
-- **Low**: Debug logs, system information
+## Monitoring and Auditing
 
-#### Threat Actors
-- **Malicious Users**: Unauthorized access attempts
-- **Network Attackers**: Man-in-the-middle attacks
-- **Physical Attackers**: Device tampering
-- **Insider Threats**: Authorized user misuse
+### Security Monitoring
+- **Log Analysis**: Automated security event detection
+- **Intrusion Detection**: Anomaly detection systems
+- **Performance Monitoring**: Detect DoS attempts
+- **Compliance Monitoring**: Regulatory compliance checks
 
-#### Attack Vectors
-- **Network**: WiFi, Internet, GSM
-- **Physical**: Device access, tampering
-- **Software**: Firmware, applications
-- **Social**: Credential theft, impersonation
-
-### Security Controls
-
-#### Preventive Controls
-- Authentication and authorization
-- Encryption of sensitive data
-- Network access controls
-- Input validation and sanitization
-
-#### Detective Controls
-- Security logging and monitoring
-- Anomaly detection
-- Intrusion detection systems
-- Regular security audits
-
-#### Corrective Controls
-- Incident response procedures
-- Security patch management
-- System recovery processes
-- Forensic capabilities
+### Audit Logging
+- **User Actions**: All user operations logged
+- **System Events**: Security-relevant system events
+- **Data Access**: Database access tracking
+- **Authentication**: Login/logout events
 
 ## Compliance Considerations
 
-### Healthcare Regulations
-- HIPAA compliance considerations
-- FDA medical device guidelines
-- Local healthcare regulations
-- Patient privacy requirements
+### Healthcare Compliance
+- **HIPAA**: Protected health information handling
+- **Data Encryption**: Required for medical data
+- **Access Controls**: Role-based access management
+- **Audit Trails**: Comprehensive activity logging
 
-### Data Protection
-- GDPR compliance for EU deployments
-- Data minimization principles
-- User consent mechanisms
-- Data retention policies
+### General Compliance
+- **GDPR**: EU data protection regulations
+- **Data Minimization**: Collect only necessary data
+- **User Consent**: Clear consent for data processing
+- **Right to Deletion**: Data removal capabilities
 
-### Industry Standards
-- ISO 27001 information security
-- IEC 62304 medical device software
-- NIST cybersecurity framework
-- IEEE security standards
+## Incident Response Plan
+
+### Detection Phase
+1. **Monitoring Alert**: Security monitoring triggers
+2. **Initial Assessment**: Determine incident scope
+3. **Containment**: Isolate affected systems
+4. **Notification**: Alert relevant stakeholders
+
+### Response Phase
+1. **Investigation**: Gather evidence and analyze
+2. **Recovery**: Restore affected systems
+3. **Communication**: Keep stakeholders informed
+4. **Documentation**: Record all actions taken
+
+### Post-Incident Phase
+1. **Analysis**: Root cause analysis
+2. **Remediation**: Implement fixes and improvements
+3. **Lessons Learned**: Update procedures
+4. **Reporting**: Regulatory reporting if required
 
 ## Security Updates
 
 ### Update Process
-1. Security issue identified
-2. Impact assessment conducted
-3. Fix developed and tested
-4. Security advisory published
-5. Update released to users
+- **Vulnerability Assessment**: Regular security scanning
+- **Patch Management**: Timely security updates
+- **Testing**: Security testing before deployment
+- **Rollback Plan**: Safe rollback procedures
 
-### Notification Methods
-- GitHub security advisories
-- Email notifications to registered users
-- Release notes documentation
-- Security bulletin publications
+### Communication
+- **Security Advisories**: Public security notifications
+- **Update Notifications**: User notification system
+- **Emergency Updates**: Critical security patches
+- **Status Updates**: Regular security status reports
 
-## Responsible Disclosure
+## Third-Party Dependencies
 
-We appreciate security researchers who:
-- Follow responsible disclosure practices
-- Provide detailed vulnerability reports
-- Allow reasonable time for fixes
-- Avoid unnecessary publicity
+### Secure Dependencies
+- **Regular Updates**: Keep dependencies current
+- **Vulnerability Scanning**: Automated dependency checks
+- **Trusted Sources**: Only official package repositories
+- **License Compliance**: Verify license compatibility
 
-## Contact Information
-
-For security-related questions or concerns:
-
-- **Security Team**: security@qppd.com
-- **General Contact**: support@qppd.com
-- **GitHub Issues**: For non-security bugs only
+### Firebase Security
+- **Google Security**: Enterprise-grade security
+- **Compliance**: SOC 2, ISO 27001 certified
+- **Encryption**: End-to-end data encryption
+- **Access Controls**: Granular permission system
 
 ---
 
-This security policy is reviewed quarterly and updated as needed.
+**Security First**: Protecting patient health information and system integrity is our highest priority.

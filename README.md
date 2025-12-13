@@ -1,28 +1,41 @@
 # Pill Dispenser V3
 
-**An Advanced Multi-Component IoT Automated Medication Dispensing System**
+An advanced IoT-enabled automated medication dispensing system with real-time monitoring, cloud integration, and machine learning capabilities.
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [System Architecture](#system-architecture)
-- [Hardware Requirements](#hardware-requirements)
-- [Software Dependencies](#software-dependencies)
-- [Installation Guide](#installation-guide)
-- [Configuration](#configuration)
-- [API Reference](#api-reference)
-- [Development Mode](#development-mode)
-- [Testing Framework](#testing-framework)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
-- [Changelog](#changelog)
+1. [Overview](#overview)
+2. [Key Capabilities](#key-capabilities)
+3. [Features](#features)
+4. [System Architecture](#system-architecture)
+5. [Component Overview](#component-overview)
+6. [Software Architecture](#software-architecture)
+7. [Hardware Requirements](#hardware-requirements)
+8. [Wiring Configuration](#wiring-configuration)
+9. [Software Dependencies](#software-dependencies)
+10. [Installation Guide](#installation-guide)
+11. [Configuration](#configuration)
+12. [API Reference](#api-reference)
+13. [Development Mode](#development-mode)
+14. [Production Mode](#production-mode)
+15. [Testing Framework](#testing-framework)
+16. [Deployment](#deployment)
+17. [Troubleshooting](#troubleshooting)
+18. [Support Resources](#support-resources)
+19. [Contributing](#contributing)
+20. [Security](#security)
+21. [License](#license)
+22. [Changelog](#changelog)
 
 ## Overview
 
-The Pill Dispenser V3 is a sophisticated, multi-component IoT-enabled medication dispensing system designed for healthcare applications. The system integrates ESP32 microcontrollers, Raspberry Pi machine learning processing, ESP32-CAM image capture, and a modern Next.js web dashboard to provide comprehensive automated pill dispensing with real-time monitoring, cloud connectivity, and advanced safety features.
+The Pill Dispenser V3 is a comprehensive, modular IoT medication dispensing system designed for reliable, automated pill delivery with advanced monitoring and notification capabilities. The system integrates multiple hardware components including ESP32 microcontrollers, servo-based dispensing mechanisms, GSM communication, and optional machine learning-based verification through Raspberry Pi processing.
+
+The system comprises three primary operational components:
+
+1. **ESP32 Main Controller**: Core dispensing logic, scheduling, sensor management, and cloud connectivity
+2. **Web Dashboard**: Next.js-based user interface for monitoring, scheduling, and control
+3. **Optional ML Processing**: Raspberry Pi-based YOLOv8 pill detection and verification
 
 ### Key Capabilities
 
@@ -998,4 +1011,4 @@ This project uses the following open-source libraries:
 ---
 
 **Pill Dispenser V3** - Advanced Automated Medication Dispensing System  
-Copyright (c) 2025 QPPD. All rights reserved.
+Copyright (c) 2025 QPPD. All rights reserved.rvo control supporting 5 independent dispensers

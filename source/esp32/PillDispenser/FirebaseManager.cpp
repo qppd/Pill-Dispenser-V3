@@ -271,12 +271,7 @@ void FirebaseManager::deviceStreamTimeoutCallback(bool timeout) {
 }
 
 bool FirebaseManager::beginScheduleStream() {
-  if (userId.isEmpty()) {
-    Serial.println("FirebaseManager: Cannot start schedule stream - User ID not set");
-    return false;
-  }
-  
-  String schedulePath = "pilldispenser/device/schedules/" + userId;
+  String schedulePath = "pilldispenser/device/" + deviceId + "/schedules";
   Serial.println("FirebaseManager: 🚀 Starting schedule stream on path: " + schedulePath);
   Serial.println("FirebaseManager: Firebase ready status: " + String(isAuthenticated ? "YES" : "NO"));
   
@@ -694,20 +689,7 @@ void FirebaseManager::setScheduleManager(ScheduleManager* manager) {
 
 void FirebaseManager::setUserId(String uid) {
   userId = uid;
-  Serial.println("FirebaseManager: User ID set to " + userId);
-  
-  // Start schedule stream if Firebase is ready
-  Serial.println("FirebaseManager: Checking authentication status for schedule stream...");
-  Serial.println("FirebaseManager: isAuthenticated = " + String(isAuthenticated ? "TRUE" : "FALSE"));
-  Serial.println("FirebaseManager: isFirebaseReady() = " + String(isFirebaseReady() ? "TRUE" : "FALSE"));
-  
-  if (isAuthenticated) {
-    Serial.println("FirebaseManager: ✅ Firebase authenticated, starting schedule stream...");
-    bool streamStarted = beginScheduleStream();
-    Serial.println("FirebaseManager: Schedule stream start result: " + String(streamStarted ? "SUCCESS" : "FAILED"));
-  } else {
-    Serial.println("FirebaseManager: ❌ Firebase not authenticated yet, schedule stream will start later");
-  }
+  Serial.println("FirebaseManager: User ID set to " + userId + " (optional - not used for device paths)");
 }
 
 bool FirebaseManager::shouldSyncSchedules() {
@@ -725,14 +707,9 @@ bool FirebaseManager::syncSchedulesFromFirebase() {
     return false;
   }
 
-  if (userId.isEmpty()) {
-    Serial.println("FirebaseManager: Cannot sync schedules - User ID not set");
-    return false;
-  }
-
   Serial.println("FirebaseManager: Syncing schedules from Firebase...");
   
-  String schedulePath = "pilldispenser/device/schedules/" + userId;
+  String schedulePath = "pilldispenser/device/" + deviceId + "/schedules";
   Serial.println("FirebaseManager: Schedule path: " + schedulePath);
   
   if (Firebase.RTDB.getJSON(&fbdo, schedulePath)) {
