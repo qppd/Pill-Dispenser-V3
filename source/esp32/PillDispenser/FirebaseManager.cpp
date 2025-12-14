@@ -832,39 +832,53 @@ bool FirebaseManager::updateDispenserAfterDispense(int dispenserId, TimeManager*
   }
 
   String dispensersPath = deviceParentPath + "/dispensers";
-  
-  // Get current dispensers
+
+  // Get current dispensers as JSON string
   if (Firebase.RTDB.getJSON(&fbdo, dispensersPath)) {
-    FirebaseJson* json = fbdo.to<FirebaseJson*>();
-    
-    // Assume it's an array
-    size_t len = json->iteratorBegin();
-    FirebaseJsonArray arr;
-    json->toArray(arr);
-    
-    if (dispenserId < len) {
-      // Get the dispenser object
-      FirebaseJson dispenserJson;
-      arr.get(dispenserJson, dispenserId);
-      
-      // Update pillsRemaining
-      FirebaseJsonData data;
-      int pillsRemaining = 30; // default
-      if (dispenserJson.get(data, "pillsRemaining")) {
-        pillsRemaining = data.to<int>();
-      }
-      pillsRemaining = max(0, pillsRemaining - 1);
-      
-      dispenserJson.set("pillsRemaining", pillsRemaining);
-      dispenserJson.set("lastDispensed", timeManager ? timeManager->getDateTimeString() : "Unknown");
-      dispenserJson.set("lastUpdated", timeManager ? timeManager->getDateTimeString() : "Unknown");
-      
-      // Set back the array
-      arr.set(dispenserId, dispenserJson);
-      
+    // Parse the JSON response
+    FirebaseJson json;
+    json.setJsonData(fbdo.payload().c_str());
+
+    // Get the dispenser array
+    FirebaseJsonData result;
+    if (json.get(result, "/")) {
+      // Create a new JSON object for the updated dispensers
       FirebaseJson updatedJson;
-      arr.toJson(updatedJson);
-      
+
+      // Parse the array and update the specific dispenser
+      size_t len = json.iteratorBegin();
+      for (size_t i = 0; i < len; i++) {
+        FirebaseJsonData dispenserData;
+        String path = "/" + String(i);
+        if (json.get(dispenserData, path.c_str())) {
+          if (i == dispenserId) {
+            // This is the dispenser we want to update
+            FirebaseJson updatedDispenser;
+            updatedDispenser.setJsonData(dispenserData.to<String>());
+
+            // Update pillsRemaining
+            FirebaseJsonData pillsData;
+            int pillsRemaining = 30; // default
+            if (updatedDispenser.get(pillsData, "pillsRemaining")) {
+              pillsRemaining = pillsData.to<int>();
+            }
+            pillsRemaining = max(0, pillsRemaining - 1);
+
+            updatedDispenser.set("pillsRemaining", pillsRemaining);
+            updatedDispenser.set("lastDispensed", timeManager ? timeManager->getDateTimeString() : "Unknown");
+            updatedDispenser.set("lastUpdated", timeManager ? timeManager->getDateTimeString() : "Unknown");
+
+            // Add updated dispenser to the array
+            updatedJson.set(path.c_str(), updatedDispenser);
+          } else {
+            // Keep other dispensers unchanged
+            updatedJson.set(path.c_str(), dispenserData.to<String>());
+          }
+        }
+      }
+      json.iteratorEnd();
+
+      // Update Firebase with the modified JSON
       if (Firebase.RTDB.setJSON(&fbdo, dispensersPath, &updatedJson)) {
         Serial.println("FirebaseManager: Dispenser updated after dispense");
         return true;
@@ -872,7 +886,7 @@ bool FirebaseManager::updateDispenserAfterDispense(int dispenserId, TimeManager*
         Serial.println("FirebaseManager: Failed to update dispenser: " + fbdo.errorReason());
       }
     } else {
-      Serial.println("FirebaseManager: Dispenser ID out of range");
+      Serial.println("FirebaseManager: Failed to parse dispensers JSON");
     }
   } else {
     Serial.println("FirebaseManager: Failed to get dispensers: " + fbdo.errorReason());
