@@ -21,6 +21,10 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 
+// Software I2C option - uncomment to use software I2C instead of hardware I2C
+// #define USE_SOFTWARE_I2C
+// #include <SoftWire.h>
+
 // PCA9685 I2C address (default is 0x40)
 #define PCA9685_ADDRESS 0x40
 
@@ -29,6 +33,11 @@
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define I2C_FREQUENCY 100000  // 100kHz I2C frequency
+
+// Software I2C pins (use any available GPIO pins)
+// Only used if USE_SOFTWARE_I2C is defined
+#define SOFT_I2C_SDA_PIN 18
+#define SOFT_I2C_SCL_PIN 19
 
 // Servo pulse width configuration
 // Depending on your servo make, the pulse width min and max may vary, you 
@@ -49,28 +58,50 @@
 #define NUM_DISPENSER_SERVOS 5
 
 // Create PCA9685 driver instance
-// Called this way, it uses the default address 0x40
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(PCA9685_ADDRESS);
-// You can also call it with a different address if needed:
-// Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x41);
+#ifdef USE_SOFTWARE_I2C
+// Software I2C using SoftWire
+SoftWire softWire(SOFT_I2C_SDA_PIN, SOFT_I2C_SCL_PIN);
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(&softWire, PCA9685_ADDRESS);
+#else
+// Hardware I2C using TwoWire with custom pins
+TwoWire customWire = TwoWire(0); // Use I2C bus 0
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(PCA9685_ADDRESS, customWire);
+#endif
 
 /**
  * Initialize I2C bus for ESP32
  */
 void initI2C() {
-  Serial.println("Initializing I2C bus...");
+#ifdef USE_SOFTWARE_I2C
+  Serial.println("Initializing Software I2C bus...");
   
-  // Initialize I2C with custom pins
-  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-  Wire.setClock(I2C_FREQUENCY);
+  // Initialize software I2C
+  softWire.begin();
+  softWire.setClock(I2C_FREQUENCY);
   
-  Serial.print("I2C SDA Pin: ");
+  Serial.print("Software I2C SDA Pin: ");
+  Serial.println(SOFT_I2C_SDA_PIN);
+  Serial.print("Software I2C SCL Pin: ");
+  Serial.println(SOFT_I2C_SCL_PIN);
+  Serial.print("I2C Frequency: ");
+  Serial.print(I2C_FREQUENCY / 1000);
+  Serial.println(" kHz");
+  
+#else
+  Serial.println("Initializing Hardware I2C bus...");
+  
+  // Initialize hardware I2C with custom pins
+  customWire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  customWire.setClock(I2C_FREQUENCY);
+  
+  Serial.print("Hardware I2C SDA Pin: ");
   Serial.println(I2C_SDA_PIN);
-  Serial.print("I2C SCL Pin: ");
+  Serial.print("Hardware I2C SCL Pin: ");
   Serial.println(I2C_SCL_PIN);
   Serial.print("I2C Frequency: ");
   Serial.print(I2C_FREQUENCY / 1000);
   Serial.println(" kHz");
+#endif
   
   delay(100); // Give I2C time to initialize
 }
@@ -85,8 +116,13 @@ void scanI2C() {
   int nDevices = 0;
   
   for (address = 1; address < 127; address++) {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
+#ifdef USE_SOFTWARE_I2C
+    softWire.beginTransmission(address);
+    error = softWire.endTransmission();
+#else
+    customWire.beginTransmission(address);
+    error = customWire.endTransmission();
+#endif
     
     if (error == 0) {
       Serial.print("I2C device found at address 0x");
