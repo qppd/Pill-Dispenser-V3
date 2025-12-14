@@ -8,8 +8,7 @@
 #include "addons/RTDBHelper.h"
 #include "VoltageSensor.h"
 #include "FirebaseConfig.h"
-
-class ScheduleManager;
+#include "ScheduleManager.h"
 
 class FirebaseManager {
 private:

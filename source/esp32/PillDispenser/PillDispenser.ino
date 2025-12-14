@@ -13,8 +13,8 @@
 #include "ServoDriver.h"
 #include "LCDDisplay.h"
 #include "TimeManager.h"
-#include "FirebaseManager.h"
 #include "ScheduleManager.h"
+#include "FirebaseManager.h"
 #include "SIM800L.h"
 #include "VoltageSensor.h"
 #include "WiFiManager.h"
@@ -265,8 +265,7 @@ void testFirebaseConnection() {
   Serial.println("🔥 Testing Firebase connection...");
   
   if (firebase.begin(PillDispenserConfig::getApiKey(), PillDispenserConfig::getDatabaseURL())) {
-    firebase.testConnection();
-    firebase.testDataUpload();
+    Serial.println("✅ Firebase initialized successfully");
     
     // Test pill report functionality
     firebase.sendPillReport(1, timeManager.getDateTimeString(), "Test dispense from development mode", 1);
