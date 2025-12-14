@@ -5,12 +5,12 @@
 // This file contains user-specific settings like phone numbers, user IDs, etc.
 
 // Phone Numbers for SMS Notifications
-const String CAREGIVER_1_PHONE = "+1234567890";  // Primary caregiver phone number
-const String CAREGIVER_2_PHONE = "+0987654321";  // Secondary caregiver phone number (optional)
+const String CAREGIVER_1_PHONE = "+639854226165";  // Primary caregiver phone number
+const String CAREGIVER_2_PHONE = "+639634905586";  // Secondary caregiver phone number (optional)
 
 // Caregiver Names
-const String CAREGIVER_1_NAME = "Primary Caregiver";  // Name for primary caregiver
-const String CAREGIVER_2_NAME = "Secondary Caregiver";  // Name for secondary caregiver
+const String CAREGIVER_1_NAME = "Pill Dispenser Caregiver 1";  // Name for primary caregiver
+const String CAREGIVER_2_NAME = "Pill Dispenser Caregiver 2";  // Name for secondary caregiver
 
 // User ID for Firebase
 const String USER_ID = "MmRwYAQXJiZcA7jgvkjCOw0m5Uz2";  // Firebase auth user ID
