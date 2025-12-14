@@ -276,7 +276,7 @@ bool FirebaseManager::beginScheduleStream() {
     return false;
   }
   
-  String schedulePath = "pilldispenser/device/schedules/" + userId;
+  String schedulePath = deviceParentPath + "/schedules";
   Serial.println("FirebaseManager: 🚀 Starting schedule stream on path: " + schedulePath);
   Serial.println("FirebaseManager: Firebase ready status: " + String(isAuthenticated ? "YES" : "NO"));
   
@@ -732,7 +732,7 @@ bool FirebaseManager::syncSchedulesFromFirebase() {
 
   Serial.println("FirebaseManager: Syncing schedules from Firebase...");
   
-  String schedulePath = "pilldispenser/device/schedules/" + userId;
+  String schedulePath = deviceParentPath + "/schedules";
   Serial.println("FirebaseManager: Schedule path: " + schedulePath);
   
   if (Firebase.RTDB.getJSON(&fbdo, schedulePath)) {
@@ -824,4 +824,58 @@ bool FirebaseManager::syncSchedulesFromFirebase() {
     Serial.println(fbdo.errorReason());
     return false;
   }
+}
+
+bool FirebaseManager::updateDispenserAfterDispense(int dispenserId, TimeManager* timeManager) {
+  if (!isFirebaseReady()) {
+    return false;
+  }
+
+  String dispensersPath = deviceParentPath + "/dispensers";
+  
+  // Get current dispensers
+  if (Firebase.RTDB.getJSON(&fbdo, dispensersPath)) {
+    FirebaseJson* json = fbdo.to<FirebaseJson*>();
+    
+    // Assume it's an array
+    size_t len = json->iteratorBegin();
+    FirebaseJsonArray arr;
+    json->toArray(arr);
+    
+    if (dispenserId < len) {
+      // Get the dispenser object
+      FirebaseJson dispenserJson;
+      arr.get(dispenserJson, dispenserId);
+      
+      // Update pillsRemaining
+      FirebaseJsonData data;
+      int pillsRemaining = 30; // default
+      if (dispenserJson.get(data, "pillsRemaining")) {
+        pillsRemaining = data.to<int>();
+      }
+      pillsRemaining = max(0, pillsRemaining - 1);
+      
+      dispenserJson.set("pillsRemaining", pillsRemaining);
+      dispenserJson.set("lastDispensed", timeManager ? timeManager->getDateTimeString() : "Unknown");
+      dispenserJson.set("lastUpdated", timeManager ? timeManager->getDateTimeString() : "Unknown");
+      
+      // Set back the array
+      arr.set(dispenserId, dispenserJson);
+      
+      FirebaseJson updatedJson;
+      arr.toJson(updatedJson);
+      
+      if (Firebase.RTDB.setJSON(&fbdo, dispensersPath, &updatedJson)) {
+        Serial.println("FirebaseManager: Dispenser updated after dispense");
+        return true;
+      } else {
+        Serial.println("FirebaseManager: Failed to update dispenser: " + fbdo.errorReason());
+      }
+    } else {
+      Serial.println("FirebaseManager: Dispenser ID out of range");
+    }
+  } else {
+    Serial.println("FirebaseManager: Failed to get dispensers: " + fbdo.errorReason());
+  }
+  return false;
 }

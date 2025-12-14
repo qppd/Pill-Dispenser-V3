@@ -63,6 +63,7 @@ public:
   bool sendHeartbeat(VoltageSensor* voltageSensor = nullptr);
   bool uploadSensorData(String sensorName, String value);
   bool sendPillReport(int pillCount, String datetime, String description, int status);
+  bool updateDispenserAfterDispense(int dispenserId, class TimeManager* timeManager);
   
   // Streaming and real-time updates
   bool beginDataStream();

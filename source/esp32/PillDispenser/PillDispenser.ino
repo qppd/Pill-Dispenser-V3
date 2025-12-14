@@ -307,6 +307,9 @@ void handleScheduledDispense(int dispenserId, String pillSize, String medication
   // Perform dispense
   dispenseFromContainer(dispenserId);
   
+  // Update dispenser data in Firebase
+  firebase.updateDispenserAfterDispense(dispenserId, &timeManager);
+  
   // Send notification via SMS
   String smsMessage = "Medication dispensed from Container " + String(dispenserId + 1) + 
                      " - " + medication + " at " + timeManager.getTimeString();
@@ -354,6 +357,9 @@ void checkDispenseCommands() {
       
       // Perform dispense (convert to 0-based index)
       dispenseFromContainer(dispenserId - 1);
+      
+      // Update dispenser data in Firebase
+      firebase.updateDispenserAfterDispense(dispenserId - 1, &timeManager);
       
       // Log to Firebase
       firebase.sendPillReport(dispenserId, timeManager.getDateTimeString(), 
