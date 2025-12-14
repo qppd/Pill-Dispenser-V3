@@ -12,10 +12,10 @@ private:
   static const uint8_t PWM_FREQ = 50;    // Analog servos run at ~50 Hz
   static const uint8_t I2C_ADDRESS = 0x40; // Default PCA9685 address
   
-  // I2C Retry and Bus Recovery Configuration
-  static const uint8_t I2C_MAX_RETRIES = 5;        // Maximum retry attempts for I2C operations
-  static const uint8_t I2C_RETRY_DELAY_MS = 10;    // Delay between retries in milliseconds
-  static const uint8_t I2C_BUS_RECOVERY_DELAY_MS = 50; // Delay after bus recovery
+  // I2C Retry and Bus Recovery Configuration (Optimized for responsiveness)
+  static const uint8_t I2C_MAX_RETRIES = 2;        // Reduced from 5 to 2 for faster failure
+  static const uint8_t I2C_RETRY_DELAY_MS = 5;     // Reduced from 10 to 5ms for responsiveness
+  static const uint8_t I2C_BUS_RECOVERY_DELAY_MS = 20; // Reduced from 50 to 20ms
   
   // Error tracking
   uint32_t totalNackErrors;           // Total NACK errors encountered

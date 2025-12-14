@@ -14,103 +14,75 @@ ServoDriver::ServoDriver() : pwm(I2C_ADDRESS) {
 // ========================================
 
 /**
- * Perform I2C write operation with automatic retry and NACK handling
- * 
+ * Perform I2C write operation with minimal error handling
+ * Uses fail-fast approach to prevent program freezing
+ *
  * @param reg Register address to write to
  * @param value Value to write
- * @return true if write succeeded (within retry limit), false otherwise
+ * @return true if write succeeded, false otherwise
  */
 bool ServoDriver::i2cWriteWithRetry(uint8_t reg, uint8_t value) {
   totalI2COperations++;
-  
-  for (uint8_t attempt = 1; attempt <= I2C_MAX_RETRIES; attempt++) {
-    Wire.beginTransmission(I2C_ADDRESS);
-    Wire.write(reg);
-    Wire.write(value);
-    uint8_t error = Wire.endTransmission();
-    
-    // Error codes: 0=success, 1=data too long, 2=NACK on address, 3=NACK on data, 4=other
-    if (error == 0) {
-      // Success - return immediately
-      if (attempt > 1) {
-        Serial.print("ServoDriver: I2C write succeeded on retry #");
-        Serial.println(attempt - 1);
-      }
-      return true;
-    }
-    
-    // Log NACK error
-    if (error == 2 || error == 3) {
-      totalNackErrors++;
-      logNackError("i2cWrite", attempt);
-    } else {
-      Serial.print("ServoDriver: I2C error ");
-      Serial.print(error);
-      Serial.print(" on attempt ");
-      Serial.println(attempt);
-    }
-    
-    // If max retries reached, perform bus recovery
-    if (attempt == I2C_MAX_RETRIES) {
-      Serial.println("ServoDriver: Max retries reached, attempting bus recovery...");
-      if (performBusRecovery()) {
-        // One more attempt after successful recovery
-        Wire.beginTransmission(I2C_ADDRESS);
-        Wire.write(reg);
-        Wire.write(value);
-        error = Wire.endTransmission();
-        if (error == 0) {
-          Serial.println("ServoDriver: Write succeeded after bus recovery");
-          return true;
-        }
-      }
-      Serial.println("ServoDriver: I2C write failed after all retries and recovery");
-      return false;
-    }
-    
-    // Wait before retry to avoid flooding the bus
-    delay(I2C_RETRY_DELAY_MS);
+
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(reg);
+  Wire.write(value);
+  uint8_t error = Wire.endTransmission();
+
+  if (error == 0) {
+    return true;
   }
-  
+
+  // Log error but don't retry - fail fast
+  if (error == 2 || error == 3) {
+    totalNackErrors++;
+    Serial.print("ServoDriver: NACK on I2C write (reg ");
+    Serial.print(reg);
+    Serial.println(") - bus may be disconnected");
+  } else {
+    Serial.print("ServoDriver: I2C error ");
+    Serial.print(error);
+    Serial.print(" on write (reg ");
+    Serial.print(reg);
+    Serial.println(")");
+  }
+
   return false;
 }
 
 /**
- * Perform multi-byte I2C write with retry (for bulk operations)
- * 
+ * Perform multi-byte I2C write with minimal error handling
+ * Uses fail-fast approach to prevent program freezing
+ *
  * @param data Pointer to data buffer
  * @param length Number of bytes to write
  * @return true if write succeeded, false otherwise
  */
 bool ServoDriver::i2cMultiWriteWithRetry(uint8_t* data, uint8_t length) {
   totalI2COperations++;
-  
-  for (uint8_t attempt = 1; attempt <= I2C_MAX_RETRIES; attempt++) {
-    Wire.beginTransmission(I2C_ADDRESS);
-    Wire.write(data, length);
-    uint8_t error = Wire.endTransmission();
-    
-    if (error == 0) {
-      if (attempt > 1) {
-        Serial.print("ServoDriver: Multi-write succeeded on retry #");
-        Serial.println(attempt - 1);
-      }
-      return true;
-    }
-    
-    if (error == 2 || error == 3) {
-      totalNackErrors++;
-      logNackError("multiWrite", attempt);
-    }
-    
-    if (attempt == I2C_MAX_RETRIES) {
-      performBusRecovery();
-      return false;
-    }
-    
-    delay(I2C_RETRY_DELAY_MS);
+
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(data, length);
+  uint8_t error = Wire.endTransmission();
+
+  if (error == 0) {
+    return true;
   }
-  
+
+  // Log error but don't retry - fail fast
+  if (error == 2 || error == 3) {
+    totalNackErrors++;
+    Serial.print("ServoDriver: NACK on multi-write (");
+    Serial.print(length);
+    Serial.println(" bytes) - bus may be disconnected");
+  } else {
+    Serial.print("ServoDriver: I2C error ");
+    Serial.print(error);
+    Serial.print(" on multi-write (");
+    Serial.print(length);
+    Serial.println(" bytes)");
+  }
+
   return false;
 }
 
@@ -156,25 +128,22 @@ bool ServoDriver::performBusRecovery() {
 
 /**
  * Log NACK error with details for debugging
- * 
+ * Used in fail-fast error handling
+ *
  * @param operation Description of the operation that failed
- * @param attempt Current retry attempt number
  */
-void ServoDriver::logNackError(const char* operation, uint8_t attempt) {
+void ServoDriver::logNackError(const char* operation) {
   Serial.print("ServoDriver: *** NACK ERROR *** Operation: ");
   Serial.print(operation);
-  Serial.print(", Attempt: ");
-  Serial.print(attempt);
-  Serial.print("/");
-  Serial.print(I2C_MAX_RETRIES);
   Serial.print(", Total NACKs: ");
   Serial.println(totalNackErrors);
 }
 
 /**
- * Safe PWM write operation with retry logic
+ * Safe PWM write operation with minimal retry logic
  * Wraps the Adafruit_PWMServoDriver setPWM call with error handling
- * 
+ * Uses fail-fast approach to prevent program freezing
+ *
  * @param channel PWM channel (0-15)
  * @param on PWM on time (0-4095)
  * @param off PWM off time (0-4095)
@@ -182,55 +151,32 @@ void ServoDriver::logNackError(const char* operation, uint8_t attempt) {
  */
 bool ServoDriver::safePWMWrite(uint8_t channel, uint16_t on, uint16_t off) {
   totalI2COperations++;
-  
-  for (uint8_t attempt = 1; attempt <= I2C_MAX_RETRIES; attempt++) {
-    // The Adafruit library doesn't provide error feedback, so we test the bus first
-    Wire.beginTransmission(I2C_ADDRESS);
-    uint8_t error = Wire.endTransmission();
-    
-    if (error == 0) {
-      // Bus is responding, perform the PWM write
-      pwm.setPWM(channel, on, off);
-      
-      if (attempt > 1) {
-        Serial.print("ServoDriver: PWM write succeeded on retry #");
-        Serial.println(attempt - 1);
-      }
-      return true;
-    }
-    
-    // Log error
-    if (error == 2 || error == 3) {
-      totalNackErrors++;
-      logNackError("safePWMWrite", attempt);
-    } else {
-      Serial.print("ServoDriver: I2C error ");
-      Serial.print(error);
-      Serial.print(" on PWM write attempt ");
-      Serial.println(attempt);
-    }
-    
-    // If max retries reached, perform bus recovery
-    if (attempt == I2C_MAX_RETRIES) {
-      Serial.println("ServoDriver: Max retries reached for PWM write, attempting bus recovery...");
-      if (performBusRecovery()) {
-        // One more attempt after recovery
-        Wire.beginTransmission(I2C_ADDRESS);
-        error = Wire.endTransmission();
-        if (error == 0) {
-          pwm.setPWM(channel, on, off);
-          Serial.println("ServoDriver: PWM write succeeded after bus recovery");
-          return true;
-        }
-      }
-      Serial.println("ServoDriver: PWM write failed after all retries and recovery");
-      return false;
-    }
-    
-    // Wait before retry
-    delay(I2C_RETRY_DELAY_MS);
+
+  // Test bus connectivity first (quick check)
+  Wire.beginTransmission(I2C_ADDRESS);
+  uint8_t error = Wire.endTransmission();
+
+  if (error == 0) {
+    // Bus is responding, perform the PWM write
+    pwm.setPWM(channel, on, off);
+    return true;
   }
-  
+
+  // Bus error detected - log it but don't retry aggressively
+  totalNackErrors++;
+  if (error == 2 || error == 3) {
+    Serial.print("ServoDriver: NACK on PWM write (channel ");
+    Serial.print(channel);
+    Serial.println(") - bus may be disconnected");
+  } else {
+    Serial.print("ServoDriver: I2C error ");
+    Serial.print(error);
+    Serial.print(" on PWM write (channel ");
+    Serial.print(channel);
+    Serial.println(")");
+  }
+
+  // Don't retry or delay - fail fast to prevent program freezing
   return false;
 }
 
