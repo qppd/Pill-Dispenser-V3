@@ -79,6 +79,7 @@ void setup() {
   Serial.println("\n" + String('=', 50));
   Serial.println("    SYSTEM READY");
   Serial.println(String('=', 50));
+  Serial.println("💡 Type 'help' for available serial commands");
   digitalWrite(PIN_STATUS_LED, HIGH);
   
   // Sound buzzer to indicate system ready
@@ -146,6 +147,19 @@ void loop() {
         Serial.println("Firebase: " + String(firebase.isFirebaseReady() ? "Ready" : "Not Ready"));
         Serial.println("Pills dispensed: " + String(pillCount));
         Serial.println("=====================\n");
+      } else if (command == "r" || command == "restart") {
+        Serial.println("🔄 Restarting ESP32...");
+        delay(1000);
+        ESP.restart();
+      } else if (command == "help" || command == "h" || command == "?") {
+        Serial.println("\n=== AVAILABLE SERIAL COMMANDS ===");
+        Serial.println("test <n>     - Test trigger schedule n (0-14)");
+        Serial.println("schedules    - Print all schedules");
+        Serial.println("time         - Show current time");
+        Serial.println("status       - Show system status");
+        Serial.println("r/restart    - Restart ESP32");
+        Serial.println("help/h/?     - Show this help");
+        Serial.println("=================================\n");
       }
     }
   }
