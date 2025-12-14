@@ -15,10 +15,10 @@ If hardware I2C continues to fail, you can use software I2C (bit-banging) instea
    ```cpp
    #define USE_SOFTWARE_I2C
    ```
-2. **Change I2C pins** if needed (default: GPIO 18 SDA, GPIO 19 SCL):
+2. **Change I2C pins** if needed (default: GPIO 21 SDA, GPIO 22 SCL):
    ```cpp
-   #define SOFT_I2C_SDA_PIN 18
-   #define SOFT_I2C_SCL_PIN 19
+   #define SOFT_I2C_SDA_PIN 21
+   #define SOFT_I2C_SCL_PIN 22
    ```
 3. **Upload and test** - software I2C is slower but more reliable on some boards
 

@@ -36,8 +36,8 @@
 
 // Software I2C pins (use any available GPIO pins)
 // Only used if USE_SOFTWARE_I2C is defined
-#define SOFT_I2C_SDA_PIN 18
-#define SOFT_I2C_SCL_PIN 19
+#define SOFT_I2C_SDA_PIN 21
+#define SOFT_I2C_SCL_PIN 22
 
 // Servo pulse width configuration
 // Depending on your servo make, the pulse width min and max may vary, you 
