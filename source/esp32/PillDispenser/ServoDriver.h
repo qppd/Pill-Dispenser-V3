@@ -12,6 +12,23 @@ private:
   static const uint8_t PWM_FREQ = 50;    // Analog servos run at ~50 Hz
   static const uint8_t I2C_ADDRESS = 0x40; // Default PCA9685 address
   
+  // I2C Retry and Bus Recovery Configuration
+  static const uint8_t I2C_MAX_RETRIES = 5;        // Maximum retry attempts for I2C operations
+  static const uint8_t I2C_RETRY_DELAY_MS = 10;    // Delay between retries in milliseconds
+  static const uint8_t I2C_BUS_RECOVERY_DELAY_MS = 50; // Delay after bus recovery
+  
+  // Error tracking
+  uint32_t totalNackErrors;           // Total NACK errors encountered
+  uint32_t totalBusRecoveries;        // Total bus recovery operations performed
+  uint32_t totalI2COperations;        // Total I2C write operations attempted
+  
+  // Private helper functions for I2C operations with retry
+  bool i2cWriteWithRetry(uint8_t reg, uint8_t value);
+  bool i2cMultiWriteWithRetry(uint8_t* data, uint8_t length);
+  bool safePWMWrite(uint8_t channel, uint16_t on, uint16_t off);
+  bool performBusRecovery();
+  void logNackError(const char* operation, uint8_t attempt);
+  
   // 360-degree servo control constants for pill dispensing
   static const int SERVO_STOP = 375;      // PWM value for stopping (1.5ms pulse)
   static const int SERVO_FORWARD = 450;   // PWM value for forward rotation
@@ -65,6 +82,13 @@ public:
   void resetAllServos();
   void stopAllServos();
   int getDurationForPillSize(String pillSize);
+  
+  // I2C Error Diagnostics
+  void printI2CStatistics();          // Print error statistics
+  void resetI2CStatistics();          // Reset error counters
+  uint32_t getNackErrorCount();       // Get total NACK errors
+  uint32_t getBusRecoveryCount();     // Get total bus recoveries
+  float getI2CSuccessRate();          // Get success rate percentage
 };
 
 #endif

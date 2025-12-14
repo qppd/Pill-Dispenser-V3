@@ -143,6 +143,29 @@ void loop() {
     if (millis() - lastHeartbeat > 30000) {
       Serial.println("💓 System heartbeat - " + timeManager.getTimeString());
       Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
+      
+      // Check I2C health and display statistics
+      float i2cSuccessRate = servoDriver.getI2CSuccessRate();
+      uint32_t nackErrors = servoDriver.getNackErrorCount();
+      uint32_t busRecoveries = servoDriver.getBusRecoveryCount();
+      
+      Serial.print("I2C Health: ");
+      Serial.print(i2cSuccessRate, 1);
+      Serial.print("% success");
+      
+      if (nackErrors > 0 || busRecoveries > 0) {
+        Serial.print(" (");
+        if (nackErrors > 0) Serial.print(String(nackErrors) + " NACKs");
+        if (busRecoveries > 0) Serial.print(String(busRecoveries) + " recoveries");
+        Serial.print(")");
+      }
+      Serial.println();
+      
+      // Alert if I2C reliability is poor
+      if (i2cSuccessRate < 95.0) {
+        Serial.println("⚠️  WARNING: I2C reliability degraded! Check connections.");
+      }
+      
       lastHeartbeat = millis();
     }
     
@@ -161,6 +184,34 @@ void loop() {
       } else if (command == "time") {
         Serial.println("Current NTP time: " + timeManager.getTimeString());
         Serial.printf("TimeAlarms time: %02d:%02d:%02d\n", hour(), minute(), second());
+      } else if (command == "i2c" || command == "servo") {
+        Serial.println("\n========== I2C STATISTICS ==========");
+        servoDriver.printI2CStatistics();
+      } else if (command == "reset i2c") {
+        Serial.println("Resetting I2C statistics...");
+        servoDriver.resetI2CStatistics();
+        Serial.println("✅ I2C statistics reset");
+      } else if (command.startsWith("servo test ")) {
+        int servoNum = command.substring(11).toInt();
+        if (servoNum >= 0 && servoNum <= 4) {
+          Serial.println("Testing servo " + String(servoNum) + "...");
+          servoDriver.testServo(servoNum);
+          Serial.println("✅ Servo test complete");
+        } else {
+          Serial.println("❌ Invalid servo number (0-4)");
+        }
+      } else if (command == "servo sweep") {
+        Serial.println("Testing all servos with sweep...");
+        for (int i = 0; i <= 4; i++) {
+          Serial.println("Sweeping servo " + String(i) + "...");
+          servoDriver.setServoAngle(i, 0);
+          delay(500);
+          servoDriver.setServoAngle(i, 180);
+          delay(500);
+          servoDriver.setServoAngle(i, 90);
+          delay(500);
+        }
+        Serial.println("✅ Servo sweep complete");
       }
     }
   }
