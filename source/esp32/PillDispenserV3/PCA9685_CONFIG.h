@@ -174,4 +174,133 @@ void setServoMicroseconds(uint8_t channel, uint16_t microseconds) {
   pwm.writeMicroseconds(channel, microseconds);
 }
 
+// Non-blocking servo testing variables
+static bool isTestingServos = false;
+static uint8_t currentTestServo = 0;
+static uint16_t currentTestAngle = 0;
+static bool sweepingForward = true;
+static unsigned long lastServoUpdate = 0;
+static const unsigned long SERVO_UPDATE_INTERVAL = 15; // ms between angle updates
+
+/**
+ * Convert angle (0-180) to pulse length
+ * 
+ * @param angle Angle in degrees (0-180)
+ * @return Pulse length for PWM
+ */
+uint16_t angleToPulse(uint16_t angle) {
+  // Map angle 0-180 to SERVOMIN-SERVOMAX
+  return map(angle, 0, 180, SERVOMIN, SERVOMAX);
+}
+
+/**
+ * Start sequential servo testing (0-180° and back, one servo at a time)
+ * Call this function to begin the test
+ */
+void startServoTest() {
+  if (isTestingServos) {
+    Serial.println("Servo test already running!");
+    return;
+  }
+  
+  Serial.println("Starting sequential servo test (0-180° and back)...");
+  isTestingServos = true;
+  currentTestServo = 0;
+  currentTestAngle = 0;
+  sweepingForward = true;
+  lastServoUpdate = millis();
+  
+  Serial.print("Testing servo CH");
+  Serial.println(currentTestServo);
+}
+
+/**
+ * Stop the servo testing
+ */
+void stopServoTest() {
+  isTestingServos = false;
+  Serial.println("Servo test stopped.");
+}
+
+/**
+ * Update servo testing (call this in loop() for non-blocking operation)
+ * Tests servos sequentially: CH0 -> CH1 -> CH2 -> CH3 -> CH4 -> repeat
+ */
+void updateServoTest() {
+  if (!isTestingServos) return;
+  
+  unsigned long currentTime = millis();
+  if (currentTime - lastServoUpdate < SERVO_UPDATE_INTERVAL) return;
+  
+  lastServoUpdate = currentTime;
+  
+  // Set current servo to current angle
+  uint16_t pulse = angleToPulse(currentTestAngle);
+  pwm.setPWM(currentTestServo, 0, pulse);
+  
+  // Update angle
+  if (sweepingForward) {
+    currentTestAngle++;
+    if (currentTestAngle >= 180) {
+      sweepingForward = false;
+      Serial.println("Reached 180°, sweeping back...");
+    }
+  } else {
+    currentTestAngle--;
+    if (currentTestAngle <= 0) {
+      sweepingForward = true;
+      Serial.print("Completed servo CH");
+      Serial.println(currentTestServo);
+      
+      // Move to next servo
+      currentTestServo++;
+      if (currentTestServo >= NUM_DISPENSER_SERVOS) {
+        currentTestServo = 0;
+        Serial.println("All servos tested. Starting over...");
+      }
+      
+      Serial.print("Testing servo CH");
+      Serial.println(currentTestServo);
+    }
+  }
+}
+
+/**
+ * Handle serial commands for servo testing
+ * Call this in loop() to process serial input
+ */
+void handleSerialCommands() {
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    
+    if (command.equalsIgnoreCase("test_all_pill_dispenser")) {
+      startServoTest();
+    } else if (command.equalsIgnoreCase("stop_test")) {
+      stopServoTest();
+    } else if (command.startsWith("servo ")) {
+      // Parse commands like "servo 0 90" to set servo 0 to 90 degrees
+      int space1 = command.indexOf(' ');
+      int space2 = command.indexOf(' ', space1 + 1);
+      
+      if (space1 > 0 && space2 > space1) {
+        uint8_t servoNum = command.substring(space1 + 1, space2).toInt();
+        uint16_t angle = command.substring(space2 + 1).toInt();
+        
+        if (servoNum < NUM_DISPENSER_SERVOS && angle <= 180) {
+          uint16_t pulse = angleToPulse(angle);
+          pwm.setPWM(servoNum, 0, pulse);
+          Serial.print("Set servo CH");
+          Serial.print(servoNum);
+          Serial.print(" to ");
+          Serial.print(angle);
+          Serial.println("°");
+        } else {
+          Serial.println("Invalid servo number or angle (0-180°)");
+        }
+      }
+    }
+  }
+}
+
 #endif // PCA9685_CONFIG_H

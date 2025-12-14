@@ -11,5 +11,7 @@ void setup() {
 }
 
 void loop() {
-    // put your main code here, to run repeatedly:   
+    // put your main code here, to run repeatedly:
+    handleSerialCommands();  // Process serial commands for servo testing
+    updateServoTest();       // Update non-blocking servo testing
 }
