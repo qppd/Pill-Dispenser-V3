@@ -131,10 +131,13 @@ bool ServoDriver::performBusRecovery() {
  * Used in fail-fast error handling
  *
  * @param operation Description of the operation that failed
+ * @param attempt The attempt number (for retry scenarios)
  */
-void ServoDriver::logNackError(const char* operation) {
+void ServoDriver::logNackError(const char* operation, uint8_t attempt) {
   Serial.print("ServoDriver: *** NACK ERROR *** Operation: ");
   Serial.print(operation);
+  Serial.print(", Attempt: ");
+  Serial.print(attempt);
   Serial.print(", Total NACKs: ");
   Serial.println(totalNackErrors);
 }
@@ -219,6 +222,7 @@ bool ServoDriver::begin() {
   scanI2CDevices();
   
   pwm.begin();
+  pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(PWM_FREQ);
   delay(10);
   
