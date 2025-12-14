@@ -74,7 +74,10 @@ void setup() {
   // Initialize I2C
   Wire.begin(PIN_SDA, PIN_SCL);
   Serial.println("I2C initialized");
-  
+
+  // Small delay to ensure ESP32 is fully ready after I2C init
+  delay(100);
+
   if (DEVELOPMENT_MODE) {
     Serial.println("\n🔧 DEVELOPMENT MODE ENABLED 🔧");
     initializeDevelopmentMode();
