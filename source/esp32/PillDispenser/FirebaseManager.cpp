@@ -165,6 +165,8 @@ bool FirebaseManager::initializeFirebase() {
     
     while (!Firebase.ready() && initWait < maxInitWait) {
       Serial.print(".");
+      Firebase.ready(); // Process Firebase tasks
+      yield(); // Feed watchdog timer
       delay(1000);
       initWait++;
     }

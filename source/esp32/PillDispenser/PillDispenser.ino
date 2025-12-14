@@ -300,6 +300,8 @@ void initializeDevelopmentMode() {
   int waitCount = 0;
   while (!firebase.isFirebaseReady() && waitCount < 30) {
     Serial.print(".");
+    Firebase.ready(); // Feed watchdog and process Firebase tasks
+    yield(); // Feed watchdog timer
     delay(1000);
     waitCount++;
   }

@@ -11,6 +11,7 @@ void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager)
     
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+        yield(); // Feed watchdog timer
         delay(500);
         Serial.print(".");
         attempts++;
