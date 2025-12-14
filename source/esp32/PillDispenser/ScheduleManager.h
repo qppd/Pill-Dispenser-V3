@@ -101,7 +101,6 @@ public:
           OnTick_t callback = getCallbackFunction(i);
           if (callback) {
             schedules[i].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
-            Serial.printf("✅ Updated: %02d:%02d - %s\\n", hour, minute, medicationName.c_str());
           }
         }
         return true;
@@ -118,7 +117,6 @@ public:
       OnTick_t callback = getCallbackFunction(index);
       if (callback) {
         schedules[index].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
-        Serial.printf("✅ Added: %02d:%02d - %s\\n", hour, minute, medicationName.c_str());
       }
     }
     scheduleCount++;

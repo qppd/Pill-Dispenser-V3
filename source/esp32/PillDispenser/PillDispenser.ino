@@ -110,9 +110,9 @@ void loop() {
     // Send Firebase heartbeat every 1 minute to indicate device is online
     firebase.sendHeartbeat(&voltageSensor);
     
-    // Update LCD time display continuously (update every second)
+    // Update LCD time display (every 5 seconds to reduce I2C bus load)
     static unsigned long lastLcdUpdate = 0;
-    if (millis() - lastLcdUpdate >= 1000) { // Update every 1 second
+    if (millis() - lastLcdUpdate >= 5000) { // Update every 5 seconds
       String currentTimeString = timeManager.getTimeString();
       lcd.displayTime(currentTimeString);
       lastLcdUpdate = millis();

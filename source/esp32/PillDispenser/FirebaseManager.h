@@ -243,6 +243,11 @@ public:
           pillSize = data.to<String>();
         }
         
+        // Skip invalid schedules: empty medication name or 00:00 time
+        if (medicationName.length() == 0 || (hour == 0 && minute == 0)) {
+          continue;
+        }
+        
         if (scheduleManager->addSchedule(key, dispenserId, hour, minute, 
                                          medicationName, patientName, pillSize, enabled)) {
           addedCount++;
@@ -251,7 +256,8 @@ public:
       
       json->iteratorEnd();
       lastScheduleSync = millis();
-      Serial.printf("✅ Loaded %d schedules\\n", addedCount);
+      Serial.printf("✅ Schedule sync complete: %d valid schedules loaded (skipped %d empty/invalid)\\n", 
+                   addedCount, len - addedCount);
       scheduleManager->printSchedules();
       return true;
     }

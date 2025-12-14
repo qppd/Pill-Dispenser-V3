@@ -13,9 +13,13 @@ private:
   uint8_t i2cAddress;
   static const uint8_t COLS = 20;
   static const uint8_t ROWS = 4;
+  bool lcdAvailable;
+  unsigned long lastErrorTime;
+  static const unsigned long ERROR_RETRY_DELAY = 10000; // Retry after 10 seconds
   
 public:
-  LCDDisplay(uint8_t address = 0x27) : lcd(address, COLS, ROWS), i2cAddress(address) {}
+  LCDDisplay(uint8_t address = 0x27) : lcd(address, COLS, ROWS), i2cAddress(address), 
+                                        lcdAvailable(true), lastErrorTime(0) {}
   
   bool begin() {
     lcd.init();
@@ -41,6 +45,9 @@ public:
   }
   
   void displayTime(String timeStr) {
+    if (!lcdAvailable && (millis() - lastErrorTime < ERROR_RETRY_DELAY)) {
+      return; // Skip update if LCD failed recently
+    }
     lcd.setCursor(0, 0);
     lcd.print("Time: " + timeStr + "      ");
   }
