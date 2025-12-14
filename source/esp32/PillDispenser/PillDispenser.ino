@@ -19,9 +19,10 @@
 #include "VoltageSensor.h"
 #include "WiFiManager.h"
 
-// ===== DEVELOPMENT MODE CONFIGURATION =====
-#define DEVELOPMENT_MODE true  // Set to false for production
-#define PRODUCTION_MODE false  // Will implement later
+// ===== MODE CONFIGURATION =====
+// Set ONE of these to true, the other to false
+#define DEVELOPMENT_MODE false  // Development mode with extra debugging
+#define PRODUCTION_MODE true    // Production mode for deployment
 
 // ===== COMPONENT INSTANCES =====
 ServoDriver servoDriver;
@@ -52,6 +53,7 @@ const String WIFI_PASSWORD = "12345678";
 // ===== FUNCTION PROTOTYPES =====
 // Core system functions
 void initializeDevelopmentMode();
+void initializeProductionMode();
 void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager);
 void testFirebaseConnection();
 void handleScheduledDispense(int dispenserId, String pillSize, String medication, String patient);
@@ -81,8 +83,11 @@ void setup() {
   if (DEVELOPMENT_MODE) {
     Serial.println("\n🔧 DEVELOPMENT MODE ENABLED 🔧");
     initializeDevelopmentMode();
+  } else if (PRODUCTION_MODE) {
+    Serial.println("\n🚀 PRODUCTION MODE ENABLED 🚀");
+    initializeProductionMode();
   } else {
-    Serial.println("Production mode (not implemented yet)");
+    Serial.println("❌ ERROR: No mode selected!");
   }
   
   Serial.println("\n" + String('=', 50));
@@ -97,11 +102,11 @@ void setup() {
 }
 
 void loop() {
-  if (DEVELOPMENT_MODE) {
+  if (DEVELOPMENT_MODE || PRODUCTION_MODE) {
     // Firebase.ready() should be called repeatedly to handle authentication tasks and stream processing
     bool firebaseReadyResult = Firebase.ready();
-    if (!firebaseReadyResult) {
-      // Only log occasionally to avoid spam
+    if (!firebaseReadyResult && DEVELOPMENT_MODE) {
+      // Only log in development mode to avoid spam
       static unsigned long lastFirebaseLog = 0;
       if (millis() - lastFirebaseLog > 10000) { // Every 10 seconds
         Serial.println("Firebase.ready() returned false");
@@ -134,22 +139,25 @@ void loop() {
       lcd.displayTime(currentTimeString);
       lastLcdUpdate = millis();
 
-      // Debug time every 30 seconds
-      if (millis() - lastTimeDebug >= 30000) {
+      // Debug time every 30 seconds (development mode only)
+      if (DEVELOPMENT_MODE && millis() - lastTimeDebug >= 30000) {
         Serial.print("Software RTC Time: ");
         Serial.println(currentTimeString);
         lastTimeDebug = millis();
       }
     }
     
-    // Heartbeat every 30 seconds in development
-    if (millis() - lastHeartbeat > 30000) {
-      Serial.println("💓 System heartbeat - " + timeManager.getTimeString());
-      Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
+    // Heartbeat logging
+    unsigned long heartbeatInterval = DEVELOPMENT_MODE ? 30000 : 300000; // 30s dev, 5min prod
+    if (millis() - lastHeartbeat > heartbeatInterval) {
+      if (DEVELOPMENT_MODE) {
+        Serial.println("💓 System heartbeat - " + timeManager.getTimeString());
+        Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
+      }
       lastHeartbeat = millis();
     }
     
-    // Serial command handler for testing
+    // Serial command handler for testing (available in both modes)
     if (Serial.available()) {
       String command = Serial.readStringUntil('\n');
       command.trim();
@@ -162,8 +170,16 @@ void loop() {
       } else if (command == "schedules") {
         scheduleManager.printSchedules();
       } else if (command == "time") {
-        Serial.println("Current NTP time: " + timeManager.getTimeString());
+        Serial.println("Current time: " + timeManager.getTimeString());
         Serial.printf("TimeAlarms time: %02d:%02d:%02d\n", hour(), minute(), second());
+      } else if (command == "status") {
+        Serial.println("\n=== SYSTEM STATUS ===");
+        Serial.println("Mode: " + String(PRODUCTION_MODE ? "PRODUCTION" : "DEVELOPMENT"));
+        Serial.println("Time: " + timeManager.getTimeString());
+        Serial.println("WiFi: " + String(WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected"));
+        Serial.println("Firebase: " + String(firebase.isFirebaseReady() ? "Ready" : "Not Ready"));
+        Serial.println("Pills dispensed: " + String(pillCount));
+        Serial.println("=====================\n");
       }
     }
   }
@@ -269,6 +285,107 @@ void initializeDevelopmentMode() {
   }
   
   Serial.println("\n🎯 Development mode ready!");
+  
+  systemInitialized = true;
+}
+
+void initializeProductionMode() {
+  Serial.println("\n📋 Initializing components for production...");
+  
+  // Initialize LCD first for status display
+  Serial.print("LCD Display: ");
+  if (lcd.begin()) {
+    Serial.println("✅ OK");
+    lcd.displayMainScreen();
+  } else {
+    Serial.println("❌ FAILED - Continuing anyway");
+  }
+  
+  // Setup WiFi for time synchronization
+  Serial.print("WiFi Connection: ");
+  setupWiFi(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str(), &timeManager);
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("✅ OK");
+    
+    // Display initial time on LCD
+    delay(1000); // Wait a moment for NTP sync
+    lcd.displayTime(timeManager.getTimeString());
+  } else {
+    Serial.println("❌ FAILED - System will continue without WiFi");
+  }
+  
+  // Initialize Servo Driver
+  Serial.print("Servo Driver: ");
+  if (servoDriver.begin()) {
+    Serial.println("✅ OK");
+    
+    // Set all servos from ch0 to ch4 to angle 0 as starting point
+    Serial.println("Setting servos ch0-ch4 to angle 0...");
+    for (int ch = 0; ch <= 4; ch++) {
+      servoDriver.setServoAngle(ch, 0);
+      delay(100); // Small delay between servo movements
+    }
+    Serial.println("All servos initialized to 0 degrees");
+  } else {
+    Serial.println("❌ FAILED - CRITICAL: Servos required for operation");
+  }
+  
+  // Initialize SIM800L
+  Serial.print("SIM800L Module: ");
+  if (sim800.begin()) {
+    Serial.println("✅ OK");
+  } else {
+    Serial.println("⚠️ FAILED - SMS notifications will not work");
+  }
+  
+  // Initialize Voltage Sensor
+  Serial.print("Voltage Sensor: ");
+  voltageSensor.begin();
+  Serial.println("✅ OK");
+  
+  // Initialize Firebase Manager
+  Serial.print("Firebase Manager: ");
+  if (firebase.begin(PillDispenserConfig::getApiKey(), PillDispenserConfig::getDatabaseURL())) {
+    Serial.println("✅ OK");
+  } else {
+    Serial.println("⚠️ FAILED - Remote monitoring unavailable");
+  }
+  
+  // Initialize Schedule Manager
+  Serial.print("Schedule Manager: ");
+  scheduleManager.begin(firebase.getDeviceId());
+  scheduleManager.setDispenseCallback(handleScheduledDispense);
+  scheduleManager.setTimeManager(&timeManager);
+  Serial.println("✅ OK");
+  
+  // Link Firebase and Schedule Manager
+  firebase.setScheduleManager(&scheduleManager);
+  firebase.setUserId(USER_ID);
+  
+  // Wait for Firebase to be ready before syncing schedules
+  Serial.println("\n⏳ Waiting for Firebase connection...");
+  int waitCount = 0;
+  while (!firebase.isFirebaseReady() && waitCount < 20) {
+    Serial.print(".");
+    delay(1000);
+    waitCount++;
+  }
+  Serial.println();
+  
+  if (firebase.isFirebaseReady()) {
+    // Initial schedule sync from Firebase
+    Serial.println("📅 Loading schedules from Firebase...");
+    if (firebase.syncSchedulesFromFirebase()) {
+      Serial.println("✅ Schedules loaded successfully");
+    } else {
+      Serial.println("⚠️ No schedules found or sync failed");
+    }
+  } else {
+    Serial.println("⚠️ Firebase not ready - will retry in background");
+  }
+  
+  Serial.println("\n🚀 Production mode ready!");
+  Serial.println("System is operational and monitoring schedules.");
   
   systemInitialized = true;
 }
