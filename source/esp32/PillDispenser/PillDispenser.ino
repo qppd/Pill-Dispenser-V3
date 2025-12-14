@@ -10,7 +10,7 @@
 #include "PINS_CONFIG.h"
 #include "FirebaseConfig.h"
 #include "ServoDriver.h"
-#include "LCDDisplay.h"
+// #include "LCDDisplay.h"  // Temporarily removed to prevent NACK detection
 #include "TimeManager.h"
 #include "FirebaseManager.h"
 #include "ScheduleManager.h"
@@ -24,7 +24,7 @@
 
 // ===== COMPONENT INSTANCES =====
 ServoDriver servoDriver;
-LCDDisplay lcd;
+// LCDDisplay lcd;  // Temporarily removed to prevent NACK detection
 TimeManager timeManager;
 FirebaseManager firebase;
 ScheduleManager scheduleManager;
@@ -35,7 +35,7 @@ VoltageSensor voltageSensor(PIN_VOLTAGE_SENSOR);
 bool systemInitialized = false;
 String currentMode = "DEVELOPMENT";
 unsigned long lastHeartbeat = 0;
-unsigned long lastLcdUpdate = 0;
+// unsigned long lastLcdUpdate = 0;  // Removed - LCD temporarily disabled
 int pillCount = 0;
 
 // WiFi credentials (for development - move to secure storage in production)
@@ -124,20 +124,21 @@ void loop() {
     firebase.sendHeartbeat(&voltageSensor);
     
     // Update LCD time display continuously (update every second)
-    static unsigned long lastLcdUpdate = 0;
-    static unsigned long lastTimeDebug = 0;
-    if (millis() - lastLcdUpdate >= 1000) { // Update every 1 second
-      String currentTimeString = timeManager.getTimeString();
-      lcd.displayTime(currentTimeString);
-      lastLcdUpdate = millis();
+    // Temporarily disabled to prevent NACK detection
+    // static unsigned long lastLcdUpdate = 0;
+    // static unsigned long lastTimeDebug = 0;
+    // if (millis() - lastLcdUpdate >= 1000) { // Update every 1 second
+    //   String currentTimeString = timeManager.getTimeString();
+    //   lcd.displayTime(currentTimeString);
+    //   lastLcdUpdate = millis();
 
-      // Debug time every 30 seconds
-      if (millis() - lastTimeDebug >= 30000) {
-        Serial.print("Software RTC Time: ");
-        Serial.println(currentTimeString);
-        lastTimeDebug = millis();
-      }
-    }
+    //   // Debug time every 30 seconds
+    //   if (millis() - lastTimeDebug >= 30000) {
+    //     Serial.print("Software RTC Time: ");
+    //     Serial.println(currentTimeString);
+    //     lastTimeDebug = millis();
+    //   }
+    // }
     
     // Heartbeat every 30 seconds in development
     if (millis() - lastHeartbeat > 30000) {
@@ -225,13 +226,13 @@ void initializeDevelopmentMode() {
   Serial.println("\n📋 Initializing components for development...");
   
   // Initialize LCD first for status display
-  Serial.print("LCD Display: ");
-  if (lcd.begin()) {
-    Serial.println("✅ OK");
-    lcd.displayMainScreen();
-  } else {
-    Serial.println("❌ FAILED");
-  }
+  Serial.println("LCD Display: ⏸️  Temporarily disabled to prevent NACK detection");
+  // if (lcd.begin()) {
+  //   Serial.println("✅ OK");
+  //   lcd.displayMainScreen();
+  // } else {
+  //   Serial.println("❌ FAILED");
+  // }
   
   // Setup WiFi for time synchronization
   Serial.print("WiFi Connection: ");
@@ -240,8 +241,8 @@ void initializeDevelopmentMode() {
     Serial.println("✅ OK");
     
     // Display initial time on LCD
-    delay(1000); // Wait a moment for NTP sync
-    lcd.displayTime(timeManager.getTimeString());
+    // delay(1000); // Wait a moment for NTP sync
+    // lcd.displayTime(timeManager.getTimeString());
   } else {
     Serial.println("❌ FAILED");
   }
@@ -353,7 +354,7 @@ void handleScheduledDispense(int dispenserId, String pillSize, String medication
   Serial.println(String('=', 60));
   
   // Display on LCD
-  lcd.displayDispenseInfo(dispenserId + 1, medication);
+  // lcd.displayDispenseInfo(dispenserId + 1, medication);  // Temporarily disabled to prevent NACK detection
   
   // Perform dispense
   dispenseFromContainer(dispenserId);
@@ -404,7 +405,7 @@ void checkDispenseCommands() {
       Serial.println("Container: " + String(dispenserId));
       
       // Display on LCD
-      lcd.displayDispenseInfo(dispenserId, "Manual Dispense");
+      // lcd.displayDispenseInfo(dispenserId, "Manual Dispense");  // Temporarily disabled to prevent NACK detection
       
       // Perform dispense (convert to 0-based index)
       dispenseFromContainer(dispenserId - 1);
