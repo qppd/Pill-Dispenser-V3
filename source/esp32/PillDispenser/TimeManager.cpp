@@ -25,14 +25,14 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
 
   Serial.print("TimeManager: Waiting for NTP time sync");
   int retries = 0;
-  while (!getLocalTime(&timeinfo) && retries < 20) {
+  while (!getLocalTime(&timeinfo) && retries < 15) {  // Reduced from 20 to 15 for faster startup
     Serial.print(".");
-    delay(1000);
+    delay(500);  // Reduced from 1000ms to 500ms for faster startup
     retries++;
   }
 
-  if (retries >= 20) {
-    Serial.println("\nTimeManager: ❌ Failed to get time from NTP after 20 attempts");
+  if (retries >= 15) {
+    Serial.println("\nTimeManager: ⚠️ Failed to get time from NTP after 15 attempts");
     isTimeSynced = false;
 
     // Try to set a fallback time based on compile time
@@ -40,7 +40,7 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
     struct tm compileTime = {0};
     compileTime.tm_year = 2025 - 1900; // Year since 1900
     compileTime.tm_mon = 11;  // December (0-based)
-    compileTime.tm_mday = 11; // Day
+    compileTime.tm_mday = 14; // Day (updated to current date)
     compileTime.tm_hour = 12; // Hour
     compileTime.tm_min = 0;   // Minute
     compileTime.tm_sec = 0;   // Second
@@ -48,6 +48,13 @@ void TimeManager::begin(const char* server, long gmtOffset, int daylightOffset) 
     struct timeval tv = {fallbackTime, 0};
     settimeofday(&tv, nullptr);
     Serial.println("TimeManager: Fallback time set");
+    
+    // CRITICAL: Sync TimeLib RTC even with fallback time
+    // This ensures TimeAlarms library works even without NTP
+    setTime(compileTime.tm_hour, compileTime.tm_min, compileTime.tm_sec, 
+            compileTime.tm_mday, compileTime.tm_mon + 1, compileTime.tm_year + 1900);
+    Serial.println("TimeManager: ⚠️ TimeLib RTC synced with FALLBACK time");
+    Serial.printf("TimeManager: TimeLib RTC: %02d:%02d:%02d\n", hour(), minute(), second());
   } else {
     Serial.println("\nTimeManager: ✅ Time synced from NTP successfully!");
     isTimeSynced = true;
