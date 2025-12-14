@@ -20,6 +20,6 @@
 #define PIN_STATUS_LED 2
 
 // ===== BUZZER PIN =====
-#define PIN_BUZZER 4
+#define PIN_BUZZER 27
 
 #endif

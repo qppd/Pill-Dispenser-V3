@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include "PINS_CONFIG.h"
 #include "FirebaseConfig.h"
+#include "UserConfig.h"
 #include "ServoDriver.h"
 #include "LCDDisplay.h"
 #include "TimeManager.h"
@@ -41,7 +42,9 @@ int pillCount = 0;
 // WiFi credentials (for development - move to secure storage in production)
 const String WIFI_SSID = "jayron";
 const String WIFI_PASSWORD = "12345678";
-const String USER_ID = "MmRwYAQXJiZcA7jgvkjCOw0m5Uz2";  // This should come from Firebase auth in production
+
+// User configuration loaded from UserConfig.h
+// Edit UserConfig.h to set your actual phone numbers and user ID
 
 // Firebase credentials loaded from FirebaseConfig.h
 // Edit FirebaseConfig.cpp to set your actual credentials
@@ -310,7 +313,7 @@ void handleScheduledDispense(int dispenserId, String pillSize, String medication
   // Send notification via SMS
   String smsMessage = "Medication dispensed from Container " + String(dispenserId + 1) + 
                      " - " + medication + " at " + timeManager.getTimeString();
-  sim800.sendSMS("+1234567890", smsMessage);  // Replace with actual phone number
+  sim800.sendSMS(CAREGIVER_1_PHONE, smsMessage);  // Send to primary caregiver
   
   // Log to Firebase
   firebase.sendPillReport(dispenserId + 1, timeManager.getDateTimeString(), 
