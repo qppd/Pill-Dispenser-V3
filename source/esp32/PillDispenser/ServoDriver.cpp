@@ -12,6 +12,7 @@ void ServoDriver::scanI2CDevices() {
   for (int address = 1; address < 127; address++) {
     Wire.beginTransmission(address);
     int error = Wire.endTransmission();
+    delay(2); // Small delay to prevent I2C NACK errors
     
     if (error == 0) {
       Serial.print("ServoDriver: I2C device found at address 0x");
@@ -40,20 +41,26 @@ void ServoDriver::scanI2CDevices() {
 }
 
 bool ServoDriver::begin() {
+  // Reduce I2C clock speed to 50kHz to prevent NACK errors
+  Wire.setClock(50000);
+  
   // Scan for I2C devices first
   scanI2CDevices();
   
   pwm.begin();
+  delay(5); // Allow PCA9685 to stabilize
   pwm.setPWMFreq(PWM_FREQ);
   delay(10);
   
   // Test if device is connected
+  delay(5); // Small delay before I2C communication
   Wire.beginTransmission(I2C_ADDRESS);
   uint8_t error = Wire.endTransmission();
+  delay(2); // Small delay after I2C communication
   
   if (error == 0) {
     Serial.println("ServoDriver: PCA9685 initialized successfully");
-    Serial.println("ServoDriver: 360° Servo Mode for pill dispensing");
+    Serial.println("ServoDriver: 180° Servo Mode for pill dispensing");
     
     // Deactivate all servo outputs initially
     stopAllServos();
@@ -305,8 +312,11 @@ void ServoDriver::setServoPulse(uint8_t servoNum, uint16_t pulse) {
 }
 
 bool ServoDriver::isConnected() {
+  delay(2); // Small delay before I2C check
   Wire.beginTransmission(I2C_ADDRESS);
-  return (Wire.endTransmission() == 0);
+  uint8_t result = Wire.endTransmission();
+  delay(2); // Small delay after I2C check
+  return (result == 0);
 }
 
 void ServoDriver::resetAllServos() {
