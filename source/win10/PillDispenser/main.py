@@ -1,16 +1,24 @@
-# This is a sample Python script.
+from ultralytics import YOLO
+import cv2
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+def main():
+    # Load YOLO model (auto-download if not present)
+    model = YOLO("yolov8n.pt")  # fast & lightweight
+
+    # Open webcam (0 = default camera)
+    source = 0
+
+    # Run YOLO on webcam
+    model(
+        source=source,
+        show=True,      # show live detection window
+        conf=0.5,       # confidence threshold
+        device="cpu"    # change to "cuda" if GPU available
+    )
+
+    # Safety exit
+    cv2.destroyAllWindows()
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    main()
