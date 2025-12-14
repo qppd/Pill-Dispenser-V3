@@ -24,6 +24,12 @@
 // PCA9685 I2C address (default is 0x40)
 #define PCA9685_ADDRESS 0x40
 
+// ESP32 I2C pins (default I2C bus)
+// Change these if you're using different pins
+#define I2C_SDA_PIN 21
+#define I2C_SCL_PIN 22
+#define I2C_FREQUENCY 100000  // 100kHz I2C frequency
+
 // Servo pulse width configuration
 // Depending on your servo make, the pulse width min and max may vary, you 
 // want these to be as small/large as possible without hitting the hard stop
@@ -49,12 +55,80 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(PCA9685_ADDRESS);
 // Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x41);
 
 /**
+ * Initialize I2C bus for ESP32
+ */
+void initI2C() {
+  Serial.println("Initializing I2C bus...");
+  
+  // Initialize I2C with custom pins
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.setClock(I2C_FREQUENCY);
+  
+  Serial.print("I2C SDA Pin: ");
+  Serial.println(I2C_SDA_PIN);
+  Serial.print("I2C SCL Pin: ");
+  Serial.println(I2C_SCL_PIN);
+  Serial.print("I2C Frequency: ");
+  Serial.print(I2C_FREQUENCY / 1000);
+  Serial.println(" kHz");
+  
+  delay(100); // Give I2C time to initialize
+}
+
+/**
+ * Scan I2C bus for devices
+ */
+void scanI2C() {
+  Serial.println("Scanning I2C bus...");
+  
+  byte error, address;
+  int nDevices = 0;
+  
+  for (address = 1; address < 127; address++) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address < 16) Serial.print("0");
+      Serial.println(address, HEX);
+      nDevices++;
+    } else if (error == 4) {
+      Serial.print("Unknown error at address 0x");
+      if (address < 16) Serial.print("0");
+      Serial.println(address, HEX);
+    }
+  }
+  
+  if (nDevices == 0) {
+    Serial.println("No I2C devices found");
+  } else {
+    Serial.print("Found ");
+    Serial.print(nDevices);
+    Serial.println(" I2C device(s)");
+  }
+}
+
+/**
  * Initialize the PCA9685 servo driver
  */
 void initPCA9685() {
   Serial.println("Initializing PCA9685 Servo Driver...");
   
+  // Initialize I2C first
+  initI2C();
+  
+  // Scan for I2C devices
+  scanI2C();
+  
+  // Try to initialize PCA9685
   pwm.begin();
+  
+  // Test communication by reading a register
+  Serial.println("Testing PCA9685 communication...");
+  uint8_t mode1 = pwm.readPrescale(); // This will fail if I2C is not working
+  Serial.print("PCA9685 MODE1 register: 0x");
+  Serial.println(mode1, HEX);
   
   /*
    * In theory the internal oscillator (clock) is 25MHz but it really isn't
@@ -278,6 +352,8 @@ void handleSerialCommands() {
       startServoTest();
     } else if (command.equalsIgnoreCase("stop_test")) {
       stopServoTest();
+    } else if (command.equalsIgnoreCase("scan_i2c")) {
+      scanI2C();
     } else if (command.startsWith("servo ")) {
       // Parse commands like "servo 0 90" to set servo 0 to 90 degrees
       int space1 = command.indexOf(' ');
