@@ -66,5 +66,7 @@ public:
     return String(buffer);
   }
   
-  bool isSynced() { return isTimeSynced; }\n};\n\n#endif
+  bool isSynced() { return isTimeSynced; }
 };
+
+#endif
