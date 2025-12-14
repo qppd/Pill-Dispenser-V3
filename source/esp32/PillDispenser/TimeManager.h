@@ -13,60 +13,60 @@ private:
   int daylightOffset_sec;
   unsigned long lastSyncTime;
   bool isTimeSynced;
-  static const unsigned long SYNC_INTERVAL = 21600000;
+  
+  static const unsigned long SYNC_INTERVAL = 21600000; // 6 hours in milliseconds
+  
   struct tm timeinfo;
   
+  // Software RTC variables
+  unsigned long lastSecondUpdate;
+  struct tm softwareRTC;
+  bool softwareRTCInitialized;
+  
 public:
-  TimeManager() : ntpServer("pool.ntp.org"), gmtOffset_sec(0), daylightOffset_sec(0), 
-                  lastSyncTime(0), isTimeSynced(false) {}
+  TimeManager();
+  void begin(const char* server = "pool.ntp.org", long gmtOffset = 0, int daylightOffset = 0);
+  void update();
+  bool syncTime();
+  void forceSync(); // Force immediate time sync
   
-  void begin(const char* server = "pool.ntp.org", long gmtOffset = 0, int daylightOffset = 0) {
-    ntpServer = server;
-    gmtOffset_sec = gmtOffset;
-    daylightOffset_sec = daylightOffset;
-    Serial.println("TimeManager: Initializing NTP");
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    syncTime();
-  }
+  // Software RTC methods
+  void initializeSoftwareRTC();
+  void updateSoftwareRTC();
+  void syncSoftwareRTCFromNTP();
+  String getSoftwareRTCTimeString();
+  String getSoftwareRTCDateTimeString();
   
-  bool syncTime() {
-    Serial.println("TimeManager: Syncing time with NTP...");
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    delay(2000);
-    
-    if (getLocalTime(&timeinfo)) {
-      isTimeSynced = true;
-      lastSyncTime = millis();
-      setTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
-              timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
-      Serial.printf("TimeManager: Time synced - %02d:%02d:%02d\n", 
-                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-      return true;
-    }
-    Serial.println("TimeManager: Time sync failed");
-    return false;
-  }
+  // Time retrieval functions
+  String getTimeString();
+  String getDateString();
+  String getDateTimeString();
+  time_t getTimestamp();
   
-  void update() {
-    if (millis() - lastSyncTime > SYNC_INTERVAL) {
-      syncTime();
-    }
-  }
+  // Enhanced time functions with fallback
+  time_t getTimestampWithFallback();
+  String getFormattedDateTime();
+  String getFormattedDateTimeWithFallback();
+  String getCurrentLogPrefix();
+  bool isNTPSynced();
   
-  String getTimeString() {
-    char buffer[16];
-    sprintf(buffer, "%02d:%02d:%02d", hour(), minute(), second());
-    return String(buffer);
-  }
+  // Individual components
+  int getHour();
+  int getMinute();
+  int getSecond();
+  int getDay();
+  int getMonth();
+  int getYear();
   
-  String getDateTimeString() {
-    char buffer[32];
-    sprintf(buffer, "%04d-%02d-%02d %02d:%02d:%02d", 
-            year(), month(), day(), hour(), minute(), second());
-    return String(buffer);
-  }
+  // Status functions
+  bool isSynced();
+  unsigned long getLastSyncTime();
+  void printDebug();
+  void testTime();
   
-  bool isSynced() { return isTimeSynced; }
+  // Utility functions
+  bool isTimeValid();
+  String getFormattedTime(const char* format);
 };
 
 #endif

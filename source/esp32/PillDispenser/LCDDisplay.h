@@ -2,6 +2,7 @@
 #define LCD_DISPLAY_H
 
 #include <Arduino.h>
+// Suppress architecture warnings for LiquidCrystal_I2C (library works fine with ESP32)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-W#warnings"
 #include <LiquidCrystal_I2C.h>
@@ -13,62 +14,28 @@ private:
   uint8_t i2cAddress;
   static const uint8_t COLS = 20;
   static const uint8_t ROWS = 4;
-  bool lcdAvailable;
-  unsigned long lastErrorTime;
-  static const unsigned long ERROR_RETRY_DELAY = 10000; // Retry after 10 seconds
   
 public:
-  LCDDisplay(uint8_t address = 0x27) : lcd(address, COLS, ROWS), i2cAddress(address), 
-                                        lcdAvailable(true), lastErrorTime(0) {}
-  
-  bool begin() {
-    lcd.init();
-    lcd.backlight();
-    lcd.clear();
-    Wire.beginTransmission(i2cAddress);
-    uint8_t error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.println("LCD: Initialized");
-      return true;
-    }
-    Serial.println("LCD: Failed to initialize");
-    return false;
-  }
-  
-  void clear() { lcd.clear(); }
-  void setCursor(uint8_t col, uint8_t row) { lcd.setCursor(col, row); }
-  void print(String text) { lcd.print(text); }
-  
-  void print(String text, uint8_t col, uint8_t row) {
-    lcd.setCursor(col, row);
-    lcd.print(text);
-  }
-  
-  void displayTime(String timeStr) {
-    if (!lcdAvailable && (millis() - lastErrorTime < ERROR_RETRY_DELAY)) {
-      return; // Skip update if LCD failed recently
-    }
-    lcd.setCursor(0, 0);
-    lcd.print("Time: " + timeStr + "      ");
-  }
-  
-  void displayMainScreen() {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Pill Dispenser V3");
-    lcd.setCursor(0, 1);
-    lcd.print("Ready...");
-  }
-  
-  void displayDispenseInfo(int containerNum, String medication) {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Dispensing...");
-    lcd.setCursor(0, 1);
-    lcd.print("Container: " + String(containerNum));
-    lcd.setCursor(0, 2);
-    lcd.print(medication);
-  }
+  LCDDisplay(uint8_t address = 0x27);
+  bool begin();
+  void clear();
+  void setCursor(uint8_t col, uint8_t row);
+  void print(String text);
+  void print(String text, uint8_t col, uint8_t row);
+  void printLine(String text, uint8_t row);
+  void centerText(String text, uint8_t row);
+  void displayWelcome();
+  void displayTime(String timeStr);
+  void displayPillCount(int count);
+  void displayStatus(String status);
+  void displayError(String error);
+  void testDisplay();
+  bool isConnected();
+  void backlight(bool on);
+  void displayMainScreen();
+  void displayTestMenu();
+  void displayMessage(String title, String message);
+  void displayDispenseInfo(int containerNum, String medication);
 };
 
 #endif
