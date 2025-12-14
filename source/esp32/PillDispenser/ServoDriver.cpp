@@ -704,4 +704,25 @@ void ServoDriver::testDispenserRotation(uint8_t dispenserNum) {
 /**
  * Print comprehensive I2C error statistics
  */
-void ServoDriver::printI2CStatistics() {\n  Serial.println(\"\\n========== I2C STATISTICS ==========\");\n  Serial.print(\"Total I2C Operations:  \");\n  Serial.println(totalI2COperations);\n  Serial.print(\"Total NACK Errors:     \");\n  Serial.println(totalNackErrors);\n  Serial.print(\"Total Bus Recoveries:  \");\n  Serial.println(totalBusRecoveries);\n  \n  if (totalI2COperations > 0) {\n    float successRate = getI2CSuccessRate();\n    Serial.print(\"Success Rate:          \");\n    Serial.print(successRate, 2);\n    Serial.println(\"%\");\n    \n    float errorRate = (totalNackErrors * 100.0) / totalI2COperations;\n    Serial.print(\"NACK Error Rate:       \");\n    Serial.print(errorRate, 2);\n    Serial.println(\"%\");\n  }\n  Serial.println(\"===================================\\n\");\n}\n\n/**\n * Reset all error statistics counters\n */\nvoid ServoDriver::resetI2CStatistics() {\n  Serial.println(\"ServoDriver: Resetting I2C statistics\");\n  totalNackErrors = 0;\n  totalBusRecoveries = 0;\n  totalI2COperations = 0;\n}\n\n/**\n * Get total NACK error count\n * @return Number of NACK errors encountered\n */\nuint32_t ServoDriver::getNackErrorCount() {\n  return totalNackErrors;\n}\n\n/**\n * Get total bus recovery count\n * @return Number of bus recovery operations performed\n */\nuint32_t ServoDriver::getBusRecoveryCount() {\n  return totalBusRecoveries;\n}\n\n/**\n * Calculate I2C success rate\n * @return Success rate as percentage (0-100)\n */\nfloat ServoDriver::getI2CSuccessRate() {\n  if (totalI2COperations == 0) {\n    return 100.0;\n  }\n  \n  uint32_t successfulOps = totalI2COperations - totalNackErrors;\n  return (successfulOps * 100.0) / totalI2COperations;\n}
+void ServoDriver::printI2CStatistics() {
+  Serial.println("\n========== I2C STATISTICS ==========");
+  Serial.print("Total I2C Operations:  ");
+  Serial.println(totalI2COperations);
+  Serial.print("Total NACK Errors:     ");
+  Serial.println(totalNackErrors);
+  Serial.print("Total Bus Recoveries:  ");
+  Serial.println(totalBusRecoveries);
+
+  if (totalI2COperations > 0) {
+    float successRate = getI2CSuccessRate();
+    Serial.print("Success Rate:          ");
+    Serial.print(successRate, 2);
+    Serial.println("%");
+
+    float errorRate = (totalNackErrors * 100.0) / totalI2COperations;
+    Serial.print("NACK Error Rate:       ");
+    Serial.print(errorRate, 2);
+    Serial.println("%");
+  }
+  Serial.println("===================================\n");
+}\n\n/**\n * Reset all error statistics counters\n */\nvoid ServoDriver::resetI2CStatistics() {\n  Serial.println(\"ServoDriver: Resetting I2C statistics\");\n  totalNackErrors = 0;\n  totalBusRecoveries = 0;\n  totalI2COperations = 0;\n}\n\n/**\n * Get total NACK error count\n * @return Number of NACK errors encountered\n */\nuint32_t ServoDriver::getNackErrorCount() {\n  return totalNackErrors;\n}\n\n/**\n * Get total bus recovery count\n * @return Number of bus recovery operations performed\n */\nuint32_t ServoDriver::getBusRecoveryCount() {\n  return totalBusRecoveries;\n}\n\n/**\n * Calculate I2C success rate\n * @return Success rate as percentage (0-100)\n */\nfloat ServoDriver::getI2CSuccessRate() {\n  if (totalI2COperations == 0) {\n    return 100.0;\n  }\n  \n  uint32_t successfulOps = totalI2COperations - totalNackErrors;\n  return (successfulOps * 100.0) / totalI2COperations;\n}
