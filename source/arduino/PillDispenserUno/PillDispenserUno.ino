@@ -9,18 +9,18 @@
     Arduino Pin 3 (TX) -> ESP32 GPIO25 (RX)
     Baud Rate: 9600
   
-  Command Protocol:
+  Command Protocol (Ultra-Short for Serial Reliability):
     PING - Test connection
     STATUS - Get system status
-    SET_ANGLE:<channel>,<angle> - Set servo angle (0-180)
-    DP<channel> - Dispense pill (DP0, DP1, DP2, DP3, DP4)
-    DISPENSE_PAIR:<ch1>,<ch2> - Dispense from two channels
-    TEST_SERVO:<channel> - Test single servo
-    CALIBRATE:<channel> - Calibrate servo range
-    RESET_ALL - Reset all servos to 90 degrees
-    STOP_ALL - Stop all servos
-    RL - Move CH5/CH6 to release position (CH5: 90→0, CH6: 0→90)
-    MH - Move CH5/CH6 to home position (CH5: 0→90, CH6: 90→0)
+    SA<ch>,<angle> - Set servo angle (SA0,90)
+    DP<ch> - Dispense pill (DP0-DP4)
+    DP2<ch1>,<ch2> - Dispense pair (DP20,1)
+    TS<ch> - Test servo (TS0)
+    CA<ch> - Calibrate (CA0)
+    RS - Reset all servos to 90°
+    ST - Stop all servos
+    RL - Release position (CH5: 90→0, CH6: 0→90)
+    MH - Move to home (CH5: 0→90, CH6: 90→0)
     
   Author: Pill Dispenser V3 Team
   Date: December 2025
@@ -190,17 +190,17 @@ void processCommand(String command) {
     }
   }
   
-  // DISPENSE_PAIR command: DISPENSE_PAIR:<ch1>,<ch2>
-  else if (command.startsWith("DISPENSE_PAIR:")) {
+  // DP2 command: DP2<ch1>,<ch2> (Dispense Pair)
+  else if (command.startsWith("DP2")) {
     int commaIndex = command.indexOf(',');
     
     if (commaIndex > 0) {
-      uint8_t ch1 = command.substring(14, commaIndex).toInt();
+      uint8_t ch1 = command.substring(3, commaIndex).toInt();
       uint8_t ch2 = command.substring(commaIndex + 1).toInt();
       
       if (ch1 <= 15 && ch2 <= 15) {
         dispensePillPair(ch1, ch2);
-        ESP32Serial.print(F("OK:DISPENSED_PAIR:"));
+        ESP32Serial.print(F("OK:DP2"));
         ESP32Serial.print(ch1);
         ESP32Serial.print(',');
         ESP32Serial.println(ch2);
@@ -212,40 +212,40 @@ void processCommand(String command) {
     }
   }
   
-  // TEST_SERVO command: TEST_SERVO:<channel>
-  else if (command.startsWith("TEST_SERVO:")) {
-    uint8_t channel = command.substring(11).toInt();
+  // TS command: TS<channel> (Test Servo)
+  else if (command.startsWith("TS")) {
+    uint8_t channel = command.substring(2).toInt();
     if (channel <= 15) {
       testServo(channel);
-      ESP32Serial.print(F("OK:TEST_COMPLETE:"));
+      ESP32Serial.print(F("OK:TS"));
       ESP32Serial.println(channel);
     } else {
       ESP32Serial.println(F("ERROR:Invalid"));
     }
   }
   
-  // CALIBRATE command: CALIBRATE:<channel>
-  else if (command.startsWith("CALIBRATE:")) {
-    uint8_t channel = command.substring(10).toInt();
+  // CA command: CA<channel> (Calibrate)
+  else if (command.startsWith("CA")) {
+    uint8_t channel = command.substring(2).toInt();
     if (channel <= 15) {
       calibrateServo(channel);
-      ESP32Serial.print(F("OK:CALIBRATE_COMPLETE:"));
+      ESP32Serial.print(F("OK:CA"));
       ESP32Serial.println(channel);
     } else {
       ESP32Serial.println(F("ERROR:Invalid"));
     }
   }
   
-  // RESET_ALL command
-  else if (command == "RESET_ALL") {
+  // RS command (Reset All)
+  else if (command == "RS") {
     resetAllServos();
-    ESP32Serial.println(F("OK:RESET_ALL_COMPLETE"));
+    ESP32Serial.println(F("OK:RS"));
   }
   
-  // STOP_ALL command
-  else if (command == "STOP_ALL") {
+  // ST command (Stop All)
+  else if (command == "ST") {
     stopAllServos();
-    ESP32Serial.println(F("OK:STOP_ALL_COMPLETE"));
+    ESP32Serial.println(F("OK:ST"));
   }
   
   // RL command for release (CH5: 90→0, CH6: 0→90)

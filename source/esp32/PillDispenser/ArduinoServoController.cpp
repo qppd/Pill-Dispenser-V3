@@ -130,7 +130,7 @@ bool ArduinoServoController::setServoAngle(uint8_t channel, uint16_t angle) {
     return false;
   }
   
-  String command = "SET_ANGLE:" + String(channel) + "," + String(angle);
+  String command = "SA" + String(channel) + "," + String(angle);
   String response = sendCommand(command, responseTimeout);
   return isSuccessResponse(response);
 }
@@ -171,7 +171,7 @@ bool ArduinoServoController::dispensePillPair(uint8_t channel1, uint8_t channel2
     return false;
   }
   
-  String command = "DISPENSE_PAIR:" + String(channel1) + "," + String(channel2);
+  String command = "DP2" + String(channel1) + "," + String(channel2);
   String response = sendCommand(command, responseTimeout + 3000); // Extra time for dispensing
   return isSuccessResponse(response);
 }
@@ -182,7 +182,7 @@ bool ArduinoServoController::testServo(uint8_t channel) {
     return false;
   }
   
-  String command = "TEST_SERVO:" + String(channel);
+  String command = "TS" + String(channel);
   String response = sendCommand(command, 5000); // Test takes ~3.5 seconds
   return isSuccessResponse(response);
 }
@@ -193,18 +193,18 @@ bool ArduinoServoController::calibrateServo(uint8_t channel) {
     return false;
   }
   
-  String command = "CALIBRATE:" + String(channel);
+  String command = "CA" + String(channel);
   String response = sendCommand(command, 8000); // Calibration takes longer
   return isSuccessResponse(response);
 }
 
 bool ArduinoServoController::resetAllServos() {
-  String response = sendCommand("RESET_ALL", 5000);
+  String response = sendCommand("RS", 5000);
   return isSuccessResponse(response);
 }
 
 bool ArduinoServoController::stopAllServos() {
-  String response = sendCommand("STOP_ALL", 2000);
+  String response = sendCommand("ST", 2000);
   return isSuccessResponse(response);
 }
 
