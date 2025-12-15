@@ -255,6 +255,34 @@ void loop() {
   // CRITICAL: Use Alarm.delay() instead of delay() to process TimeAlarms
   // This ensures alarm callbacks are triggered at the right time
   Alarm.delay(100);
+  
+  // Debug: Print current time EVERY SECOND to monitor alarm triggering
+  static unsigned long lastSecondDebug = 0;
+  if (millis() - lastSecondDebug > 1000) { // Every 1 second
+    lastSecondDebug = millis();
+    Serial.printf("⏰ TimeLib: %02d:%02d:%02d | TimeManager: %s | Alarms: %d | Next: %s\n", 
+                  hour(), minute(), second(),
+                  timeManager.getTimeString().c_str(),
+                  Alarm.count(),
+                  scheduleManager.getNextScheduleTime().c_str());
+  }
+  
+  // Detailed debug every minute
+  static unsigned long lastTimeDebug = 0;
+  if (millis() - lastTimeDebug > 60000) { // Every 60 seconds
+    lastTimeDebug = millis();
+    Serial.println("\n" + String('=', 70));
+    Serial.println("⏰ DETAILED TIME & ALARM STATUS");
+    Serial.println(String('=', 70));
+    Serial.printf("TimeLib (TimeAlarms): %02d:%02d:%02d\n", hour(), minute(), second());
+    Serial.println("TimeManager: " + timeManager.getTimeString());
+    Serial.println("Active schedules: " + String(scheduleManager.getActiveScheduleCount()) + 
+                   " / " + String(scheduleManager.getScheduleCount()));
+    Serial.println("Total alarms registered: " + String(Alarm.count()));
+    Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
+    scheduleManager.printSchedules();
+    Serial.println(String('=', 70) + "\n");
+  }
 }
 
 void initializeDevelopmentMode() {
