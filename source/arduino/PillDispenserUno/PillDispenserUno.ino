@@ -177,30 +177,14 @@ void processCommand(String command) {
     }
   }
   
-  // DP2 command: DP2<ch1>,<ch2> (Dispense Pair, use test logic for both)
-  else if (command.startsWith("DP2")) {
-    int commaIndex = command.indexOf(',');
-    if (commaIndex > 0) {
-      uint8_t ch1 = command.substring(3, commaIndex).toInt();
-      uint8_t ch2 = command.substring(commaIndex + 1).toInt();
-      if (ch1 <= 4 && ch2 <= 4) {
-        Serial.print(F("DP2: testServo("));
-        Serial.print(ch1);
-        Serial.print(F(", "));
-        Serial.print(ch2);
-        Serial.println(F(")"));
-        testServo(ch1);
-        testServo(ch2);
-        ESP32Serial.print(F("OK:DP2"));
-        ESP32Serial.print(ch1);
-        ESP32Serial.print(',');
-        ESP32Serial.println(ch2);
-      } else {
-        ESP32Serial.println(F("ERROR:Invalid"));
-      }
-    } else {
-      ESP32Serial.println(F("ERROR:Format"));
-    }
+  // DP2 command: DP2 (Dispense channel 2, same as DP0, DP1, DP3, DP4)
+  else if (command == "DP2") {
+    uint8_t channel = 2;
+    Serial.print(F("DP"));
+    Serial.println(channel);
+    testServo(channel);  // Use working test logic
+    ESP32Serial.print(F("OK:DP"));
+    ESP32Serial.println(channel);
   }
   
   // DP command: DP<channel> (Dispense using testServo logic) - DP0-DP4
