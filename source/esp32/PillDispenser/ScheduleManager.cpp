@@ -7,6 +7,7 @@ ScheduleManager* ScheduleManager::instance = nullptr;
 ScheduleManager::ScheduleManager() {
   scheduleCount = 0;
   onDispenseCallback = nullptr;
+  onReminderCallback = nullptr;
   onNotifyCallback = nullptr;
   timeManager = nullptr;
   instance = this;
@@ -19,6 +20,7 @@ ScheduleManager::ScheduleManager() {
     schedules[i].minute = 0;
     schedules[i].enabled = false;
     schedules[i].alarmId = dtINVALID_ALARM_ID;
+    schedules[i].reminderAlarmId = dtINVALID_ALARM_ID;
     for (int j = 0; j < 7; j++) {
       schedules[i].weekdays[j] = true; // Default: all days enabled
     }
@@ -34,27 +36,7 @@ void ScheduleManager::begin(String deviceId) {
 void ScheduleManager::update() {
   // TimeAlarms service routine is called via Alarm.delay() in main loop
   // No need to call it here
-  
-  // Debug: Print current time every 30 seconds
-  static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 30000) {
-    Serial.println();
-    Serial.println("═══════════════════════════════════════════════════");
-    Serial.print("⏰ ScheduleManager: TimeLib shows: ");
-    Serial.printf("%02d:%02d:%02d", hour(), minute(), second());
-    if (timeManager) {
-      Serial.print(" | Software RTC: ");
-      Serial.print(timeManager->getTimeString());
-    }
-    Serial.println();
-    Serial.print("📋 Active alarms in TimeAlarms library: ");
-    Serial.println(Alarm.count());
-    Serial.print("📅 Schedules in ScheduleManager: ");
-    Serial.println(scheduleCount);
-    Serial.println("═══════════════════════════════════════════════════");
-    Serial.println();
-    lastDebug = millis();
-  }
+  // Debug prints removed to reduce serial spam
 }
 
 bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minute,
@@ -79,9 +61,13 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
   for (int i = 0; i < scheduleCount; i++) {
     if (schedules[i].id == id) {
       Serial.println("ScheduleManager: Schedule ID exists - updating instead");
-      // Free the old alarm first
+      // Free the old dispense alarm
       if (schedules[i].alarmId != dtINVALID_ALARM_ID) {
         Alarm.free(schedules[i].alarmId);
+      }
+      // Free the old reminder alarm
+      if (schedules[i].reminderAlarmId != dtINVALID_ALARM_ID) {
+        Alarm.free(schedules[i].reminderAlarmId);
       }
       
       // Update the schedule
@@ -93,16 +79,36 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
       schedules[i].patientName = patientName;
       schedules[i].pillSize = pillSize;
       
-      // Create new alarm if enabled
+      // Create new alarms if enabled
       if (enabled) {
         OnTick_t callback = getCallbackFunction(i);
         if (callback != nullptr) {
+          // Create dispense alarm
           schedules[i].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
-          Serial.printf("ScheduleManager: ✅ Alarm updated for %02d:%02d - %s (%s) - AlarmID: %d\n", 
-                        schedules[i].hour, schedules[i].minute, medicationName.c_str(), patientName.c_str(), schedules[i].alarmId);
+          
+          // Create reminder alarm (15 minutes before)
+          int reminderHour, reminderMinute;
+          calculateReminderTime(hour, minute, reminderHour, reminderMinute);
+          OnTick_t reminderCallback = getReminderCallbackFunction(i);
+          if (reminderCallback != nullptr) {
+            schedules[i].reminderAlarmId = Alarm.alarmRepeat(reminderHour, reminderMinute, 0, reminderCallback);
+          }
+          
+          Serial.println("\n" + String('─', 60));
+          Serial.println("✅ SCHEDULE UPDATED");
+          Serial.printf("   Schedule ID: %s\n", id.c_str());
+          Serial.printf("   Dispense Time: %02d:%02d:00\n", hour, minute);
+          Serial.printf("   Reminder Time: %02d:%02d:00 (15 min before)\n", reminderHour, reminderMinute);
+          Serial.printf("   Medication: %s\n", medicationName.c_str());
+          Serial.printf("   Patient: %s\n", patientName.c_str());
+          Serial.printf("   Dispenser ID: %d\n", dispenserId);
+          Serial.printf("   Dispense AlarmID: %d\n", schedules[i].alarmId);
+          Serial.printf("   Reminder AlarmID: %d\n", schedules[i].reminderAlarmId);
+          Serial.println(String('─', 60) + "\n");
         }
       } else {
         schedules[i].alarmId = dtINVALID_ALARM_ID;
+        schedules[i].reminderAlarmId = dtINVALID_ALARM_ID;
       }
       
       return true;
@@ -123,15 +129,27 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
   if (enabled) {
     OnTick_t callback = getCallbackFunction(index);
     if (callback != nullptr) {
+      // Create main dispense alarm
       schedules[index].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
+      
+      // Create reminder alarm (15 minutes before)
+      int reminderHour, reminderMinute;
+      calculateReminderTime(hour, minute, reminderHour, reminderMinute);
+      OnTick_t reminderCallback = getReminderCallbackFunction(index);
+      if (reminderCallback != nullptr) {
+        schedules[index].reminderAlarmId = Alarm.alarmRepeat(reminderHour, reminderMinute, 0, reminderCallback);
+      }
+      
       Serial.println("\n" + String('─', 60));
       Serial.println("✅ ALARM CREATED SUCCESSFULLY");
       Serial.printf("   Schedule Index: %d\n", index);
-      Serial.printf("   Trigger Time: %02d:%02d:00\n", schedules[index].hour, schedules[index].minute);
+      Serial.printf("   Dispense Time: %02d:%02d:00\n", schedules[index].hour, schedules[index].minute);
+      Serial.printf("   Reminder Time: %02d:%02d:00 (15 min before)\n", reminderHour, reminderMinute);
       Serial.printf("   Medication: %s\n", medicationName.c_str());
       Serial.printf("   Patient: %s\n", patientName.c_str());
       Serial.printf("   Dispenser ID: %d\n", dispenserId);
-      Serial.printf("   AlarmID: %d\n", schedules[index].alarmId);
+      Serial.printf("   Dispense AlarmID: %d\n", schedules[index].alarmId);
+      Serial.printf("   Reminder AlarmID: %d\n", schedules[index].reminderAlarmId);
       Serial.printf("   Current TimeLib time: %02d:%02d:%02d\n", ::hour(), ::minute(), ::second());
       Serial.printf("   Total alarms active: %d\n", Alarm.count());
       Serial.println(String('─', 60) + "\n");
@@ -140,6 +158,8 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
     }
   } else {
     Serial.println("⚠️  Schedule disabled, no alarm created");
+    schedules[index].alarmId = dtINVALID_ALARM_ID;
+    schedules[index].reminderAlarmId = dtINVALID_ALARM_ID;
   }
   
   scheduleCount++;
@@ -151,9 +171,13 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
 bool ScheduleManager::removeSchedule(String id) {
   for (int i = 0; i < scheduleCount; i++) {
     if (schedules[i].id == id) {
-      // Free the alarm
+      // Free the dispense alarm
       if (schedules[i].alarmId != dtINVALID_ALARM_ID) {
         Alarm.free(schedules[i].alarmId);
+      }
+      // Free the reminder alarm
+      if (schedules[i].reminderAlarmId != dtINVALID_ALARM_ID) {
+        Alarm.free(schedules[i].reminderAlarmId);
       }
       
       // Shift remaining schedules
@@ -174,10 +198,15 @@ bool ScheduleManager::removeSchedule(String id) {
 bool ScheduleManager::updateSchedule(String id, int hour, int minute, bool enabled) {
   for (int i = 0; i < scheduleCount; i++) {
     if (schedules[i].id == id) {
-      // Remove old alarm
+      // Remove old dispense alarm
       if (schedules[i].alarmId != dtINVALID_ALARM_ID) {
         Alarm.free(schedules[i].alarmId);
         schedules[i].alarmId = dtINVALID_ALARM_ID;
+      }
+      // Remove old reminder alarm
+      if (schedules[i].reminderAlarmId != dtINVALID_ALARM_ID) {
+        Alarm.free(schedules[i].reminderAlarmId);
+        schedules[i].reminderAlarmId = dtINVALID_ALARM_ID;
       }
       
       // Update schedule
@@ -185,12 +214,23 @@ bool ScheduleManager::updateSchedule(String id, int hour, int minute, bool enabl
       schedules[i].minute = minute;
       schedules[i].enabled = enabled;
       
-      // Create new alarm if enabled
+      // Create new alarms if enabled
       if (enabled) {
+        // Create dispense alarm
         OnTick_t callback = getCallbackFunction(i);
         if (callback != nullptr) {
           schedules[i].alarmId = Alarm.alarmRepeat(hour, minute, 0, callback);
-          Serial.printf("ScheduleManager: Schedule updated - %02d:%02d\n", schedules[i].hour, schedules[i].minute);
+          
+          // Create reminder alarm (15 minutes before)
+          int reminderHour, reminderMinute;
+          calculateReminderTime(hour, minute, reminderHour, reminderMinute);
+          OnTick_t reminderCallback = getReminderCallbackFunction(i);
+          if (reminderCallback != nullptr) {
+            schedules[i].reminderAlarmId = Alarm.alarmRepeat(reminderHour, reminderMinute, 0, reminderCallback);
+          }
+          
+          Serial.printf("ScheduleManager: Schedule updated - Dispense: %02d:%02d, Reminder: %02d:%02d\n", 
+                       schedules[i].hour, schedules[i].minute, reminderHour, reminderMinute);
         }
       } else {
         Serial.println("ScheduleManager: Schedule disabled - " + id);
@@ -207,6 +247,9 @@ void ScheduleManager::clearAllSchedules() {
   for (int i = 0; i < scheduleCount; i++) {
     if (schedules[i].alarmId != dtINVALID_ALARM_ID) {
       Alarm.free(schedules[i].alarmId);
+    }
+    if (schedules[i].reminderAlarmId != dtINVALID_ALARM_ID) {
+      Alarm.free(schedules[i].reminderAlarmId);
     }
   }
   scheduleCount = 0;
@@ -463,3 +506,78 @@ void ScheduleManager::alarmCallback11() { if(instance) instance->triggerSchedule
 void ScheduleManager::alarmCallback12() { if(instance) instance->triggerSchedule(12); }
 void ScheduleManager::alarmCallback13() { if(instance) instance->triggerSchedule(13); }
 void ScheduleManager::alarmCallback14() { if(instance) instance->triggerSchedule(14); }
+
+// Reminder callback functions (15 minutes before dispense)
+OnTick_t ScheduleManager::getReminderCallbackFunction(int index) {
+  switch(index) {
+    case 0: return reminderCallback0;
+    case 1: return reminderCallback1;
+    case 2: return reminderCallback2;
+    case 3: return reminderCallback3;
+    case 4: return reminderCallback4;
+    case 5: return reminderCallback5;
+    case 6: return reminderCallback6;
+    case 7: return reminderCallback7;
+    case 8: return reminderCallback8;
+    case 9: return reminderCallback9;
+    case 10: return reminderCallback10;
+    case 11: return reminderCallback11;
+    case 12: return reminderCallback12;
+    case 13: return reminderCallback13;
+    case 14: return reminderCallback14;
+    default: return nullptr;
+  }
+}
+
+void ScheduleManager::reminderCallback0() { if(instance) instance->triggerReminder(0); }
+void ScheduleManager::reminderCallback1() { if(instance) instance->triggerReminder(1); }
+void ScheduleManager::reminderCallback2() { if(instance) instance->triggerReminder(2); }
+void ScheduleManager::reminderCallback3() { if(instance) instance->triggerReminder(3); }
+void ScheduleManager::reminderCallback4() { if(instance) instance->triggerReminder(4); }
+void ScheduleManager::reminderCallback5() { if(instance) instance->triggerReminder(5); }
+void ScheduleManager::reminderCallback6() { if(instance) instance->triggerReminder(6); }
+void ScheduleManager::reminderCallback7() { if(instance) instance->triggerReminder(7); }
+void ScheduleManager::reminderCallback8() { if(instance) instance->triggerReminder(8); }
+void ScheduleManager::reminderCallback9() { if(instance) instance->triggerReminder(9); }
+void ScheduleManager::reminderCallback10() { if(instance) instance->triggerReminder(10); }
+void ScheduleManager::reminderCallback11() { if(instance) instance->triggerReminder(11); }
+void ScheduleManager::reminderCallback12() { if(instance) instance->triggerReminder(12); }
+void ScheduleManager::reminderCallback13() { if(instance) instance->triggerReminder(13); }
+void ScheduleManager::reminderCallback14() { if(instance) instance->triggerReminder(14); }
+
+// Trigger reminder notification (15 minutes before dispense)
+void ScheduleManager::triggerReminder(int scheduleIndex) {
+  if (scheduleIndex < 0 || scheduleIndex >= scheduleCount) return;
+  
+  MedicationSchedule* schedule = &schedules[scheduleIndex];
+  
+  // Check if today is scheduled
+  if (!isTodayScheduled(scheduleIndex)) {
+    return;
+  }
+  
+  // Call reminder callback
+  if (onReminderCallback != nullptr) {
+    onReminderCallback(schedule->dispenserId, schedule->pillSize, 
+                      schedule->medicationName, schedule->patientName);
+  }
+}
+
+// Calculate reminder time (15 minutes before dispense time)
+void ScheduleManager::calculateReminderTime(int hour, int minute, int& reminderHour, int& reminderMinute) {
+  int totalMinutes = hour * 60 + minute;
+  totalMinutes -= 15; // Subtract 15 minutes
+  
+  // Handle negative values (goes to previous day)
+  if (totalMinutes < 0) {
+    totalMinutes += 24 * 60; // Add 24 hours
+  }
+  
+  reminderHour = totalMinutes / 60;
+  reminderMinute = totalMinutes % 60;
+}
+
+// Set reminder callback
+void ScheduleManager::setReminderCallback(void (*callback)(int, String, String, String)) {
+  onReminderCallback = callback;
+}

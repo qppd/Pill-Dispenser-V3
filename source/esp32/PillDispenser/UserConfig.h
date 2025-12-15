@@ -1,6 +1,8 @@
 #ifndef USER_CONFIG_H
 #define USER_CONFIG_H
 
+#include <Arduino.h>
+
 // User Configuration File
 // This file contains user-specific settings like phone numbers, user IDs, etc.
 

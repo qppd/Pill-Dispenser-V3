@@ -17,7 +17,8 @@ struct MedicationSchedule {
   String medicationName;
   String patientName;
   String pillSize;        // "small", "medium", "large"
-  AlarmId alarmId;        // TimeAlarms library alarm ID
+  AlarmId alarmId;        // TimeAlarms library alarm ID for dispense
+  AlarmId reminderAlarmId; // TimeAlarms library alarm ID for 15-min reminder
   bool weekdays[7];       // Monday=0, Sunday=6
 };
 
@@ -30,6 +31,7 @@ private:
   
   // Callback function pointers
   void (*onDispenseCallback)(int dispenserId, String pillSize, String medication, String patient);
+  void (*onReminderCallback)(int dispenserId, String pillSize, String medication, String patient);
   void (*onNotifyCallback)(String message, String phone);
   
   // Alarm callbacks must be static
@@ -50,10 +52,30 @@ private:
   static void alarmCallback13();
   static void alarmCallback14();
   
+  // Reminder alarm callbacks (15 minutes before)
+  static void reminderCallback0();
+  static void reminderCallback1();
+  static void reminderCallback2();
+  static void reminderCallback3();
+  static void reminderCallback4();
+  static void reminderCallback5();
+  static void reminderCallback6();
+  static void reminderCallback7();
+  static void reminderCallback8();
+  static void reminderCallback9();
+  static void reminderCallback10();
+  static void reminderCallback11();
+  static void reminderCallback12();
+  static void reminderCallback13();
+  static void reminderCallback14();
+  
   // Helper functions
   void triggerSchedule(int scheduleIndex);
+  void triggerReminder(int scheduleIndex);
   OnTick_t getCallbackFunction(int index);
+  OnTick_t getReminderCallbackFunction(int index);
   bool isTodayScheduled(int scheduleIndex);
+  void calculateReminderTime(int hour, int minute, int& reminderHour, int& reminderMinute);
   
 public:
   ScheduleManager();
@@ -78,6 +100,7 @@ public:
   
   // Callbacks
   void setDispenseCallback(void (*callback)(int, String, String, String));
+  void setReminderCallback(void (*callback)(int, String, String, String));
   void setNotifyCallback(void (*callback)(String, String));
   
   // Utilities

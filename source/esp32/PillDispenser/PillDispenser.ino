@@ -16,6 +16,7 @@
 #include "SIM800L.h"
 #include "VoltageSensor.h"
 #include "WiFiManager.h"
+#include "UserConfig.h"
 
 // ===== DEVELOPMENT MODE CONFIGURATION =====
 #define DEVELOPMENT_MODE true  // Set to false for production
@@ -54,6 +55,12 @@ void testFirebaseConnection();
 void handleScheduledDispense(int dispenserId, String pillSize, String medication, String patient);
 void dispenseFromContainer(int dispenserId);
 void checkDispenseCommands();
+
+// Notification helpers
+void playDispenseBuzzer();
+void playReminderBuzzer();
+void sendSMSNotification(String message);
+void handleReminderNotification(int dispenserId, String pillSize, String medication, String patient);
 
 void setup() {
   Serial.begin(115200);
@@ -99,21 +106,16 @@ void setup() {
 void loop() {
   if (DEVELOPMENT_MODE) {
     // Firebase.ready() should be called repeatedly to handle authentication tasks and stream processing
-    bool firebaseReadyResult = Firebase.ready();
-    if (!firebaseReadyResult) {
-      // Only log occasionally to avoid spam
-      static unsigned long lastFirebaseLog = 0;
-      if (millis() - lastFirebaseLog > 10000) { // Every 10 seconds
-        Serial.println("Firebase.ready() returned false");
-        lastFirebaseLog = millis();
-      }
-    }
+    Firebase.ready(); // No logging unless error occurs
     
     // Update time manager (auto-sync every 6 hours)
     timeManager.update();
     
     // Update schedule manager (checks alarms)
     scheduleManager.update();
+    
+    // Update SIM800L for background network reconnection
+    sim800.update();
     
     // Check for realtime dispense commands from web app
     checkDispenseCommands();
@@ -132,32 +134,10 @@ void loop() {
       String currentTimeString = timeManager.getTimeString();
       lcd.displayTime(currentTimeString);
       lastLcdUpdate = millis();
-
-      // Debug time every 30 seconds
-      if (millis() - lastTimeDebug >= 30000) {
-        Serial.print("Software RTC Time: ");
-        Serial.println(currentTimeString);
-        lastTimeDebug = millis();
-      }
     }
     
-    // Heartbeat every 30 seconds in development
-    if (millis() - lastHeartbeat > 30000) {
-      Serial.println("💓 System heartbeat - " + timeManager.getTimeString());
-      Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
-      
-      // Check Arduino servo controller connection
-      if (servoController.isConnected()) {
-        Serial.println("Arduino Servo Controller: Connected");
-      } else {
-        Serial.println("⚠️  WARNING: Arduino Servo Controller not responding! Check connections.");
-      }
-      
-      // Update servo controller to process async messages
-      servoController.update();
-      
-      lastHeartbeat = millis();
-    }
+    // Update servo controller to process async messages
+    servoController.update();
     
     // Serial command handler for testing
     if (Serial.available()) {
@@ -222,9 +202,25 @@ void loop() {
       } else if (command.startsWith("dispense ")) {
         int containerNum = command.substring(9).toInt();
         if (containerNum >= 1 && containerNum <= 5) {
-          Serial.println("Manually dispensing from container " + String(containerNum) + "...");
+          Serial.println("\n" + String('=', 60));
+          Serial.println("👊 MANUAL DISPENSE TRIGGERED (Serial Command)");
+          Serial.println(String('=', 60));
+          Serial.println("Container: " + String(containerNum));
+          Serial.println("Time: " + timeManager.getTimeString());
+          
+          // Play buzzer for manual dispense
+          playDispenseBuzzer();
+          
+          // Perform dispense
           dispenseFromContainer(containerNum - 1);
+          
+          // Send SMS notification
+          String smsMessage = "[PILL DISPENSER] Manual dispense from Container " + String(containerNum) + 
+                             " via serial command at " + timeManager.getTimeString();
+          sendSMSNotification(smsMessage);
+          
           Serial.println("✅ Manual dispense complete");
+          Serial.println(String('=', 60) + "\n");
         } else {
           Serial.println("❌ Invalid container number (1-5)");
         }
@@ -328,6 +324,7 @@ void initializeDevelopmentMode() {
   Serial.print("Schedule Manager: ");
   scheduleManager.begin(firebase.getDeviceId());
   scheduleManager.setDispenseCallback(handleScheduledDispense);
+  scheduleManager.setReminderCallback(handleReminderNotification);
   scheduleManager.setTimeManager(&timeManager);
   Serial.println("✅ OK");
   
@@ -377,8 +374,11 @@ void handleScheduledDispense(int dispenserId, String pillSize, String medication
   Serial.println("Time: " + timeManager.getTimeString());
   Serial.println(String('=', 60));
   
+  // Play buzzer for dispense event
+  playDispenseBuzzer();
+  
   // Display on LCD
-  lcd.displayDispenseInfo(dispenserId + 1, medication);  // Temporarily disabled to prevent NACK detection
+  lcd.displayDispenseInfo(dispenserId + 1, medication);
   
   // Perform dispense
   dispenseFromContainer(dispenserId);
@@ -386,10 +386,10 @@ void handleScheduledDispense(int dispenserId, String pillSize, String medication
   // Update dispenser data in Firebase
   firebase.updateDispenserAfterDispense(dispenserId, &timeManager);
   
-  // Send notification via SMS
-  String smsMessage = "Medication dispensed from Container " + String(dispenserId + 1) + 
-                     " - " + medication + " at " + timeManager.getTimeString();
-  sim800.sendSMS("+1234567890", smsMessage);  // Replace with actual phone number
+  // Send SMS notification to caregivers
+  String smsMessage = "[PILL DISPENSER] Medication dispensed from Container " + String(dispenserId + 1) + 
+                     " - " + medication + " for " + patient + " at " + timeManager.getTimeString();
+  sendSMSNotification(smsMessage);
   
   // Log to Firebase
   firebase.sendPillReport(dispenserId + 1, timeManager.getDateTimeString(), 
@@ -426,15 +426,95 @@ void checkDispenseCommands() {
       Serial.println("\n📱 Realtime dispense command received!");
       Serial.println("Container: " + String(dispenserId));
       
+      // Play buzzer for manual dispense
+      playDispenseBuzzer();
+      
       // Perform dispense (convert to 0-based index)
       dispenseFromContainer(dispenserId - 1);
       
       // Update dispenser data in Firebase
       firebase.updateDispenserAfterDispense(dispenserId - 1, &timeManager);
       
+      // Send SMS notification to caregivers
+      String smsMessage = "[PILL DISPENSER] Manual dispense from Container " + String(dispenserId) + 
+                         " at " + timeManager.getTimeString();
+      sendSMSNotification(smsMessage);
+      
       // Log to Firebase
       firebase.sendPillReport(dispenserId, timeManager.getDateTimeString(), 
                              "Manual dispense via web app", 1);
     }
   }
+}
+
+// Play professional buzzer sound for dispense event
+void playDispenseBuzzer() {
+  // Short professional buzz pattern: beep-beep
+  digitalWrite(PIN_BUZZER, HIGH);
+  delay(150);
+  digitalWrite(PIN_BUZZER, LOW);
+  delay(100);
+  digitalWrite(PIN_BUZZER, HIGH);
+  delay(150);
+  digitalWrite(PIN_BUZZER, LOW);
+  Serial.println("🔊 Dispense buzzer activated");
+}
+
+// Play reminder buzzer sound (15 minutes before)
+void playReminderBuzzer() {
+  // Three short beeps for reminder
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(100);
+    digitalWrite(PIN_BUZZER, LOW);
+    delay(100);
+  }
+  Serial.println("🔔 Reminder buzzer activated");
+}
+
+// Send SMS to all caregivers
+void sendSMSNotification(String message) {
+  if (sim800.isNetworkConnected()) {
+    Serial.println("📤 Sending SMS notifications...");
+    
+    // Send to Caregiver 1
+    if (sim800.sendSMS(CAREGIVER_1_PHONE, message)) {
+      Serial.println("✅ SMS sent to " + CAREGIVER_1_NAME + ": " + CAREGIVER_1_PHONE);
+    } else {
+      Serial.println("❌ Failed to send SMS to " + CAREGIVER_1_NAME);
+    }
+    
+    delay(2000); // Delay between SMS sends
+    
+    // Send to Caregiver 2
+    if (sim800.sendSMS(CAREGIVER_2_PHONE, message)) {
+      Serial.println("✅ SMS sent to " + CAREGIVER_2_NAME + ": " + CAREGIVER_2_PHONE);
+    } else {
+      Serial.println("❌ Failed to send SMS to " + CAREGIVER_2_NAME);
+    }
+  } else {
+    Serial.println("⚠️ GSM not connected - SMS not sent");
+  }
+}
+
+// Handle 15-minute reminder notification
+void handleReminderNotification(int dispenserId, String pillSize, String medication, String patient) {
+  Serial.println("\n" + String('=', 60));
+  Serial.println("🔔 15-MINUTE REMINDER");
+  Serial.println(String('=', 60));
+  Serial.printf("Container: %d\n", dispenserId + 1);
+  Serial.println("Medication: " + medication);
+  Serial.println("Patient: " + patient);
+  Serial.println("Time: " + timeManager.getTimeString());
+  Serial.println(String('=', 60));
+  
+  // Play reminder buzzer
+  playReminderBuzzer();
+  
+  // Send SMS reminder to caregivers
+  String smsMessage = "[PILL DISPENSER REMINDER] Upcoming medication in 15 minutes - Container " + 
+                     String(dispenserId + 1) + ": " + medication + " for " + patient;
+  sendSMSNotification(smsMessage);
+  
+  Serial.println("✅ Reminder notification completed\n");
 }

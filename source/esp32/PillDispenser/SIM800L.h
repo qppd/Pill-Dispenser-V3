@@ -11,9 +11,14 @@ private:
   HardwareSerial* sim800;
   uint8_t rxPin, txPin, rstPin;
   bool isModuleReady;
+  bool isNetworkRegistered;
   String response;
   unsigned long lastCommand;
+  unsigned long lastNetworkCheck;
+  unsigned long lastReconnectAttempt;
   static const unsigned long COMMAND_DELAY = 1000;
+  static const unsigned long NETWORK_CHECK_INTERVAL = 60000; // Check every 60 seconds
+  static const unsigned long RECONNECT_INTERVAL = 30000; // Retry every 30 seconds
 
 public:
   SIM800L(uint8_t rxPin, uint8_t txPin, uint8_t rstPin, HardwareSerial& serialPort = Serial2);
@@ -31,6 +36,8 @@ public:
   String getSignalStrength();
   String getNetworkOperator();
   bool isNetworkConnected();
+  void update(); // Call in main loop for background reconnection
+  bool attemptNetworkReconnect();
 
   // SMS operations
   bool sendSMS(String phoneNumber, String message);

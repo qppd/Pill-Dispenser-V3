@@ -4,7 +4,10 @@
 SIM800L::SIM800L(uint8_t rxPin, uint8_t txPin, uint8_t rstPin, HardwareSerial& serialPort)
   : sim800(&serialPort), rxPin(rxPin), txPin(txPin), rstPin(rstPin) {
   isModuleReady = false;
+  isNetworkRegistered = false;
   lastCommand = 0;
+  lastNetworkCheck = 0;
+  lastReconnectAttempt = 0;
 }
 
 bool SIM800L::begin(long baudRate) {
@@ -62,9 +65,6 @@ bool SIM800L::sendATCommand(String command, String expectedResponse, unsigned lo
   
   clearBuffer();
   
-  Serial.print("SIM800L: Sending: ");
-  Serial.println(command);
-  
   sim800->println(command);
   lastCommand = millis();
   
@@ -72,10 +72,11 @@ bool SIM800L::sendATCommand(String command, String expectedResponse, unsigned lo
   
   bool success = response.indexOf(expectedResponse) >= 0;
   
-  if (success) {
-    Serial.println("SIM800L: Command successful");
-  } else {
-    Serial.print("SIM800L: Command failed. Expected: ");
+  // Only log failures to reduce serial spam
+  if (!success) {
+    Serial.print("⚠️ SIM800L: Command failed: ");
+    Serial.print(command);
+    Serial.print(" | Expected: ");
     Serial.print(expectedResponse);
     Serial.print(", Got: ");
     Serial.println(response);
@@ -119,12 +120,19 @@ void SIM800L::printResponse() {
 }
 
 bool SIM800L::checkNetworkRegistration() {
-  if (sendATCommand("AT+CREG?", "+CREG: 0,1", 10000) || 
-      sendATCommand("AT+CREG?", "+CREG: 0,5", 10000)) {
-    Serial.println("SIM800L: Network registered");
+  // Check for home network (0,1) or roaming (0,5)
+  if (sendATCommand("AT+CREG?", "+CREG: 0,1", 5000) || 
+      sendATCommand("AT+CREG?", "+CREG: 0,5", 5000)) {
+    if (!isNetworkRegistered) {
+      Serial.println("✅ SIM800L: Network registered");
+      isNetworkRegistered = true;
+    }
     return true;
   } else {
-    Serial.println("SIM800L: Network not registered");
+    if (isNetworkRegistered) {
+      Serial.println("⚠️ SIM800L: Network connection lost");
+      isNetworkRegistered = false;
+    }
     return false;
   }
 }
@@ -295,4 +303,54 @@ void SIM800L::testGPRS() {
   Serial.println("SIM800L: PDP context checked");
   
   Serial.println("SIM800L: GPRS test complete");
+}
+
+// Background update function for periodic network checking and reconnection
+void SIM800L::update() {
+  unsigned long currentMillis = millis();
+  
+  // Periodic network registration check
+  if (currentMillis - lastNetworkCheck >= NETWORK_CHECK_INTERVAL) {
+    checkNetworkRegistration();
+    lastNetworkCheck = currentMillis;
+  }
+  
+  // If not registered, attempt reconnection
+  if (!isNetworkRegistered && (currentMillis - lastReconnectAttempt >= RECONNECT_INTERVAL)) {
+    attemptNetworkReconnect();
+    lastReconnectAttempt = currentMillis;
+  }
+}
+
+// Attempt to reconnect to network
+bool SIM800L::attemptNetworkReconnect() {
+  Serial.println("🔄 SIM800L: Attempting network reconnection...");
+  
+  // Check if module is responding
+  if (!sendATCommand("AT", "OK", 2000)) {
+    Serial.println("⚠️ SIM800L: Module not responding, performing reset...");
+    reset();
+    delay(3000);
+    
+    // Reinitialize after reset
+    sendATCommand("ATE0", "OK", 3000); // Disable echo
+  }
+  
+  // Check SIM card
+  if (!sendATCommand("AT+CPIN?", "READY", 5000)) {
+    Serial.println("❌ SIM800L: SIM card not ready");
+    return false;
+  }
+  
+  // Force network search
+  sendATCommand("AT+COPS=0", "OK", 30000); // Auto network selection (may take up to 30s)
+  
+  // Check registration
+  if (checkNetworkRegistration()) {
+    Serial.println("✅ SIM800L: Network reconnection successful");
+    return true;
+  } else {
+    Serial.println("❌ SIM800L: Network reconnection failed, will retry later");
+    return false;
+  }
 }
