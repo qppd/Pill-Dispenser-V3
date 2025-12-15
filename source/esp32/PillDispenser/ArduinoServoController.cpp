@@ -150,7 +150,7 @@ bool ArduinoServoController::dispensePill(uint8_t channel) {
     }
   }
   
-  String command = "DP:" + String(channel);
+  String command = "DP" + String(channel);
   String response = sendCommand(command, responseTimeout + 3000); // Extra time for dispensing
   
   // If timeout, try one more time after reconnecting
@@ -209,12 +209,12 @@ bool ArduinoServoController::stopAllServos() {
 }
 
 bool ArduinoServoController::moveServosToRelease() {
-  String response = sendCommand("MOVE_TO_RELEASE", 3000);
+  String response = sendCommand("RL", 3000);
   return isSuccessResponse(response);
 }
 
 bool ArduinoServoController::moveServosToHome() {
-  String response = sendCommand("MOVE_TO_HOME", 3000);
+  String response = sendCommand("MH", 3000);
   return isSuccessResponse(response);
 }
 

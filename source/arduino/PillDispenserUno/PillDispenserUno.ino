@@ -13,14 +13,14 @@
     PING - Test connection
     STATUS - Get system status
     SET_ANGLE:<channel>,<angle> - Set servo angle (0-180)
-    DISPENSE:<channel> - Dispense pill from channel
+    DP<channel> - Dispense pill (DP0, DP1, DP2, DP3, DP4)
     DISPENSE_PAIR:<ch1>,<ch2> - Dispense from two channels
     TEST_SERVO:<channel> - Test single servo
     CALIBRATE:<channel> - Calibrate servo range
     RESET_ALL - Reset all servos to 90 degrees
     STOP_ALL - Stop all servos
-    MOVE_TO_RELEASE - Move CH5/CH6 to release position (CH5: 90→0, CH6: 0→90)
-    MOVE_TO_HOME - Move CH5/CH6 to home position (CH5: 0→90, CH6: 90→0)
+    RL - Move CH5/CH6 to release position (CH5: 90→0, CH6: 0→90)
+    MH - Move CH5/CH6 to home position (CH5: 0→90, CH6: 90→0)
     
   Author: Pill Dispenser V3 Team
   Date: December 2025
@@ -177,13 +177,13 @@ void processCommand(String command) {
     }
   }
   
-  // DP command: DP:<channel> (Dispense)
-  else if (command.startsWith("DP:")) {
-    uint8_t channel = command.substring(3).toInt();
+  // DP command: DP<channel> (Dispense) - DP0, DP1, DP2, DP3, DP4
+  else if (command.startsWith("DP") && command.length() >= 3 && command.length() <= 4) {
+    uint8_t channel = command.substring(2).toInt();
     
     if (channel <= 15) {
       dispensePill(channel);
-      ESP32Serial.print(F("OK:DP:"));
+      ESP32Serial.print(F("OK:DP"));
       ESP32Serial.println(channel);
     } else {
       ESP32Serial.println(F("ERROR:Invalid"));
@@ -248,16 +248,16 @@ void processCommand(String command) {
     ESP32Serial.println(F("OK:STOP_ALL_COMPLETE"));
   }
   
-  // MOVE_TO_RELEASE command
-  else if (command == "MOVE_TO_RELEASE") {
+  // RL command for release (CH5: 90→0, CH6: 0→90)
+  else if (command == "RL") {
     moveServosToRelease();
-    ESP32Serial.println(F("OK:MOVE_TO_RELEASE_STARTED"));
+    ESP32Serial.println(F("OK:RL_STARTED"));
   }
   
-  // MOVE_TO_HOME command
-  else if (command == "MOVE_TO_HOME") {
+  // MH command for move to home (CH5: 0→90, CH6: 90→0)
+  else if (command == "MH") {
     moveServosToHome();
-    ESP32Serial.println(F("OK:MOVE_TO_HOME_STARTED"));
+    ESP32Serial.println(F("OK:MH_STARTED"));
   }
   
   // Unknown command
