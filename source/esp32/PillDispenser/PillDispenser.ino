@@ -148,26 +148,11 @@ void loop() {
       Serial.println("💓 System heartbeat - " + timeManager.getTimeString());
       Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
       
-      // Check I2C health and display statistics
-      float i2cSuccessRate = servoDriver.getI2CSuccessRate();
-      uint32_t nackErrors = servoDriver.getNackErrorCount();
-      uint32_t busRecoveries = servoDriver.getBusRecoveryCount();
-      
-      Serial.print("I2C Health: ");
-      Serial.print(i2cSuccessRate, 1);
-      Serial.print("% success");
-      
-      if (nackErrors > 0 || busRecoveries > 0) {
-        Serial.print(" (");
-        if (nackErrors > 0) Serial.print(String(nackErrors) + " NACKs");
-        if (busRecoveries > 0) Serial.print(String(busRecoveries) + " recoveries");
-        Serial.print(")");
-      }
-      Serial.println();
-      
-      // Alert if I2C reliability is poor
-      if (i2cSuccessRate < 95.0) {
-        Serial.println("⚠️  WARNING: I2C reliability degraded! Check connections.");
+      // Check servo driver connection
+      if (servoDriver.isConnected()) {
+        Serial.println("Servo Driver: Connected");
+      } else {
+        Serial.println("⚠️  WARNING: Servo Driver not responding! Check connections.");
       }
       
       lastHeartbeat = millis();
@@ -188,13 +173,14 @@ void loop() {
       } else if (command == "time") {
         Serial.println("Current NTP time: " + timeManager.getTimeString());
         Serial.printf("TimeAlarms time: %02d:%02d:%02d\n", hour(), minute(), second());
-      } else if (command == "i2c" || command == "servo") {
-        Serial.println("\n========== I2C STATISTICS ==========");
-        servoDriver.printI2CStatistics();
-      } else if (command == "reset i2c") {
-        Serial.println("Resetting I2C statistics...");
-        servoDriver.resetI2CStatistics();
-        Serial.println("✅ I2C statistics reset");
+      } else if (command == "servo status") {
+        Serial.println("\n========== SERVO DRIVER STATUS ==========");
+        if (servoDriver.isConnected()) {
+          Serial.println("✅ PCA9685 connected and responding");
+        } else {
+          Serial.println("❌ PCA9685 not responding");
+        }
+        Serial.println("=========================================");
       } else if (command.startsWith("servo test ")) {
         int servoNum = command.substring(11).toInt();
         if (servoNum >= 0 && servoNum <= 4) {
@@ -216,6 +202,46 @@ void loop() {
           delay(500);
         }
         Serial.println("✅ Servo sweep complete");
+      } else if (command == "servo reset") {
+        Serial.println("Resetting all servos to 90 degrees...");
+        servoDriver.resetAllServos();
+        Serial.println("✅ All servos reset");
+      } else if (command == "servo stop") {
+        Serial.println("Stopping all servos...");
+        servoDriver.stopAllServos();
+        Serial.println("✅ All servos stopped");
+      } else if (command.startsWith("dispense ")) {
+        int containerNum = command.substring(9).toInt();
+        if (containerNum >= 1 && containerNum <= 5) {
+          Serial.println("Manually dispensing from container " + String(containerNum) + "...");
+          dispenseFromContainer(containerNum - 1);
+          Serial.println("✅ Manual dispense complete");
+        } else {
+          Serial.println("❌ Invalid container number (1-5)");
+        }
+      } else if (command.startsWith("calibrate ")) {
+        int servoNum = command.substring(10).toInt();
+        if (servoNum >= 0 && servoNum <= 4) {
+          Serial.println("Calibrating servo " + String(servoNum) + "...");
+          servoDriver.calibrateServo(servoNum);
+          Serial.println("✅ Calibration complete");
+        } else {
+          Serial.println("❌ Invalid servo number (0-4)");
+        }
+      } else if (command == "help") {
+        Serial.println("\n========== AVAILABLE COMMANDS ==========");
+        Serial.println("schedules - List all schedules");
+        Serial.println("time - Show current time");
+        Serial.println("test <index> - Test schedule trigger");
+        Serial.println("servo status - Check servo driver status");
+        Serial.println("servo test <0-4> - Test specific servo");
+        Serial.println("servo sweep - Sweep all servos");
+        Serial.println("servo reset - Reset all servos to 90°");
+        Serial.println("servo stop - Stop all servos");
+        Serial.println("dispense <1-5> - Manual dispense from container");
+        Serial.println("calibrate <0-4> - Calibrate specific servo");
+        Serial.println("help - Show this help message");
+        Serial.println("=========================================");
       }
     }
   }
@@ -388,13 +414,9 @@ void dispenseFromContainer(int dispenserId) {
   
   Serial.println("🔄 Dispensing from container " + String(dispenserId + 1) + "...");
   
-  // Rotate servo 90 degrees to dispense
-  servoDriver.setServoAngle(dispenserId, 90);
-  delay(1000);  // Wait for pill to drop
-  
-  // Return servo to 0 degrees
-  servoDriver.setServoAngle(dispenserId, 0);
-  delay(500);
+  // Use the dispensePill method from ServoDriver for proper pill dispensing
+  // This moves servo to 180 degrees, waits 2 seconds, then returns to 0 degrees
+  servoDriver.dispensePill(dispenserId, "medium");
   
   pillCount++;
   Serial.println("✅ Dispense complete. Total pills dispensed: " + String(pillCount));

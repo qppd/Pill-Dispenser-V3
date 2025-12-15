@@ -3,184 +3,6 @@
 
 ServoDriver::ServoDriver() : pwm(I2C_ADDRESS) {
   // Constructor uses default I2C address
-  // Initialize error tracking counters
-  totalNackErrors = 0;
-  totalBusRecoveries = 0;
-  totalI2COperations = 0;
-}
-
-// ========================================
-// I2C RETRY AND BUS RECOVERY MECHANISMS
-// ========================================
-
-/**
- * Perform I2C write operation with minimal error handling
- * Uses fail-fast approach to prevent program freezing
- *
- * @param reg Register address to write to
- * @param value Value to write
- * @return true if write succeeded, false otherwise
- */
-bool ServoDriver::i2cWriteWithRetry(uint8_t reg, uint8_t value) {
-  totalI2COperations++;
-
-  Wire.beginTransmission(I2C_ADDRESS);
-  Wire.write(reg);
-  Wire.write(value);
-  uint8_t error = Wire.endTransmission();
-
-  if (error == 0) {
-    return true;
-  }
-
-  // Log error but don't retry - fail fast
-  if (error == 2 || error == 3) {
-    totalNackErrors++;
-    Serial.print("ServoDriver: NACK on I2C write (reg ");
-    Serial.print(reg);
-    Serial.println(") - bus may be disconnected");
-  } else {
-    Serial.print("ServoDriver: I2C error ");
-    Serial.print(error);
-    Serial.print(" on write (reg ");
-    Serial.print(reg);
-    Serial.println(")");
-  }
-
-  return false;
-}
-
-/**
- * Perform multi-byte I2C write with minimal error handling
- * Uses fail-fast approach to prevent program freezing
- *
- * @param data Pointer to data buffer
- * @param length Number of bytes to write
- * @return true if write succeeded, false otherwise
- */
-bool ServoDriver::i2cMultiWriteWithRetry(uint8_t* data, uint8_t length) {
-  totalI2COperations++;
-
-  Wire.beginTransmission(I2C_ADDRESS);
-  Wire.write(data, length);
-  uint8_t error = Wire.endTransmission();
-
-  if (error == 0) {
-    return true;
-  }
-
-  // Log error but don't retry - fail fast
-  if (error == 2 || error == 3) {
-    totalNackErrors++;
-    Serial.print("ServoDriver: NACK on multi-write (");
-    Serial.print(length);
-    Serial.println(" bytes) - bus may be disconnected");
-  } else {
-    Serial.print("ServoDriver: I2C error ");
-    Serial.print(error);
-    Serial.print(" on multi-write (");
-    Serial.print(length);
-    Serial.println(" bytes)");
-  }
-
-  return false;
-}
-
-/**
- * Perform I2C bus recovery by reinitializing the bus
- * This helps recover from stuck bus conditions
- * 
- * @return true if recovery appears successful, false otherwise
- */
-bool ServoDriver::performBusRecovery() {
-  Serial.println("ServoDriver: *** PERFORMING I2C BUS RECOVERY ***");
-  totalBusRecoveries++;
-  
-  // End current I2C session
-  Wire.end();
-  delay(I2C_BUS_RECOVERY_DELAY_MS);
-  
-  // Reinitialize I2C bus
-  Wire.begin();
-  Wire.setClock(50000); // Reduced from 100000 to 50000 Hz for better stability
-  delay(I2C_BUS_RECOVERY_DELAY_MS);
-  
-  // Test if device is reachable
-  Wire.beginTransmission(I2C_ADDRESS);
-  uint8_t error = Wire.endTransmission();
-  
-  if (error == 0) {
-    Serial.println("ServoDriver: Bus recovery successful - PCA9685 reachable");
-    
-    // Reinitialize PCA9685
-    pwm.begin();
-    pwm.setPWMFreq(PWM_FREQ);
-    delay(10);
-    
-    Serial.println("ServoDriver: PCA9685 reinitialized after recovery");
-    return true;
-  } else {
-    Serial.print("ServoDriver: Bus recovery failed - error code: ");
-    Serial.println(error);
-    return false;
-  }
-}
-
-/**
- * Log NACK error with details for debugging
- * Used in fail-fast error handling
- *
- * @param operation Description of the operation that failed
- * @param attempt The attempt number (for retry scenarios)
- */
-void ServoDriver::logNackError(const char* operation, uint8_t attempt) {
-  Serial.print("ServoDriver: *** NACK ERROR *** Operation: ");
-  Serial.print(operation);
-  Serial.print(", Attempt: ");
-  Serial.print(attempt);
-  Serial.print(", Total NACKs: ");
-  Serial.println(totalNackErrors);
-}
-
-/**
- * Safe PWM write operation with minimal retry logic
- * Wraps the Adafruit_PWMServoDriver setPWM call with error handling
- * Uses fail-fast approach to prevent program freezing
- *
- * @param channel PWM channel (0-15)
- * @param on PWM on time (0-4095)
- * @param off PWM off time (0-4095)
- * @return true if write succeeded, false otherwise
- */
-bool ServoDriver::safePWMWrite(uint8_t channel, uint16_t on, uint16_t off) {
-  totalI2COperations++;
-
-  // Test bus connectivity first (quick check)
-  Wire.beginTransmission(I2C_ADDRESS);
-  uint8_t error = Wire.endTransmission();
-
-  if (error == 0) {
-    // Bus is responding, perform the PWM write
-    pwm.setPWM(channel, on, off);
-    return true;
-  }
-
-  // Bus error detected - log it but don't retry aggressively
-  totalNackErrors++;
-  if (error == 2 || error == 3) {
-    Serial.print("ServoDriver: NACK on PWM write (channel ");
-    Serial.print(channel);
-    Serial.println(") - bus may be disconnected");
-  } else {
-    Serial.print("ServoDriver: I2C error ");
-    Serial.print(error);
-    Serial.print(" on PWM write (channel ");
-    Serial.print(channel);
-    Serial.println(")");
-  }
-
-  // Don't retry or delay - fail fast to prevent program freezing
-  return false;
 }
 
 void ServoDriver::scanI2CDevices() {
@@ -222,7 +44,6 @@ bool ServoDriver::begin() {
   scanI2CDevices();
   
   pwm.begin();
-  pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(PWM_FREQ);
   delay(10);
   
@@ -252,13 +73,7 @@ void ServoDriver::setServoSpeed(uint8_t channel, int speed) {
     Serial.println("ServoDriver: Invalid channel number");
     return;
   }
-  
-  // Use safe PWM write with retry mechanism
-  if (!safePWMWrite(channel, 0, speed)) {
-    Serial.print("ServoDriver: FAILED to set servo ");
-    Serial.print(channel);
-    Serial.println(" speed after retries");
-  }
+  pwm.setPWM(channel, 0, speed);
 }
 
 void ServoDriver::stopServo(uint8_t channel) {
@@ -266,31 +81,14 @@ void ServoDriver::stopServo(uint8_t channel) {
     Serial.println("ServoDriver: Invalid channel number");
     return;
   }
-  
-  // Fully deactivate servo output with retry mechanism
-  if (!safePWMWrite(channel, 0, 0)) {
-    Serial.print("ServoDriver: WARNING - Failed to stop servo ");
-    Serial.print(channel);
-    Serial.println(" after retries");
-  }
+  // Fully deactivate servo output
+  pwm.setPWM(channel, 0, 0);
 }
 
 void ServoDriver::stopAllServos() {
   Serial.println("ServoDriver: Stopping all servos");
-  uint8_t failedChannels = 0;
-  
   for (uint8_t i = 0; i < 16; i++) {
-    if (!safePWMWrite(i, 0, 0)) {
-      failedChannels++;
-    }
-  }
-  
-  if (failedChannels > 0) {
-    Serial.print("ServoDriver: WARNING - Failed to stop ");
-    Serial.print(failedChannels);
-    Serial.println(" servo channel(s)");
-  } else {
-    Serial.println("ServoDriver: All servos stopped successfully");
+    pwm.setPWM(i, 0, 0);
   }
 }
 
@@ -488,21 +286,13 @@ void ServoDriver::setServoAngle(uint8_t servoNum, uint16_t angle) {
   
   // Map angle (0-180) to pulse width (SERVO_MIN-SERVO_MAX)
   uint16_t pulse = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
+  pwm.setPWM(servoNum, 0, pulse);
   
-  // Use safe PWM write with retry mechanism
-  if (safePWMWrite(servoNum, 0, pulse)) {
-    Serial.print("ServoDriver: Servo ");
-    Serial.print(servoNum);
-    Serial.print(" set to ");
-    Serial.print(angle);
-    Serial.println(" degrees");
-  } else {
-    Serial.print("ServoDriver: FAILED to set servo ");
-    Serial.print(servoNum);
-    Serial.print(" to ");
-    Serial.print(angle);
-    Serial.println(" degrees after retries");
-  }
+  Serial.print("ServoDriver: Servo ");
+  Serial.print(servoNum);
+  Serial.print(" set to ");
+  Serial.print(angle);
+  Serial.println(" degrees");
 }
 
 void ServoDriver::setServoPulse(uint8_t servoNum, uint16_t pulse) {
@@ -511,12 +301,7 @@ void ServoDriver::setServoPulse(uint8_t servoNum, uint16_t pulse) {
     return;
   }
   
-  // Use safe PWM write with retry mechanism
-  if (!safePWMWrite(servoNum, 0, pulse)) {
-    Serial.print("ServoDriver: FAILED to set servo ");
-    Serial.print(servoNum);
-    Serial.println(" pulse after retries");
-  }
+  pwm.setPWM(servoNum, 0, pulse);
 }
 
 bool ServoDriver::isConnected() {
@@ -645,73 +430,4 @@ void ServoDriver::testDispenserRotation(uint8_t dispenserNum) {
   Serial.print("ServoDriver: Dispenser ");
   Serial.print(dispenserNum);
   Serial.println(" rotation test complete");
-}
-
-// ========================================
-// I2C ERROR DIAGNOSTICS AND STATISTICS
-// ========================================
-
-/**
- * Print comprehensive I2C error statistics
- */
-void ServoDriver::printI2CStatistics() {
-  Serial.println("\n========== I2C STATISTICS ==========");
-  Serial.print("Total I2C Operations:  ");
-  Serial.println(totalI2COperations);
-  Serial.print("Total NACK Errors:     ");
-  Serial.println(totalNackErrors);
-  Serial.print("Total Bus Recoveries:  ");
-  Serial.println(totalBusRecoveries);
-
-  if (totalI2COperations > 0) {
-    float successRate = getI2CSuccessRate();
-    Serial.print("Success Rate:          ");
-    Serial.print(successRate, 2);
-    Serial.println("%");
-
-    float errorRate = (totalNackErrors * 100.0) / totalI2COperations;
-    Serial.print("NACK Error Rate:       ");
-    Serial.print(errorRate, 2);
-    Serial.println("%");
-  }
-  Serial.println("===================================\n");
-}
-
-/**
- * Reset all error statistics counters
- */
-void ServoDriver::resetI2CStatistics() {
-  Serial.println("ServoDriver: Resetting I2C statistics");
-  totalNackErrors = 0;
-  totalBusRecoveries = 0;
-  totalI2COperations = 0;
-}
-
-/**
- * Get total NACK error count
- * @return Number of NACK errors encountered
- */
-uint32_t ServoDriver::getNackErrorCount() {
-  return totalNackErrors;
-}
-
-/**
- * Get total bus recovery count
- * @return Number of bus recovery operations performed
- */
-uint32_t ServoDriver::getBusRecoveryCount() {
-  return totalBusRecoveries;
-}
-
-/**
- * Calculate I2C success rate
- * @return Success rate as percentage (0-100)
- */
-float ServoDriver::getI2CSuccessRate() {
-  if (totalI2COperations == 0) {
-    return 100.0;
-  }
-
-  uint32_t successfulOps = totalI2COperations - totalNackErrors;
-  return (successfulOps * 100.0) / totalI2COperations;
 }
