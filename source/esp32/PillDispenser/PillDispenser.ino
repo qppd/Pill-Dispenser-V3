@@ -404,16 +404,26 @@ void dispenseFromContainer(int dispenserId) {
     return;
   }
   
-  Serial.println("🔄 Dispensing from container " + String(dispenserId + 1) + "...");
+  Serial.println("\n" + String('=', 60));
+  Serial.println("🔄 DISPENSING FROM CONTAINER " + String(dispenserId + 1));
+  Serial.println(String('=', 60));
+  Serial.printf("Sending DP%d command to Arduino...\n", dispenserId);
+  Serial.println(String('=', 60));
   
   // Use the dispensePill method via Arduino servo controller
-  // This moves servo to 180 degrees, waits 2 seconds, then returns to 0 degrees
-  if (servoController.dispensePill(dispenserId)) {
+  // This sends DP0-DP4 command which triggers testServo() on Arduino
+  bool success = servoController.dispensePill(dispenserId);
+  
+  Serial.println(String('=', 60));
+  if (success) {
     pillCount++;
-    Serial.println("✅ Dispense complete. Total pills dispensed: " + String(pillCount));
+    Serial.println("✅ DISPENSE SUCCESSFUL");
+    Serial.println("   Total pills dispensed: " + String(pillCount));
   } else {
-    Serial.println("❌ Dispense failed - Arduino communication error");
+    Serial.println("❌ DISPENSE FAILED");
+    Serial.println("   Arduino communication error or timeout");
   }
+  Serial.println(String('=', 60) + "\n");
 }
 
 // Check for realtime dispense commands from web app

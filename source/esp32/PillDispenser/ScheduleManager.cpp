@@ -308,44 +308,57 @@ bool ScheduleManager::isTodayScheduled(int scheduleIndex) {
 }
 
 void ScheduleManager::triggerSchedule(int scheduleIndex) {
-  Serial.println("\n" + String('=', 50));
-  Serial.println("⏰ ALARM CALLBACK TRIGGERED - Schedule Index: " + String(scheduleIndex));
-  Serial.println(String('=', 50));
+  Serial.println("\n" + String('=', 70));
+  Serial.println("⏰⏰⏰ ALARM CALLBACK TRIGGERED ⏰⏰⏰");
+  Serial.println(String('=', 70));
+  Serial.println("Schedule Index: " + String(scheduleIndex));
+  Serial.println("Current Time: " + String(hour()) + ":" + String(minute()) + ":" + String(second()));
+  Serial.println(String('=', 70));
   
   if (scheduleIndex < 0 || scheduleIndex >= scheduleCount) {
     Serial.println("❌ Invalid schedule index: " + String(scheduleIndex));
+    Serial.println(String('=', 70) + "\n");
     return;
   }
   
   MedicationSchedule* schedule = &schedules[scheduleIndex];
+  Serial.printf("Schedule Time: %02d:%02d\n", schedule->hour, schedule->minute);
+  Serial.println("Enabled: " + String(schedule->enabled ? "YES" : "NO"));
   
   if (!schedule->enabled) {
     Serial.println("❌ Schedule disabled, skipping");
+    Serial.println(String('=', 70) + "\n");
     return;
   }
   
   // Check if today is a scheduled day
   if (!isTodayScheduled(scheduleIndex)) {
     Serial.println("❌ Not scheduled for today, skipping");
+    Serial.println(String('=', 70) + "\n");
     return;
   }
   
-  Serial.println("✅ Schedule validation passed - proceeding with dispense");
-  Serial.println("\n" + String('=', 50));
-  Serial.println("⏰ SCHEDULED DISPENSING TRIGGERED");
-  Serial.println(String('=', 50));
+  Serial.println("✅✅✅ ALL CHECKS PASSED - DISPENSING NOW ✅✅✅");
+  Serial.println("\n" + String('=', 70));
+  Serial.println("⏰ SCHEDULED DISPENSING IN PROGRESS");
+  Serial.println(String('=', 70));
   Serial.printf("Time: %02d:%02d\n", schedule->hour, schedule->minute);
   Serial.println("Patient: " + schedule->patientName);
   Serial.println("Medication: " + schedule->medicationName);
-  Serial.println("Dispenser: " + String(schedule->dispenserId));
-  Serial.println("Size: " + schedule->pillSize);
-  Serial.println(String('=', 50) + "\n");
+  Serial.println("Dispenser ID: " + String(schedule->dispenserId));
+  Serial.println("Container: " + String(schedule->dispenserId + 1));
+  Serial.println("Pill Size: " + schedule->pillSize);
+  Serial.println(String('=', 70));
   
   // Trigger dispense callback
   if (onDispenseCallback != nullptr) {
+    Serial.println("Calling dispense callback...");
     onDispenseCallback(schedule->dispenserId, schedule->pillSize, 
                       schedule->medicationName, schedule->patientName);
+  } else {
+    Serial.println("❌❌❌ ERROR: NO DISPENSE CALLBACK SET! ❌❌❌");
   }
+  Serial.println(String('=', 70) + "\n");
 }
 
 void ScheduleManager::setDispenseCallback(void (*callback)(int, String, String, String)) {
