@@ -19,6 +19,12 @@
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <SoftwareSerial.h>
+
+// Serial communication with ESP32
+// Arduino Pin 2 (RX) <- ESP32 GPIO26 (TX)
+// Arduino Pin 3 (TX) -> ESP32 GPIO25 (RX)
+SoftwareSerial ESP32Serial(2, 3); // RX, TX
 
 // called this way, it uses the default address 0x40
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
@@ -43,6 +49,10 @@ uint8_t servonum = 0;
 void setup() {
   Serial.begin(9600);
   Serial.println("8 channel Servo test!");
+  
+  // Start communication with ESP32
+  ESP32Serial.begin(9600);
+  ESP32Serial.println("Arduino Ready");
 
   pwm.begin();
   /*
@@ -84,32 +94,60 @@ void setServoPulse(uint8_t n, double pulse) {
 }
 
 void loop() {
-  // Drive each servo one at a time using setPWM()
-  Serial.println(servonum);
-  for (uint16_t pulselen = SERVOMIN; pulselen < SERVOMAX; pulselen++) {
-    pwm.setPWM(servonum, 0, pulselen);
+  // Check for commands from ESP32
+  if (ESP32Serial.available()) {
+    String command = ESP32Serial.readStringUntil('\n');
+    command.trim();
+    
+    // Command format: "SERVO:<channel>,<pulse_length>"
+    // Example: "SERVO:0,300" - Set servo 0 to pulse length 300
+    if (command.startsWith("SERVO:")) {
+      int channel = command.substring(6, command.indexOf(',')).toInt();
+      int pulseLen = command.substring(command.indexOf(',') + 1).toInt();
+      
+      if (channel >= 0 && channel <= 15 && pulseLen >= SERVOMIN && pulseLen <= SERVOMAX) {
+        pwm.setPWM(channel, 0, pulseLen);
+        ESP32Serial.println("OK:SERVO:" + String(channel) + ":" + String(pulseLen));
+        Serial.println("Set servo " + String(channel) + " to " + String(pulseLen));
+      } else {
+        ESP32Serial.println("ERROR:Invalid servo parameters");
+      }
+    }
+    // Command format: "DISPENSE:<slot>"
+    // Example: "DISPENSE:3" - Dispense from slot 3
+    else if (command.startsWith("DISPENSE:")) {
+      int slot = command.substring(9).toInt();
+      
+      if (slot >= 0 && slot <= 7) {
+        // Rotate servo to dispense
+        pwm.setPWM(slot, 0, SERVOMAX);
+        delay(500);
+        // Return to neutral position
+        pwm.setPWM(slot, 0, SERVOMIN);
+        
+        ESP32Serial.println("OK:DISPENSED:" + String(slot));
+        Serial.println("Dispensed from slot " + String(slot));
+      } else {
+        ESP32Serial.println("ERROR:Invalid slot number");
+      }
+    }
+    // Command: "STATUS"
+    else if (command == "STATUS") {
+      ESP32Serial.println("OK:READY");
+    }
+    // Command: "PING"
+    else if (command == "PING") {
+      ESP32Serial.println("PONG");
+    }
+    else {
+      ESP32Serial.println("ERROR:Unknown command");
+    }
   }
-
-  delay(500);
-  for (uint16_t pulselen = SERVOMAX; pulselen > SERVOMIN; pulselen--) {
-    pwm.setPWM(servonum, 0, pulselen);
+  
+  // Optional: Send heartbeat every 5 seconds
+  static unsigned long lastHeartbeat = 0;
+  if (millis() - lastHeartbeat > 5000) {
+    ESP32Serial.println("HEARTBEAT");
+    lastHeartbeat = millis();
   }
-
-  delay(500);
-
-  // Drive each servo one at a time using writeMicroseconds(), it's not precise due to calculation rounding!
-  // The writeMicroseconds() function is used to mimic the Arduino Servo library writeMicroseconds() behavior. 
-  for (uint16_t microsec = USMIN; microsec < USMAX; microsec++) {
-    pwm.writeMicroseconds(servonum, microsec);
-  }
-
-  delay(500);
-  for (uint16_t microsec = USMAX; microsec > USMIN; microsec--) {
-    pwm.writeMicroseconds(servonum, microsec);
-  }
-
-  delay(500);
-
-  servonum++;
-  if (servonum > 7) servonum = 0; // Testing the first 8 servo channels
 }
