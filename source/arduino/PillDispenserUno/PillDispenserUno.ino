@@ -177,16 +177,20 @@ void processCommand(String command) {
     }
   }
   
-  // DP2 command: DP2<ch1>,<ch2> (Dispense Pair) - CHECK THIS FIRST!
+  // DP2 command: DP2<ch1>,<ch2> (Dispense Pair, use test logic for both)
   else if (command.startsWith("DP2")) {
     int commaIndex = command.indexOf(',');
-    
     if (commaIndex > 0) {
       uint8_t ch1 = command.substring(3, commaIndex).toInt();
       uint8_t ch2 = command.substring(commaIndex + 1).toInt();
-      
-      if (ch1 <= 15 && ch2 <= 15) {
-        dispensePillPair(ch1, ch2);
+      if (ch1 <= 4 && ch2 <= 4) {
+        Serial.print(F("DP2: testServo("));
+        Serial.print(ch1);
+        Serial.print(F(", "));
+        Serial.print(ch2);
+        Serial.println(F(")"));
+        testServo(ch1);
+        testServo(ch2);
         ESP32Serial.print(F("OK:DP2"));
         ESP32Serial.print(ch1);
         ESP32Serial.print(',');
