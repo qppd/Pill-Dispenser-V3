@@ -447,6 +447,31 @@ void dispenseFromContainer(int dispenserId) {
     pillCount++;
     Serial.println("✅ DISPENSE SUCCESSFUL");
     Serial.println("   Total pills dispensed: " + String(pillCount));
+    
+    // Wait 10 seconds before releasing
+    Serial.println("⏳ Waiting 10 seconds before release...");
+    delay(10000);
+    
+    // Move to release position (CH5/CH6)
+    Serial.println("🔓 Moving to RELEASE position...");
+    if (servoController.moveServosToRelease()) {
+      Serial.println("✅ Release position reached");
+    } else {
+      Serial.println("❌ Release movement failed");
+    }
+    
+    // Wait 10 seconds before returning home
+    Serial.println("⏳ Waiting 10 seconds before returning home...");
+    delay(10000);
+    
+    // Move back to home position
+    Serial.println("🏠 Moving to HOME position...");
+    if (servoController.moveServosToHome()) {
+      Serial.println("✅ Home position reached");
+    } else {
+      Serial.println("❌ Home movement failed");
+    }
+    
   } else {
     Serial.println("❌ DISPENSE FAILED");
     Serial.println("   Arduino communication error or timeout");
