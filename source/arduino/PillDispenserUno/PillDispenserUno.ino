@@ -177,20 +177,7 @@ void processCommand(String command) {
     }
   }
   
-  // DP command: DP<channel> (Dispense) - DP0, DP1, DP2, DP3, DP4
-  else if (command.startsWith("DP") && command.length() >= 3 && command.length() <= 4) {
-    uint8_t channel = command.substring(2).toInt();
-    
-    if (channel <= 15) {
-      dispensePill(channel);
-      ESP32Serial.print(F("OK:DP"));
-      ESP32Serial.println(channel);
-    } else {
-      ESP32Serial.println(F("ERROR:Invalid"));
-    }
-  }
-  
-  // DP2 command: DP2<ch1>,<ch2> (Dispense Pair)
+  // DP2 command: DP2<ch1>,<ch2> (Dispense Pair) - CHECK THIS FIRST!
   else if (command.startsWith("DP2")) {
     int commaIndex = command.indexOf(',');
     
@@ -209,6 +196,21 @@ void processCommand(String command) {
       }
     } else {
       ESP32Serial.println(F("ERROR:Format"));
+    }
+  }
+  
+  // DP command: DP<channel> (Dispense using testServo logic) - DP0-DP4
+  else if (command.startsWith("DP") && command.length() >= 3 && command.length() <= 4) {
+    uint8_t channel = command.substring(2).toInt();
+    
+    if (channel <= 4) {  // Only channels 0-4 for dispensing
+      Serial.print(F("DP"));
+      Serial.println(channel);
+      testServo(channel);  // Use working test logic
+      ESP32Serial.print(F("OK:DP"));
+      ESP32Serial.println(channel);
+    } else {
+      ESP32Serial.println(F("ERROR:Invalid"));
     }
   }
   
