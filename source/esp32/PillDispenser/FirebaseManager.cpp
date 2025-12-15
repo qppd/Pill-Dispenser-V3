@@ -130,12 +130,12 @@ bool FirebaseManager::initializeFirebase() {
   // Set network reconnection
   Firebase.reconnectNetwork(true);
   
-  // Configure buffer sizes for ESP32
-  fbdo.setBSSLBufferSize(8192, 1024);
+  // Configure buffer sizes for ESP32 (Rx: 2048, Tx: 1024 as recommended)
+  fbdo.setBSSLBufferSize(2048, 1024);
   fbdo.setResponseSize(2048);
-  deviceStream.setBSSLBufferSize(8192, 1024);
+  deviceStream.setBSSLBufferSize(2048, 1024);
   deviceStream.setResponseSize(2048);
-  scheduleStream.setBSSLBufferSize(8192, 1024);
+  scheduleStream.setBSSLBufferSize(2048, 1024);
   scheduleStream.setResponseSize(2048);
   
   // Set timeouts to handle slow connections
@@ -156,8 +156,11 @@ bool FirebaseManager::initializeFirebase() {
   while (retryCount < maxRetries) {
     Firebase.begin(&config, &auth);
     
-    // Enable TCP KeepAlive for reliable streaming
+    // Enable TCP KeepAlive for reliable streaming on ESP32
+#if defined(ESP32)
     deviceStream.keepAlive(5, 5, 1);
+    scheduleStream.keepAlive(5, 5, 1);
+#endif
     
     // Wait for Firebase to initialize with timeout
     int initWait = 0;
