@@ -7,7 +7,7 @@
 // This file contains user-specific settings like phone numbers, user IDs, etc.
 
 // Phone Numbers for SMS Notifications
-const String CAREGIVER_1_PHONE = "+639854226165";  // Primary caregiver phone number
+const String CAREGIVER_1_PHONE = "+639510198338";  // Primary caregiver phone number
 const String CAREGIVER_2_PHONE = "+639634905586";  // Secondary caregiver phone number (optional)
 
 // Caregiver Names
