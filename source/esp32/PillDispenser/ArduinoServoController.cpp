@@ -197,6 +197,16 @@ bool ArduinoServoController::stopAllServos() {
   return isSuccessResponse(response);
 }
 
+bool ArduinoServoController::moveServosToRelease() {
+  String response = sendCommand("MOVE_TO_RELEASE", 3000);
+  return isSuccessResponse(response);
+}
+
+bool ArduinoServoController::moveServosToHome() {
+  String response = sendCommand("MOVE_TO_HOME", 3000);
+  return isSuccessResponse(response);
+}
+
 void ArduinoServoController::update() {
   // Read and log any async messages from Arduino (like heartbeat)
   static unsigned long lastUpdate = 0;

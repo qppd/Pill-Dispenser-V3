@@ -7,8 +7,8 @@
 /**
  * ArduinoServoController
  * 
- * This class provides a ServoDriver-compatible interface for controlling
- * servos via serial communication with an Arduino Uno.
+ * This class provides an interface for controlling servos via serial
+ * communication with an Arduino Uno.
  * 
  * The ESP32 sends commands to the Arduino, which physically controls
  * the servos via a PCA9685 module.
@@ -115,6 +115,22 @@ public:
    * @return true if Arduino is ready
    */
   bool checkStatus();
+  
+  /**
+   * Move CH5 and CH6 servos to release position (non-blocking, simultaneous)
+   * CH5: 90° → 0°
+   * CH6: 0° → 90°
+   * @return true if successful
+   */
+  bool moveServosToRelease();
+  
+  /**
+   * Move CH5 and CH6 servos to home position (non-blocking, simultaneous)
+   * CH5: 0° → 90°
+   * CH6: 90° → 0°
+   * @return true if successful
+   */
+  bool moveServosToHome();
   
   /**
    * Read any available messages from Arduino
