@@ -150,7 +150,7 @@ bool ArduinoServoController::dispensePill(uint8_t channel) {
     }
   }
   
-  String command = "DISPENSE:" + String(channel);
+  String command = "DP:" + String(channel);
   String response = sendCommand(command, responseTimeout + 3000); // Extra time for dispensing
   
   // If timeout, try one more time after reconnecting

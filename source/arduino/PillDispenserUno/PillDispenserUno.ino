@@ -177,13 +177,13 @@ void processCommand(String command) {
     }
   }
   
-  // DISPENSE command: DISPENSE:<channel>
-  else if (command.startsWith("DISPENSE:")) {
-    uint8_t channel = command.substring(9).toInt();
+  // DP command: DP:<channel> (Dispense)
+  else if (command.startsWith("DP:")) {
+    uint8_t channel = command.substring(3).toInt();
     
     if (channel <= 15) {
       dispensePill(channel);
-      ESP32Serial.print(F("OK:DISPENSED:"));
+      ESP32Serial.print(F("OK:DP:"));
       ESP32Serial.println(channel);
     } else {
       ESP32Serial.println(F("ERROR:Invalid"));
