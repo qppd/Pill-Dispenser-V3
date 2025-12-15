@@ -141,17 +141,26 @@ bool ScheduleManager::addSchedule(String id, int dispenserId, int hour, int minu
       }
       
       Serial.println("\n" + String('─', 60));
-      Serial.println("✅ ALARM CREATED SUCCESSFULLY");
+      Serial.println("✅✅✅ ALARM CREATED SUCCESSFULLY ✅✅✅");
       Serial.printf("   Schedule Index: %d\n", index);
       Serial.printf("   Dispense Time: %02d:%02d:00\n", schedules[index].hour, schedules[index].minute);
       Serial.printf("   Reminder Time: %02d:%02d:00 (15 min before)\n", reminderHour, reminderMinute);
       Serial.printf("   Medication: %s\n", medicationName.c_str());
       Serial.printf("   Patient: %s\n", patientName.c_str());
-      Serial.printf("   Dispenser ID: %d\n", dispenserId);
-      Serial.printf("   Dispense AlarmID: %d\n", schedules[index].alarmId);
-      Serial.printf("   Reminder AlarmID: %d\n", schedules[index].reminderAlarmId);
+      Serial.printf("   Dispenser ID: %d (Container %d)\n", dispenserId, dispenserId + 1);
+      Serial.printf("   Dispense AlarmID: %d %s\n", schedules[index].alarmId, 
+                    schedules[index].alarmId == dtINVALID_ALARM_ID ? "❌ INVALID!" : "✅ VALID");
+      Serial.printf("   Reminder AlarmID: %d %s\n", schedules[index].reminderAlarmId,
+                    schedules[index].reminderAlarmId == dtINVALID_ALARM_ID ? "❌ INVALID!" : "✅ VALID");
       Serial.printf("   Current TimeLib time: %02d:%02d:%02d\n", ::hour(), ::minute(), ::second());
-      Serial.printf("   Total alarms active: %d\n", Alarm.count());
+      Serial.printf("   Total alarms registered: %d\n", Alarm.count());
+      
+      // Calculate time until alarm
+      int currentMinutes = ::hour() * 60 + ::minute();
+      int alarmMinutes = schedules[index].hour * 60 + schedules[index].minute;
+      int minutesUntil = alarmMinutes - currentMinutes;
+      if (minutesUntil < 0) minutesUntil += 1440; // Next day
+      Serial.printf("   Minutes until alarm: %d\n", minutesUntil);
       Serial.println(String('─', 60) + "\n");
     } else {
       Serial.println("ScheduleManager: ❌ Warning - No callback available for schedule " + String(index));
@@ -308,57 +317,59 @@ bool ScheduleManager::isTodayScheduled(int scheduleIndex) {
 }
 
 void ScheduleManager::triggerSchedule(int scheduleIndex) {
-  Serial.println("\n" + String('=', 70));
+  Serial.println("\n" + String('█', 70));
   Serial.println("⏰⏰⏰ ALARM CALLBACK TRIGGERED ⏰⏰⏰");
-  Serial.println(String('=', 70));
-  Serial.println("Schedule Index: " + String(scheduleIndex));
-  Serial.println("Current Time: " + String(hour()) + ":" + String(minute()) + ":" + String(second()));
-  Serial.println(String('=', 70));
+  Serial.println(String('█', 70));
+  Serial.printf("Schedule Index: %d\n", scheduleIndex);
+  Serial.printf("Current TimeLib: %02d:%02d:%02d\n", hour(), minute(), second());
+  Serial.println(String('█', 70));
   
   if (scheduleIndex < 0 || scheduleIndex >= scheduleCount) {
     Serial.println("❌ Invalid schedule index: " + String(scheduleIndex));
-    Serial.println(String('=', 70) + "\n");
+    Serial.println(String('█', 70) + "\n");
     return;
   }
   
   MedicationSchedule* schedule = &schedules[scheduleIndex];
   Serial.printf("Schedule Time: %02d:%02d\n", schedule->hour, schedule->minute);
+  Serial.printf("Dispenser: %d (Container %d)\n", schedule->dispenserId, schedule->dispenserId + 1);
+  Serial.println("Medication: " + schedule->medicationName);
   Serial.println("Enabled: " + String(schedule->enabled ? "YES" : "NO"));
   
   if (!schedule->enabled) {
     Serial.println("❌ Schedule disabled, skipping");
-    Serial.println(String('=', 70) + "\n");
+    Serial.println(String('█', 70) + "\n");
     return;
   }
   
   // Check if today is a scheduled day
   if (!isTodayScheduled(scheduleIndex)) {
     Serial.println("❌ Not scheduled for today, skipping");
-    Serial.println(String('=', 70) + "\n");
+    Serial.println(String('█', 70) + "\n");
     return;
   }
   
   Serial.println("✅✅✅ ALL CHECKS PASSED - DISPENSING NOW ✅✅✅");
-  Serial.println("\n" + String('=', 70));
+  Serial.println("\n" + String('█', 70));
   Serial.println("⏰ SCHEDULED DISPENSING IN PROGRESS");
-  Serial.println(String('=', 70));
+  Serial.println(String('█', 70));
   Serial.printf("Time: %02d:%02d\n", schedule->hour, schedule->minute);
   Serial.println("Patient: " + schedule->patientName);
   Serial.println("Medication: " + schedule->medicationName);
-  Serial.println("Dispenser ID: " + String(schedule->dispenserId));
-  Serial.println("Container: " + String(schedule->dispenserId + 1));
+  Serial.printf("Will send DP%d command to Arduino\n", schedule->dispenserId);
   Serial.println("Pill Size: " + schedule->pillSize);
-  Serial.println(String('=', 70));
+  Serial.println(String('█', 70));
   
   // Trigger dispense callback
   if (onDispenseCallback != nullptr) {
-    Serial.println("Calling dispense callback...");
+    Serial.println("✅ Calling dispense callback...");
     onDispenseCallback(schedule->dispenserId, schedule->pillSize, 
                       schedule->medicationName, schedule->patientName);
   } else {
     Serial.println("❌❌❌ ERROR: NO DISPENSE CALLBACK SET! ❌❌❌");
+    Serial.println("The alarm triggered but cannot dispense!");
   }
-  Serial.println(String('=', 70) + "\n");
+  Serial.println(String('█', 70) + "\n");
 }
 
 void ScheduleManager::setDispenseCallback(void (*callback)(int, String, String, String)) {
