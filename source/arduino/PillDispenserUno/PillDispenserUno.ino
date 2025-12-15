@@ -123,11 +123,11 @@ void loop() {
   }
   
   // Send heartbeat every 5 seconds
-  static unsigned long lastHeartbeat = 0;
-  if (millis() - lastHeartbeat > 5000) {
-    ESP32Serial.println("HEARTBEAT");
-    lastHeartbeat = millis();
-  }
+  // static unsigned long lastHeartbeat = 0;
+  // if (millis() - lastHeartbeat > 5000) {
+  //   ESP32Serial.println("HEARTBEAT");
+  //   lastHeartbeat = millis();
+  // }
 }
 
 // ===== COMMAND PROCESSING =====
