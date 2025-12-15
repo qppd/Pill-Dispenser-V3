@@ -61,14 +61,14 @@ int getDurationForPillSize(String pillSize);
 // ===== SETUP =====
 void setup() {
   // Initialize USB Serial for debugging
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("=====================================");
   Serial.println("  Pill Dispenser V3 - Arduino Uno");
   Serial.println("  Servo Controller");
   Serial.println("=====================================");
   
   // Initialize ESP32 Serial communication
-  ESP32Serial.begin(9600);
+  ESP32Serial.begin(115200);
   delay(100);
   ESP32Serial.println("READY");
   Serial.println("ESP32 Serial initialized");

@@ -12,7 +12,7 @@ bool ArduinoServoController::begin() {
   Serial.println("ArduinoServoController: Initializing serial communication...");
   
   // Initialize UART1 with specified pins
-  serial->begin(9600, SERIAL_8N1, rxPin, txPin);
+  serial->begin(115200, SERIAL_8N1, rxPin, txPin);
   delay(100);
   
   // Clear any garbage in buffer
