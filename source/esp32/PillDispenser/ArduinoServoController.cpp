@@ -103,6 +103,10 @@ String ArduinoServoController::sendCommand(String command, unsigned long timeout
   }
   
   Serial.println("ArduinoServoController: Timeout waiting for response");
+  
+  // Mark Arduino as not ready to trigger reconnection check
+  arduinoReady = false;
+  
   return "TIMEOUT";
 }
 
@@ -137,8 +141,27 @@ bool ArduinoServoController::dispensePill(uint8_t channel) {
     return false;
   }
   
+  // Check if Arduino is connected, attempt reconnection if not
+  if (!arduinoReady) {
+    Serial.println("ArduinoServoController: Arduino not ready, attempting reconnection...");
+    if (!begin()) {
+      Serial.println("ArduinoServoController: Reconnection failed");
+      return false;
+    }
+  }
+  
   String command = "DISPENSE:" + String(channel);
   String response = sendCommand(command, responseTimeout + 3000); // Extra time for dispensing
+  
+  // If timeout, try one more time after reconnecting
+  if (response == "TIMEOUT") {
+    Serial.println("ArduinoServoController: Command timed out, attempting reconnection...");
+    if (begin()) {
+      Serial.println("ArduinoServoController: Reconnected, retrying command...");
+      response = sendCommand(command, responseTimeout + 3000);
+    }
+  }
+  
   return isSuccessResponse(response);
 }
 

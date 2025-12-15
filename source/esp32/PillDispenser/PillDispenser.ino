@@ -62,12 +62,12 @@ void sendSMSNotification(String message);
 void handleReminderNotification(int dispenserId, String pillSize, String medication, String patient);
 
 void setup() {
-  Serial.begin(115200);
-  delay(2000);
-  
-  // Initialize buzzer first to prevent noise
+  // Initialize buzzer first to prevent noise (BEFORE Serial.begin)
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
+  
+  Serial.begin(115200);
+  delay(2000);
   
   Serial.println("\n" + String('=', 50));
   Serial.println("    PILL DISPENSER V3 - STARTING UP");
@@ -96,10 +96,10 @@ void setup() {
   Serial.println(String('=', 50));
   digitalWrite(PIN_STATUS_LED, HIGH);
   
-  // Sound buzzer to indicate system ready
-  digitalWrite(PIN_BUZZER, HIGH);
-  delay(500);
-  digitalWrite(PIN_BUZZER, LOW);
+  // Sound buzzer to indicate system ready (DEACTIVATED)
+  // digitalWrite(PIN_BUZZER, HIGH);
+  // delay(500);
+  // digitalWrite(PIN_BUZZER, LOW);
 }
 
 void loop() {
@@ -207,8 +207,8 @@ void loop() {
           Serial.println("Container: " + String(containerNum));
           Serial.println("Time: " + timeManager.getTimeString());
           
-          // Play buzzer for manual dispense
-          playDispenseBuzzer();
+          // Play buzzer for manual dispense (DEACTIVATED)
+          // playDispenseBuzzer();
           
           // Perform dispense
           dispenseFromContainer(containerNum - 1);
@@ -373,8 +373,8 @@ void handleScheduledDispense(int dispenserId, String pillSize, String medication
   Serial.println("Time: " + timeManager.getTimeString());
   Serial.println(String('=', 60));
   
-  // Play buzzer for dispense event
-  playDispenseBuzzer();
+  // Play buzzer for dispense event (DEACTIVATED)
+  // playDispenseBuzzer();
   
   // Display on LCD
   lcd.displayDispenseInfo(dispenserId + 1, medication);
@@ -425,8 +425,8 @@ void checkDispenseCommands() {
       Serial.println("\n📱 Realtime dispense command received!");
       Serial.println("Container: " + String(dispenserId));
       
-      // Play buzzer for manual dispense
-      playDispenseBuzzer();
+      // Play buzzer for manual dispense (DEACTIVATED)
+      // playDispenseBuzzer();
       
       // Perform dispense (convert to 0-based index)
       dispenseFromContainer(dispenserId - 1);
@@ -507,8 +507,8 @@ void handleReminderNotification(int dispenserId, String pillSize, String medicat
   Serial.println("Time: " + timeManager.getTimeString());
   Serial.println(String('=', 60));
   
-  // Play reminder buzzer
-  playReminderBuzzer();
+  // Play reminder buzzer (DEACTIVATED)
+  // playReminderBuzzer();
   
   // Send SMS reminder to caregivers
   String smsMessage = "[PILL DISPENSER REMINDER] Upcoming medication in 15 minutes - Container " + 
