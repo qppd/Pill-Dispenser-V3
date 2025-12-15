@@ -255,6 +255,21 @@ void loop() {
   // CRITICAL: Use Alarm.delay() instead of delay() to process TimeAlarms
   // This ensures alarm callbacks are triggered at the right time
   Alarm.delay(100);
+  
+  // Debug: Print current time and alarm status every minute
+  static unsigned long lastTimeDebug = 0;
+  if (millis() - lastTimeDebug > 60000) { // Every 60 seconds
+    lastTimeDebug = millis();
+    Serial.println("\n" + String('=', 70));
+    Serial.println("⏰ TIME & ALARM STATUS");
+    Serial.println(String('=', 70));
+    Serial.printf("TimeLib (for TimeAlarms): %02d:%02d:%02d\n", hour(), minute(), second());
+    Serial.println("TimeManager: " + timeManager.getTimeString());
+    Serial.println("Active schedules: " + String(scheduleManager.getActiveScheduleCount()) + 
+                   " / " + String(scheduleManager.getScheduleCount()));
+    Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
+    Serial.println(String('=', 70) + "\n");
+  }
 }
 
 void initializeDevelopmentMode() {
