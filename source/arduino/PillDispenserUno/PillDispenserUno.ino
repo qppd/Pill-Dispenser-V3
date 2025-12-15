@@ -13,8 +13,8 @@
     PING - Test connection
     STATUS - Get system status
     SET_ANGLE:<channel>,<angle> - Set servo angle (0-180)
-    DISPENSE:<channel>,<size> - Dispense pill (size: small/medium/large)
-    DISPENSE_PAIR:<ch1>,<ch2>,<size> - Dispense from two channels
+    DISPENSE:<channel> - Dispense pill from channel
+    DISPENSE_PAIR:<ch1>,<ch2> - Dispense from two channels
     TEST_SERVO:<channel> - Test single servo
     CALIBRATE:<channel> - Calibrate servo range
     RESET_ALL - Reset all servos to 90 degrees
@@ -44,11 +44,6 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define SERVO_MIN 102      // 500μs (0 degrees)
 #define SERVO_MAX 512      // 2500μs (180 degrees)
 
-// Pill dispensing timing (milliseconds)
-#define DISPENSE_DURATION_SMALL  800
-#define DISPENSE_DURATION_MEDIUM 1000
-#define DISPENSE_DURATION_LARGE  1200
-
 // ===== CH5/CH6 NON-BLOCKING SERVO CONTROL =====
 bool servosMoving = false;
 unsigned long servoMoveStartTime = 0;
@@ -60,14 +55,13 @@ const int SERVO_MOVE_DURATION = 1000; // 1 second smooth movement
 
 // ===== FUNCTION PROTOTYPES =====
 void setServoAngle(uint8_t channel, uint16_t angle);
-void dispensePill(uint8_t channel, String pillSize);
-void dispensePillPair(uint8_t ch1, uint8_t ch2, String pillSize);
+void dispensePill(uint8_t channel);
+void dispensePillPair(uint8_t ch1, uint8_t ch2);
 void testServo(uint8_t channel);
 void calibrateServo(uint8_t channel);
 void resetAllServos();
 void stopAllServos();
 void processCommand(String command);
-int getDurationForPillSize(String pillSize);
 void startServoMovement(int ch5Start, int ch5Target, int ch6Start, int ch6Target);
 void updateServoMovement();
 void moveServosToRelease();
@@ -168,39 +162,29 @@ void processCommand(String command) {
     }
   }
   
-  // DISPENSE command: DISPENSE:<channel>,<size>
+  // DISPENSE command: DISPENSE:<channel>
   else if (command.startsWith("DISPENSE:")) {
-    int commaIndex = command.indexOf(',');
-    if (commaIndex > 0) {
-      uint8_t channel = command.substring(9, commaIndex).toInt();
-      String pillSize = command.substring(commaIndex + 1);
-      pillSize.trim();
-      
-      if (channel <= 15) {
-        dispensePill(channel, pillSize);
-        ESP32Serial.println("OK:DISPENSED:" + String(channel) + "," + pillSize);
-      } else {
-        ESP32Serial.println("ERROR:Invalid channel");
-      }
+    uint8_t channel = command.substring(9).toInt();
+    
+    if (channel <= 15) {
+      dispensePill(channel);
+      ESP32Serial.println("OK:DISPENSED:" + String(channel));
     } else {
-      ESP32Serial.println("ERROR:Invalid format");
+      ESP32Serial.println("ERROR:Invalid channel");
     }
   }
   
-  // DISPENSE_PAIR command: DISPENSE_PAIR:<ch1>,<ch2>,<size>
+  // DISPENSE_PAIR command: DISPENSE_PAIR:<ch1>,<ch2>
   else if (command.startsWith("DISPENSE_PAIR:")) {
-    int firstComma = command.indexOf(',');
-    int secondComma = command.indexOf(',', firstComma + 1);
+    int commaIndex = command.indexOf(',');
     
-    if (firstComma > 0 && secondComma > 0) {
-      uint8_t ch1 = command.substring(14, firstComma).toInt();
-      uint8_t ch2 = command.substring(firstComma + 1, secondComma).toInt();
-      String pillSize = command.substring(secondComma + 1);
-      pillSize.trim();
+    if (commaIndex > 0) {
+      uint8_t ch1 = command.substring(14, commaIndex).toInt();
+      uint8_t ch2 = command.substring(commaIndex + 1).toInt();
       
       if (ch1 <= 15 && ch2 <= 15) {
-        dispensePillPair(ch1, ch2, pillSize);
-        ESP32Serial.println("OK:DISPENSED_PAIR:" + String(ch1) + "," + String(ch2) + "," + pillSize);
+        dispensePillPair(ch1, ch2);
+        ESP32Serial.println("OK:DISPENSED_PAIR:" + String(ch1) + "," + String(ch2));
       } else {
         ESP32Serial.println("ERROR:Invalid channels");
       }
@@ -281,25 +265,8 @@ void setServoAngle(uint8_t channel, uint16_t angle) {
   Serial.println("°");
 }
 
-int getDurationForPillSize(String pillSize) {
-  pillSize.toLowerCase();
-  
-  if (pillSize == "small") {
-    return DISPENSE_DURATION_SMALL;
-  } else if (pillSize == "medium") {
-    return DISPENSE_DURATION_MEDIUM;
-  } else if (pillSize == "large") {
-    return DISPENSE_DURATION_LARGE;
-  } else {
-    Serial.println("Unknown pill size, using medium");
-    return DISPENSE_DURATION_MEDIUM;
-  }
-}
-
-void dispensePill(uint8_t channel, String pillSize) {
-  Serial.print("Dispensing ");
-  Serial.print(pillSize);
-  Serial.print(" pill from channel ");
+void dispensePill(uint8_t channel) {
+  Serial.print("Dispensing pill from channel ");
   Serial.println(channel);
   
   // Move servo to 180 degrees
@@ -316,10 +283,8 @@ void dispensePill(uint8_t channel, String pillSize) {
   Serial.println("Dispensing complete");
 }
 
-void dispensePillPair(uint8_t ch1, uint8_t ch2, String pillSize) {
-  Serial.print("Dispensing ");
-  Serial.print(pillSize);
-  Serial.print(" pills from channels ");
+void dispensePillPair(uint8_t ch1, uint8_t ch2) {
+  Serial.print("Dispensing pills from channels ");
   Serial.print(ch1);
   Serial.print(" & ");
   Serial.println(ch2);

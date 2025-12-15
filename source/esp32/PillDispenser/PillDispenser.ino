@@ -409,7 +409,7 @@ void dispenseFromContainer(int dispenserId) {
   
   // Use the dispensePill method via Arduino servo controller
   // This moves servo to 180 degrees, waits 2 seconds, then returns to 0 degrees
-  if (servoController.dispensePill(dispenserId, "medium")) {
+  if (servoController.dispensePill(dispenserId)) {
     pillCount++;
     Serial.println("✅ Dispense complete. Total pills dispensed: " + String(pillCount));
   } else {

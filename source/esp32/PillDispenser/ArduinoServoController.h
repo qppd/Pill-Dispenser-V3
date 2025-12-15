@@ -64,19 +64,17 @@ public:
   /**
    * Dispense a pill from specified channel
    * @param channel Servo channel (0-15)
-   * @param pillSize Size of pill: "small", "medium", "large" (default: "medium")
    * @return true if successful
    */
-  bool dispensePill(uint8_t channel, String pillSize = "medium");
+  bool dispensePill(uint8_t channel);
   
   /**
    * Dispense pills from two channels simultaneously
    * @param channel1 First servo channel (0-15)
    * @param channel2 Second servo channel (0-15)
-   * @param pillSize Size of pill: "small", "medium", "large" (default: "medium")
    * @return true if successful
    */
-  bool dispensePillPair(uint8_t channel1, uint8_t channel2, String pillSize = "medium");
+  bool dispensePillPair(uint8_t channel1, uint8_t channel2);
   
   /**
    * Test a single servo through full range

@@ -131,36 +131,24 @@ bool ArduinoServoController::setServoAngle(uint8_t channel, uint16_t angle) {
   return isSuccessResponse(response);
 }
 
-bool ArduinoServoController::dispensePill(uint8_t channel, String pillSize) {
+bool ArduinoServoController::dispensePill(uint8_t channel) {
   if (channel > 15) {
     Serial.println("ArduinoServoController: Invalid channel");
     return false;
   }
   
-  pillSize.toLowerCase();
-  if (pillSize != "small" && pillSize != "medium" && pillSize != "large") {
-    Serial.println("ArduinoServoController: Invalid pill size, using medium");
-    pillSize = "medium";
-  }
-  
-  String command = "DISPENSE:" + String(channel) + "," + pillSize;
+  String command = "DISPENSE:" + String(channel);
   String response = sendCommand(command, responseTimeout + 3000); // Extra time for dispensing
   return isSuccessResponse(response);
 }
 
-bool ArduinoServoController::dispensePillPair(uint8_t channel1, uint8_t channel2, String pillSize) {
+bool ArduinoServoController::dispensePillPair(uint8_t channel1, uint8_t channel2) {
   if (channel1 > 15 || channel2 > 15) {
     Serial.println("ArduinoServoController: Invalid channel(s)");
     return false;
   }
   
-  pillSize.toLowerCase();
-  if (pillSize != "small" && pillSize != "medium" && pillSize != "large") {
-    Serial.println("ArduinoServoController: Invalid pill size, using medium");
-    pillSize = "medium";
-  }
-  
-  String command = "DISPENSE_PAIR:" + String(channel1) + "," + String(channel2) + "," + pillSize;
+  String command = "DISPENSE_PAIR:" + String(channel1) + "," + String(channel2);
   String response = sendCommand(command, responseTimeout + 3000); // Extra time for dispensing
   return isSuccessResponse(response);
 }
