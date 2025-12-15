@@ -54,14 +54,18 @@ int ch6TargetAngle = 0;
 const int SERVO_MOVE_DURATION = 1000; // 1 second smooth movement
 
 // ===== FUNCTION PROTOTYPES =====
-void setServoAngle(uint8_t channel, uint16_t angle);
-void dispensePill(uint8_t channel);
-void dispensePillPair(uint8_t ch1, uint8_t ch2);
-void testServo(uint8_t channel);
-void calibrateServo(uint8_t channel);
-void resetAllServos();
-void stopAllServos();
-void processCommand(String command);
+void setServoAngle(uint8_t channel, uint16_t angle) {
+  // Clamp angle
+  if (angle > 180) angle = 180;
+  if (angle < 0) angle = 0;
+  // Invert CH6 direction
+  if (channel == 6) {
+    angle = 180 - angle;
+  }
+  // Map angle to pulse length
+  uint16_t pulse = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
+  pwm.setPWM(channel, 0, pulse);
+}
 void processSerialMonitorCommand(String command);
 void startServoMovement(int ch5Start, int ch5Target, int ch6Start, int ch6Target);
 void updateServoMovement();
