@@ -42,7 +42,6 @@ int pillCount = 0;
 // WiFi credentials (for development - move to secure storage in production)
 const String WIFI_SSID = "jayron";
 const String WIFI_PASSWORD = "12345678";
-const String USER_ID = "d1SdACjSzbZBNzfhMOFhZixVEX82";  // This should come from Firebase auth in production
 
 // Firebase credentials loaded from FirebaseConfig.h
 // Edit FirebaseConfig.cpp to set your actual credentials
