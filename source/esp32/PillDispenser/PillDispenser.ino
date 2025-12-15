@@ -8,7 +8,7 @@
 #include <WiFi.h>
 #include "PINS_CONFIG.h"
 #include "FirebaseConfig.h"
-#include "ArduinoServoController.h"  // Replaced ServoDriver with Arduino serial controller
+#include "ArduinoServoController.h"  // Servo control via Arduino Uno serial communication
 #include "LCDDisplay.h"  // Reactivated LCDDisplay
 #include "TimeManager.h"
 #include "FirebaseManager.h"
@@ -35,6 +35,7 @@ bool systemInitialized = false;
 String currentMode = "DEVELOPMENT";
 unsigned long lastHeartbeat = 0;
 unsigned long lastLcdUpdate = 0;  // Reactivate LCD time update
+unsigned long lastTimeDebug = 0;   // For debug time output
 int pillCount = 0;
 
 // WiFi credentials (for development - move to secure storage in production)
@@ -206,6 +207,14 @@ void loop() {
         Serial.println("Resetting all servos to 90 degrees...");
         servoController.resetAllServos();
         Serial.println("✅ All servos reset");
+      } else if (command == "servo release") {
+        Serial.println("Moving CH5/CH6 servos to release position...");
+        servoController.moveServosToRelease();
+        Serial.println("✅ CH5/CH6 moved to release position");
+      } else if (command == "servo home") {
+        Serial.println("Moving CH5/CH6 servos to home position...");
+        servoController.moveServosToHome();
+        Serial.println("✅ CH5/CH6 moved to home position");
       } else if (command == "servo stop") {
         Serial.println("Stopping all servos...");
         servoController.stopAllServos();
@@ -237,6 +246,8 @@ void loop() {
         Serial.println("servo test <0-4> - Test specific servo");
         Serial.println("servo sweep - Sweep all servos");
         Serial.println("servo reset - Reset all servos to 90°");
+        Serial.println("servo release - Move CH5/CH6 to release position");
+        Serial.println("servo home - Move CH5/CH6 to home position");
         Serial.println("servo stop - Stop all servos");
         Serial.println("dispense <1-5> - Manual dispense from container");
         Serial.println("calibrate <0-4> - Calibrate specific servo");

@@ -19,6 +19,8 @@
     CALIBRATE:<channel> - Calibrate servo range
     RESET_ALL - Reset all servos to 90 degrees
     STOP_ALL - Stop all servos
+    MOVE_TO_RELEASE - Move CH5/CH6 to release position (CH5: 90→0, CH6: 0→90)
+    MOVE_TO_HOME - Move CH5/CH6 to home position (CH5: 0→90, CH6: 90→0)
     
   Author: Pill Dispenser V3 Team
   Date: December 2025
@@ -47,6 +49,15 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define DISPENSE_DURATION_MEDIUM 1000
 #define DISPENSE_DURATION_LARGE  1200
 
+// ===== CH5/CH6 NON-BLOCKING SERVO CONTROL =====
+bool servosMoving = false;
+unsigned long servoMoveStartTime = 0;
+int ch5StartAngle = 90;
+int ch5TargetAngle = 90;
+int ch6StartAngle = 0;
+int ch6TargetAngle = 0;
+const int SERVO_MOVE_DURATION = 1000; // 1 second smooth movement
+
 // ===== FUNCTION PROTOTYPES =====
 void setServoAngle(uint8_t channel, uint16_t angle);
 void dispensePill(uint8_t channel, String pillSize);
@@ -57,6 +68,10 @@ void resetAllServos();
 void stopAllServos();
 void processCommand(String command);
 int getDurationForPillSize(String pillSize);
+void startServoMovement(int ch5Start, int ch5Target, int ch6Start, int ch6Target);
+void updateServoMovement();
+void moveServosToRelease();
+void moveServosToHome();
 
 // ===== SETUP =====
 void setup() {
@@ -82,7 +97,13 @@ void setup() {
   // Initialize all servos to neutral position
   stopAllServos();
   
+  // Set CH5 and CH6 to their starting positions
+  setServoAngle(5, 90);  // CH5 starts at 90°
+  setServoAngle(6, 0);   // CH6 starts at 0°
+  delay(100);
+  
   Serial.println("PCA9685 initialized - All servos stopped");
+  Serial.println("CH5 initialized to 90°, CH6 initialized to 0°");
   Serial.println("System ready - Waiting for commands...");
   Serial.println("=====================================\n");
   
@@ -92,6 +113,9 @@ void setup() {
 
 // ===== MAIN LOOP =====
 void loop() {
+  // Update non-blocking servo movement for CH5/CH6
+  updateServoMovement();
+  
   // Check for commands from ESP32
   if (ESP32Serial.available()) {
     String command = ESP32Serial.readStringUntil('\n');
@@ -217,6 +241,18 @@ void processCommand(String command) {
   else if (command == "STOP_ALL") {
     stopAllServos();
     ESP32Serial.println("OK:STOP_ALL_COMPLETE");
+  }
+  
+  // MOVE_TO_RELEASE command - CH5: 90→ 0, CH6: 0→ 90
+  else if (command == "MOVE_TO_RELEASE") {
+    moveServosToRelease();
+    ESP32Serial.println("OK:MOVE_TO_RELEASE_STARTED");
+  }
+  
+  // MOVE_TO_HOME command - CH5: 0→ 90, CH6: 90→ 0
+  else if (command == "MOVE_TO_HOME") {
+    moveServosToHome();
+    ESP32Serial.println("OK:MOVE_TO_HOME_STARTED");
   }
   
   // Unknown command
@@ -371,4 +407,67 @@ void stopAllServos() {
     pwm.setPWM(i, 0, 0);
   }
   Serial.println("All servos stopped");
+}
+
+// ===== CH5/CH6 NON-BLOCKING MOVEMENT FUNCTIONS =====
+
+void startServoMovement(int ch5Start, int ch5Target, int ch6Start, int ch6Target) {
+  ch5StartAngle = ch5Start;
+  ch5TargetAngle = ch5Target;
+  ch6StartAngle = ch6Start;
+  ch6TargetAngle = ch6Target;
+  servoMoveStartTime = millis();
+  servosMoving = true;
+  
+  Serial.print("Starting servo movement: CH5 ");
+  Serial.print(ch5Start);
+  Serial.print("° → ");
+  Serial.print(ch5Target);
+  Serial.print("°, CH6 ");
+  Serial.print(ch6Start);
+  Serial.print("° → ");
+  Serial.print(ch6Target);
+  Serial.println("°");
+}
+
+void updateServoMovement() {
+  if (!servosMoving) {
+    return;
+  }
+  
+  unsigned long elapsed = millis() - servoMoveStartTime;
+  
+  if (elapsed >= SERVO_MOVE_DURATION) {
+    // Movement complete - set to target positions
+    setServoAngle(5, ch5TargetAngle);
+    setServoAngle(6, ch6TargetAngle);
+    servosMoving = false;
+    Serial.println("Servo movement complete");
+    return;
+  }
+  
+  // Calculate current position using linear interpolation
+  float progress = (float)elapsed / (float)SERVO_MOVE_DURATION;
+  
+  int ch5CurrentAngle = ch5StartAngle + (int)((ch5TargetAngle - ch5StartAngle) * progress);
+  int ch6CurrentAngle = ch6StartAngle + (int)((ch6TargetAngle - ch6StartAngle) * progress);
+  
+  setServoAngle(5, ch5CurrentAngle);
+  setServoAngle(6, ch6CurrentAngle);
+  
+  delay(20); // Small delay for smooth movement
+}
+
+void moveServosToRelease() {
+  Serial.println("Moving to RELEASE position");
+  // CH5: 90° → 0°
+  // CH6: 0° → 90°
+  startServoMovement(90, 0, 0, 90);
+}
+
+void moveServosToHome() {
+  Serial.println("Moving to HOME position");
+  // CH5: 0° → 90°
+  // CH6: 90° → 0°
+  startServoMovement(0, 90, 90, 0);
 }
