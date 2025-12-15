@@ -385,12 +385,12 @@ void updateServoMovement() {
 
 void moveServosToRelease() {
   Serial.println(F("Release"));
-  startServoMovement(90, 0, 0, 90);  // CH5: 90→0, CH6: 0→90 (same direction)
+  startServoMovement(90, 0, 0, 87);  // CH5: 90→0, CH6: 0→90 (same direction)
 }
 
 void moveServosToHome() {
   Serial.println(F("Home"));
-  startServoMovement(0, 90, 90, 0);  // CH5: 0→90, CH6: 90→0 (same direction)
+  startServoMovement(0, 90, 87, 0);  // CH5: 0→90, CH6: 90→0 (same direction)
 }
 
 // ===== SERIAL MONITOR COMMAND PROCESSING =====
