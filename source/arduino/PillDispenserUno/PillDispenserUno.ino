@@ -87,7 +87,7 @@ void setup() {
   
   // Set CH5 and CH6 to their starting positions
   setServoAngle(5, 90);
-  setServoAngle(6, 0);
+  // setServoAngle(6, 0); // CH6 deactivated for calibration
   delay(100);
   
   Serial.println(F("PCA9685 initialized"));
@@ -348,8 +348,8 @@ void stopAllServos() {
 void startServoMovement(int ch5Start, int ch5Target, int ch6Start, int ch6Target) {
   ch5StartAngle = ch5Start;
   ch5TargetAngle = ch5Target;
-  ch6StartAngle = ch6Start;
-  ch6TargetAngle = ch6Target;
+  // ch6StartAngle = ch6Start; // CH6 deactivated
+  // ch6TargetAngle = ch6Target; // CH6 deactivated
   servoMoveStartTime = millis();
   servosMoving = true;
   
@@ -365,32 +365,28 @@ void updateServoMovement() {
   
   if (elapsed >= SERVO_MOVE_DURATION) {
     setServoAngle(5, ch5TargetAngle);
-    setServoAngle(6, ch6TargetAngle);
+    // setServoAngle(6, ch6TargetAngle); // CH6 deactivated
     servosMoving = false;
     Serial.println(F("Complete"));
     return;
   }
-  
   // Calculate current position using linear interpolation
   float progress = (float)elapsed / (float)SERVO_MOVE_DURATION;
-  
   int ch5CurrentAngle = ch5StartAngle + (int)((ch5TargetAngle - ch5StartAngle) * progress);
-  int ch6CurrentAngle = ch6StartAngle + (int)((ch6TargetAngle - ch6StartAngle) * progress);
-  
+  // int ch6CurrentAngle = ch6StartAngle + (int)((ch6TargetAngle - ch6StartAngle) * progress); // CH6 deactivated
   setServoAngle(5, ch5CurrentAngle);
-  setServoAngle(6, ch6CurrentAngle);
-  
+  // setServoAngle(6, ch6CurrentAngle); // CH6 deactivated
   delay(20); // Small delay for smooth movement
 }
 
 void moveServosToRelease() {
   Serial.println(F("Release"));
-  startServoMovement(90, 0, 0, 90);  // CH5: 90→0, CH6: 0→90 (same direction)
+  startServoMovement(90, 0, 0, 0);  // CH5 only, CH6 deactivated
 }
 
 void moveServosToHome() {
   Serial.println(F("Home"));
-  startServoMovement(0, 90, 90, 0);  // CH5: 0→90, CH6: 90→0 (same direction)
+  startServoMovement(0, 90, 0, 0);  // CH5 only, CH6 deactivated
 }
 
 // ===== SERIAL MONITOR COMMAND PROCESSING =====
