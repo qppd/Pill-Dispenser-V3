@@ -9,7 +9,7 @@
 #include <WiFi.h>
 #include "PINS_CONFIG.h"
 #include "FirebaseConfig.h"
-#include "ServoDriver.h"
+#include "ArduinoServoController.h"  // Replaced ServoDriver with Arduino serial controller
 // #include "LCDDisplay.h"  // Temporarily removed to prevent NACK detection
 #include "TimeManager.h"
 #include "FirebaseManager.h"
@@ -23,7 +23,7 @@
 #define PRODUCTION_MODE false  // Will implement later
 
 // ===== COMPONENT INSTANCES =====
-ServoDriver servoDriver;
+ArduinoServoController servoController(PIN_UNO_RX, PIN_UNO_TX);  // Serial communication with Arduino Uno
 // LCDDisplay lcd;  // Temporarily removed to prevent NACK detection
 TimeManager timeManager;
 FirebaseManager firebase;
@@ -148,12 +148,15 @@ void loop() {
       Serial.println("💓 System heartbeat - " + timeManager.getTimeString());
       Serial.println("Next schedule: " + scheduleManager.getNextScheduleTime());
       
-      // Check servo driver connection
-      if (servoDriver.isConnected()) {
-        Serial.println("Servo Driver: Connected");
+      // Check Arduino servo controller connection
+      if (servoController.isConnected()) {
+        Serial.println("Arduino Servo Controller: Connected");
       } else {
-        Serial.println("⚠️  WARNING: Servo Driver not responding! Check connections.");
+        Serial.println("⚠️  WARNING: Arduino Servo Controller not responding! Check connections.");
       }
+      
+      // Update servo controller to process async messages
+      servoController.update();
       
       lastHeartbeat = millis();
     }
@@ -174,18 +177,18 @@ void loop() {
         Serial.println("Current NTP time: " + timeManager.getTimeString());
         Serial.printf("TimeAlarms time: %02d:%02d:%02d\n", hour(), minute(), second());
       } else if (command == "servo status") {
-        Serial.println("\n========== SERVO DRIVER STATUS ==========");
-        if (servoDriver.isConnected()) {
-          Serial.println("✅ PCA9685 connected and responding");
+        Serial.println("\n========== SERVO CONTROLLER STATUS ==========");
+        if (servoController.isConnected()) {
+          Serial.println("✅ Arduino Uno connected and responding");
         } else {
-          Serial.println("❌ PCA9685 not responding");
+          Serial.println("❌ Arduino Uno not responding");
         }
-        Serial.println("=========================================");
+        Serial.println("=============================================");
       } else if (command.startsWith("servo test ")) {
         int servoNum = command.substring(11).toInt();
-        if (servoNum >= 0 && servoNum <= 4) {
+        if (servoNum >= 0 && servoNum <= 15) {
           Serial.println("Testing servo " + String(servoNum) + "...");
-          servoDriver.testServo(servoNum);
+          servoController.testServo(servoNum);
           Serial.println("✅ Servo test complete");
         } else {
           Serial.println("❌ Invalid servo number (0-4)");
@@ -194,21 +197,21 @@ void loop() {
         Serial.println("Testing all servos with sweep...");
         for (int i = 0; i <= 4; i++) {
           Serial.println("Sweeping servo " + String(i) + "...");
-          servoDriver.setServoAngle(i, 0);
+          servoController.setServoAngle(i, 0);
           delay(500);
-          servoDriver.setServoAngle(i, 180);
+          servoController.setServoAngle(i, 180);
           delay(500);
-          servoDriver.setServoAngle(i, 90);
+          servoController.setServoAngle(i, 90);
           delay(500);
         }
         Serial.println("✅ Servo sweep complete");
       } else if (command == "servo reset") {
         Serial.println("Resetting all servos to 90 degrees...");
-        servoDriver.resetAllServos();
+        servoController.resetAllServos();
         Serial.println("✅ All servos reset");
       } else if (command == "servo stop") {
         Serial.println("Stopping all servos...");
-        servoDriver.stopAllServos();
+        servoController.stopAllServos();
         Serial.println("✅ All servos stopped");
       } else if (command.startsWith("dispense ")) {
         int containerNum = command.substring(9).toInt();
@@ -221,9 +224,9 @@ void loop() {
         }
       } else if (command.startsWith("calibrate ")) {
         int servoNum = command.substring(10).toInt();
-        if (servoNum >= 0 && servoNum <= 4) {
+        if (servoNum >= 0 && servoNum <= 15) {
           Serial.println("Calibrating servo " + String(servoNum) + "...");
-          servoDriver.calibrateServo(servoNum);
+          servoController.calibrateServo(servoNum);
           Serial.println("✅ Calibration complete");
         } else {
           Serial.println("❌ Invalid servo number (0-4)");
@@ -276,15 +279,15 @@ void initializeDevelopmentMode() {
     Serial.println("❌ FAILED");
   }
   
-  // Initialize Servo Driver
-  Serial.print("Servo Driver: ");
-  if (servoDriver.begin()) {
+  // Initialize Arduino Servo Controller
+  Serial.print("Arduino Servo Controller: ");
+  if (servoController.begin()) {
     Serial.println("✅ OK");
     
     // Set all servos from ch0 to ch4 to angle 0 as starting point
     Serial.println("Setting servos ch0-ch4 to angle 0...");
     for (int ch = 0; ch <= 4; ch++) {
-      servoDriver.setServoAngle(ch, 0);
+      servoController.setServoAngle(ch, 0);
       delay(100); // Small delay between servo movements
     }
     Serial.println("All servos initialized to 0 degrees");
@@ -396,12 +399,14 @@ void dispenseFromContainer(int dispenserId) {
   
   Serial.println("🔄 Dispensing from container " + String(dispenserId + 1) + "...");
   
-  // Use the dispensePill method from ServoDriver for proper pill dispensing
+  // Use the dispensePill method via Arduino servo controller
   // This moves servo to 180 degrees, waits 2 seconds, then returns to 0 degrees
-  servoDriver.dispensePill(dispenserId, "medium");
-  
-  pillCount++;
-  Serial.println("✅ Dispense complete. Total pills dispensed: " + String(pillCount));
+  if (servoController.dispensePill(dispenserId, "medium")) {
+    pillCount++;
+    Serial.println("✅ Dispense complete. Total pills dispensed: " + String(pillCount));
+  } else {
+    Serial.println("❌ Dispense failed - Arduino communication error");
+  }
 }
 
 // Check for realtime dispense commands from web app
