@@ -353,24 +353,6 @@ void initializeDevelopmentMode() {
   systemInitialized = true;
 }
 
-void testFirebaseConnection() {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("❌ WiFi not connected. Use 'wifi connect' first.");
-    return;
-  }
-  
-  Serial.println("🔥 Testing Firebase connection...");
-  
-  if (firebase.begin(PillDispenserConfig::getApiKey(), PillDispenserConfig::getDatabaseURL())) {
-    firebase.testConnection();
-    firebase.testDataUpload();
-    
-    // Test pill report functionality
-    firebase.sendPillReport(1, timeManager.getDateTimeString(), "Test dispense from development mode", 1);
-  } else {
-    Serial.println("❌ Firebase initialization failed");
-  }
-}
 
 // Callback function for scheduled dispensing
 void handleScheduledDispense(int dispenserId, String pillSize, String medication, String patient) {
@@ -430,9 +412,6 @@ void checkDispenseCommands() {
     if (dispenserId >= 1 && dispenserId <= 5) {
       Serial.println("\n📱 Realtime dispense command received!");
       Serial.println("Container: " + String(dispenserId));
-      
-      // Display on LCD
-      // lcd.displayDispenseInfo(dispenserId, "Manual Dispense");  // Temporarily disabled to prevent NACK detection
       
       // Perform dispense (convert to 0-based index)
       dispenseFromContainer(dispenserId - 1);
