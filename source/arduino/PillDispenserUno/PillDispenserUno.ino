@@ -72,20 +72,20 @@ void moveServosToHome();
 void setup() {
   // Initialize USB Serial for debugging
   Serial.begin(115200);
-  Serial.println("=====================================");
-  Serial.println("  Pill Dispenser V3 - Arduino Uno");
-  Serial.println("  Servo Controller");
-  Serial.println("=====================================");
+  Serial.println(F("====================================="));
+  Serial.println(F("  Pill Dispenser V3 - Arduino Uno"));
+  Serial.println(F("  Servo Controller"));
+  Serial.println(F("====================================="));
   
   // Initialize ESP32 Serial communication
   ESP32Serial.begin(115200);
   delay(100);
-  ESP32Serial.println("READY");
-  Serial.println("ESP32 Serial initialized");
+  ESP32Serial.println(F("READY"));
+  Serial.println(F("ESP32 Serial initialized"));
   
   // Initialize PCA9685
   pwm.begin();
-  pwm.setOscillatorFrequency(27000000); // Calibrate for your PCA9685
+  pwm.setOscillatorFrequency(27000000);
   pwm.setPWMFreq(SERVO_FREQ);
   delay(10);
   
@@ -93,17 +93,15 @@ void setup() {
   stopAllServos();
   
   // Set CH5 and CH6 to their starting positions
-  setServoAngle(5, 90);  // CH5 starts at 90°
-  setServoAngle(6, 0);   // CH6 starts at 0°
+  setServoAngle(5, 90);
+  setServoAngle(6, 0);
   delay(100);
   
-  Serial.println("PCA9685 initialized - All servos stopped");
-  Serial.println("CH5 initialized to 90°, CH6 initialized to 0°");
-  Serial.println("System ready - Waiting for commands...");
-  Serial.println("=====================================\n");
+  Serial.println(F("PCA9685 initialized"));
+  Serial.println(F("System ready"));
   
   // Send ready signal to ESP32
-  ESP32Serial.println("INIT:OK");
+  ESP32Serial.println(F("INIT:OK"));
 }
 
 // ===== MAIN LOOP =====
@@ -148,14 +146,14 @@ void loop() {
 void processCommand(String command) {
   // PING command
   if (command == "PING") {
-    ESP32Serial.println("PONG");
-    Serial.println("Response: PONG");
+    ESP32Serial.println(F("PONG"));
+    Serial.println(F("PONG"));
   }
   
   // STATUS command
   else if (command == "STATUS") {
-    ESP32Serial.println("OK:READY");
-    Serial.println("Response: OK:READY");
+    ESP32Serial.println(F("OK:READY"));
+    Serial.println(F("OK:READY"));
   }
   
   // SET_ANGLE command: SET_ANGLE:<channel>,<angle>
@@ -167,12 +165,15 @@ void processCommand(String command) {
       
       if (channel <= 15 && angle <= 180) {
         setServoAngle(channel, angle);
-        ESP32Serial.println("OK:SET_ANGLE:" + String(channel) + "," + String(angle));
+        ESP32Serial.print(F("OK:SET_ANGLE:"));
+        ESP32Serial.print(channel);
+        ESP32Serial.print(',');
+        ESP32Serial.println(angle);
       } else {
-        ESP32Serial.println("ERROR:Invalid parameters");
+        ESP32Serial.println(F("ERROR:Invalid"));
       }
     } else {
-      ESP32Serial.println("ERROR:Invalid format");
+      ESP32Serial.println(F("ERROR:Format"));
     }
   }
   
@@ -182,9 +183,10 @@ void processCommand(String command) {
     
     if (channel <= 15) {
       dispensePill(channel);
-      ESP32Serial.println("OK:DISPENSED:" + String(channel));
+      ESP32Serial.print(F("OK:DISPENSED:"));
+      ESP32Serial.println(channel);
     } else {
-      ESP32Serial.println("ERROR:Invalid channel");
+      ESP32Serial.println(F("ERROR:Invalid"));
     }
   }
   
@@ -198,12 +200,15 @@ void processCommand(String command) {
       
       if (ch1 <= 15 && ch2 <= 15) {
         dispensePillPair(ch1, ch2);
-        ESP32Serial.println("OK:DISPENSED_PAIR:" + String(ch1) + "," + String(ch2));
+        ESP32Serial.print(F("OK:DISPENSED_PAIR:"));
+        ESP32Serial.print(ch1);
+        ESP32Serial.print(',');
+        ESP32Serial.println(ch2);
       } else {
-        ESP32Serial.println("ERROR:Invalid channels");
+        ESP32Serial.println(F("ERROR:Invalid"));
       }
     } else {
-      ESP32Serial.println("ERROR:Invalid format");
+      ESP32Serial.println(F("ERROR:Format"));
     }
   }
   
@@ -212,9 +217,10 @@ void processCommand(String command) {
     uint8_t channel = command.substring(11).toInt();
     if (channel <= 15) {
       testServo(channel);
-      ESP32Serial.println("OK:TEST_COMPLETE:" + String(channel));
+      ESP32Serial.print(F("OK:TEST_COMPLETE:"));
+      ESP32Serial.println(channel);
     } else {
-      ESP32Serial.println("ERROR:Invalid channel");
+      ESP32Serial.println(F("ERROR:Invalid"));
     }
   }
   
@@ -223,107 +229,89 @@ void processCommand(String command) {
     uint8_t channel = command.substring(10).toInt();
     if (channel <= 15) {
       calibrateServo(channel);
-      ESP32Serial.println("OK:CALIBRATE_COMPLETE:" + String(channel));
+      ESP32Serial.print(F("OK:CALIBRATE_COMPLETE:"));
+      ESP32Serial.println(channel);
     } else {
-      ESP32Serial.println("ERROR:Invalid channel");
+      ESP32Serial.println(F("ERROR:Invalid"));
     }
   }
   
   // RESET_ALL command
   else if (command == "RESET_ALL") {
     resetAllServos();
-    ESP32Serial.println("OK:RESET_ALL_COMPLETE");
+    ESP32Serial.println(F("OK:RESET_ALL_COMPLETE"));
   }
   
   // STOP_ALL command
   else if (command == "STOP_ALL") {
     stopAllServos();
-    ESP32Serial.println("OK:STOP_ALL_COMPLETE");
+    ESP32Serial.println(F("OK:STOP_ALL_COMPLETE"));
   }
   
-  // MOVE_TO_RELEASE command - CH5: 90→ 0, CH6: 0→ 90
+  // MOVE_TO_RELEASE command
   else if (command == "MOVE_TO_RELEASE") {
     moveServosToRelease();
-    ESP32Serial.println("OK:MOVE_TO_RELEASE_STARTED");
+    ESP32Serial.println(F("OK:MOVE_TO_RELEASE_STARTED"));
   }
   
-  // MOVE_TO_HOME command - CH5: 0→ 90, CH6: 90→ 0
+  // MOVE_TO_HOME command
   else if (command == "MOVE_TO_HOME") {
     moveServosToHome();
-    ESP32Serial.println("OK:MOVE_TO_HOME_STARTED");
+    ESP32Serial.println(F("OK:MOVE_TO_HOME_STARTED"));
   }
   
   // Unknown command
   else {
-    ESP32Serial.println("ERROR:Unknown command: " + command);
-    Serial.println("Unknown command: " + command);
+    ESP32Serial.println(F("ERROR:Unknown"));
   }
 }
 
 // ===== SERVO CONTROL FUNCTIONS =====
 
 void setServoAngle(uint8_t channel, uint16_t angle) {
-  if (channel > 15 || angle > 180) {
-    Serial.println("Error: Invalid channel or angle");
-    return;
-  }
+  if (channel > 15 || angle > 180) return;
   
-  // Map angle (0-180) to pulse width (SERVO_MIN-SERVO_MAX)
   uint16_t pulse = map(angle, 0, 180, SERVO_MIN, SERVO_MAX);
   pwm.setPWM(channel, 0, pulse);
   
-  Serial.print("Servo ");
+  Serial.print(F("CH"));
   Serial.print(channel);
-  Serial.print(" -> ");
-  Serial.print(angle);
-  Serial.println("°");
+  Serial.print(':');
+  Serial.println(angle);
 }
 
 void dispensePill(uint8_t channel) {
-  Serial.print("Dispensing pill from channel ");
+  Serial.print(F("Dispense CH"));
   Serial.println(channel);
   
-  // Move servo to 180 degrees
   setServoAngle(channel, 180);
-  delay(100);
-  
-  // Wait for pill to dispense
-  delay(2000);
-  
-  // Move servo back to 0 degrees
+  delay(2100);
   setServoAngle(channel, 0);
   delay(100);
   
-  Serial.println("Dispensing complete");
+  Serial.println(F("Done"));
 }
 
 void dispensePillPair(uint8_t ch1, uint8_t ch2) {
-  Serial.print("Dispensing pills from channels ");
+  Serial.print(F("Pair "));
   Serial.print(ch1);
-  Serial.print(" & ");
+  Serial.print('&');
   Serial.println(ch2);
   
-  // Move both servos to 180 degrees
   setServoAngle(ch1, 180);
   setServoAngle(ch2, 180);
-  delay(100);
-  
-  // Wait for pills to dispense
-  delay(2000);
-  
-  // Move both servos back to 0 degrees
+  delay(2100);
   setServoAngle(ch1, 0);
   setServoAngle(ch2, 0);
   delay(150);
   
-  Serial.println("Pair dispensing complete");
+  Serial.println(F("Done"));
 }
 
 void testServo(uint8_t channel) {
-  Serial.print("Testing servo ");
+  Serial.print(F("Test CH"));
   Serial.println(channel);
   
-  // Test sequence: 0 -> 90 -> 180 -> 90
   setServoAngle(channel, 0);
   delay(1000);
   setServoAngle(channel, 90);
@@ -332,60 +320,39 @@ void testServo(uint8_t channel) {
   delay(1000);
   setServoAngle(channel, 90);
   delay(500);
-  
-  Serial.println("Test complete");
 }
 
 void calibrateServo(uint8_t channel) {
-  Serial.print("Calibrating servo ");
+  Serial.print(F("Cal CH"));
   Serial.println(channel);
   
-  // Test minimum position (0°)
-  Serial.println("Moving to 0°...");
   setServoAngle(channel, 0);
   delay(1500);
-  
-  // Test maximum position (180°)
-  Serial.println("Moving to 180°...");
   setServoAngle(channel, 180);
   delay(1500);
-  
-  // Test center position (90°)
-  Serial.println("Moving to 90°...");
   setServoAngle(channel, 90);
   delay(1000);
-  
-  // Test quarter positions
-  Serial.println("Testing 45°...");
   setServoAngle(channel, 45);
   delay(1000);
-  
-  Serial.println("Testing 135°...");
   setServoAngle(channel, 135);
   delay(1000);
-  
-  // Return to center
   setServoAngle(channel, 90);
   delay(500);
-  
-  Serial.println("Calibration complete");
 }
 
 void resetAllServos() {
-  Serial.println("Resetting all servos to 90°");
+  Serial.println(F("Reset"));
   for (uint8_t i = 0; i < 16; i++) {
     setServoAngle(i, 90);
     delay(50);
   }
-  Serial.println("Reset complete");
 }
 
 void stopAllServos() {
-  Serial.println("Stopping all servos");
+  Serial.println(F("Stop"));
   for (uint8_t i = 0; i < 16; i++) {
     pwm.setPWM(i, 0, 0);
   }
-  Serial.println("All servos stopped");
 }
 
 // ===== CH5/CH6 NON-BLOCKING MOVEMENT FUNCTIONS =====
@@ -398,15 +365,7 @@ void startServoMovement(int ch5Start, int ch5Target, int ch6Start, int ch6Target
   servoMoveStartTime = millis();
   servosMoving = true;
   
-  Serial.print("Starting servo movement: CH5 ");
-  Serial.print(ch5Start);
-  Serial.print("° → ");
-  Serial.print(ch5Target);
-  Serial.print("°, CH6 ");
-  Serial.print(ch6Start);
-  Serial.print("° → ");
-  Serial.print(ch6Target);
-  Serial.println("°");
+  Serial.println(F("Moving"));
 }
 
 void updateServoMovement() {
@@ -417,11 +376,10 @@ void updateServoMovement() {
   unsigned long elapsed = millis() - servoMoveStartTime;
   
   if (elapsed >= SERVO_MOVE_DURATION) {
-    // Movement complete - set to target positions
     setServoAngle(5, ch5TargetAngle);
     setServoAngle(6, ch6TargetAngle);
     servosMoving = false;
-    Serial.println("Servo movement complete");
+    Serial.println(F("Complete"));
     return;
   }
   
@@ -438,16 +396,12 @@ void updateServoMovement() {
 }
 
 void moveServosToRelease() {
-  Serial.println("Moving to RELEASE position");
-  // CH5: 90° → 0°
-  // CH6: 0° → 90°
+  Serial.println(F("Release"));
   startServoMovement(90, 0, 0, 90);
 }
 
 void moveServosToHome() {
-  Serial.println("Moving to HOME position");
-  // CH5: 0° → 90°
-  // CH6: 90° → 0°
+  Serial.println(F("Home"));
   startServoMovement(0, 90, 90, 0);
 }
 
@@ -457,11 +411,12 @@ void processSerialMonitorCommand(String command) {
   if (command.startsWith("test ")) {
     int channel = command.substring(5).toInt();
     if (channel >= 0 && channel <= 15) {
-      Serial.println("✅ Testing servo " + String(channel));
+      Serial.print(F("Testing servo "));
+      Serial.println(channel);
       testServo(channel);
-      Serial.println("✅ Test complete");
+      Serial.println(F("Test complete"));
     } else {
-      Serial.println("❌ Invalid channel (0-15)");
+      Serial.println(F("Invalid channel (0-15)"));
     }
   }
   
@@ -469,11 +424,12 @@ void processSerialMonitorCommand(String command) {
   else if (command.startsWith("dispense ")) {
     int channel = command.substring(9).toInt();
     if (channel >= 0 && channel <= 15) {
-      Serial.println("✅ Dispensing from channel " + String(channel));
+      Serial.print(F("Dispensing ch"));
+      Serial.println(channel);
       dispensePill(channel);
-      Serial.println("✅ Dispense complete");
+      Serial.println(F("Complete"));
     } else {
-      Serial.println("❌ Invalid channel (0-15)");
+      Serial.println(F("Invalid channel"));
     }
   }
   
@@ -487,13 +443,13 @@ void processSerialMonitorCommand(String command) {
       int angle = command.substring(secondSpace + 1).toInt();
       
       if (channel >= 0 && channel <= 15 && angle >= 0 && angle <= 180) {
-        Serial.println("✅ Setting servo " + String(channel) + " to " + String(angle) + "°");
         setServoAngle(channel, angle);
+        Serial.println(F("OK"));
       } else {
-        Serial.println("❌ Invalid channel (0-15) or angle (0-180)");
+        Serial.println(F("Invalid"));
       }
     } else {
-      Serial.println("❌ Usage: set <channel> <angle>");
+      Serial.println(F("Usage: set <ch> <angle>"));
     }
   }
   
@@ -501,69 +457,57 @@ void processSerialMonitorCommand(String command) {
   else if (command.startsWith("calibrate ")) {
     int channel = command.substring(10).toInt();
     if (channel >= 0 && channel <= 15) {
-      Serial.println("✅ Calibrating servo " + String(channel));
       calibrateServo(channel);
-      Serial.println("✅ Calibration complete");
+      Serial.println(F("Done"));
     } else {
-      Serial.println("❌ Invalid channel (0-15)");
+      Serial.println(F("Invalid"));
     }
   }
   
   // reset - Reset all servos to 90°
   else if (command == "reset") {
-    Serial.println("✅ Resetting all servos");
     resetAllServos();
-    Serial.println("✅ Reset complete");
+    Serial.println(F("Reset OK"));
   }
   
   // stop - Stop all servos
   else if (command == "stop") {
-    Serial.println("✅ Stopping all servos");
     stopAllServos();
-    Serial.println("✅ All servos stopped");
+    Serial.println(F("Stop OK"));
   }
   
   // release - Move to release position
   else if (command == "release") {
-    Serial.println("✅ Moving to release position");
     moveServosToRelease();
+    Serial.println(F("Release"));
   }
   
   // home - Move to home position
   else if (command == "home") {
-    Serial.println("✅ Moving to home position");
     moveServosToHome();
+    Serial.println(F("Home"));
   }
   
   // status - Show system status
   else if (command == "status") {
-    Serial.println("\n========== SYSTEM STATUS ==========");
-    Serial.println("Arduino Uno - Servo Controller");
-    Serial.println("PCA9685 Address: 0x" + String(I2C_ADDRESS, HEX));
-    Serial.println("Servo Frequency: " + String(SERVO_FREQ) + " Hz");
-    Serial.println("Servos Moving: " + String(servosMoving ? "YES" : "NO"));
-    Serial.println("===================================\n");
+    Serial.println(F("\nSTATUS:"));
+    Serial.print(F("Moving: "));
+    Serial.println(servosMoving ? F("YES") : F("NO"));
   }
   
   // help - Show available commands
   else if (command == "help") {
-    Serial.println("\n========== AVAILABLE COMMANDS ==========");
-    Serial.println("test <0-15>        - Test specific servo");
-    Serial.println("dispense <0-15>    - Dispense from channel");
-    Serial.println("set <0-15> <0-180> - Set servo angle");
-    Serial.println("calibrate <0-15>   - Calibrate servo");
-    Serial.println("reset              - Reset all servos to 90°");
-    Serial.println("stop               - Stop all servos");
-    Serial.println("release            - Move CH5/CH6 to release");
-    Serial.println("home               - Move CH5/CH6 to home");
-    Serial.println("status             - Show system status");
-    Serial.println("help               - Show this help");
-    Serial.println("=========================================\n");
+    Serial.println(F("\nCOMMANDS:"));
+    Serial.println(F("test <0-15>"));
+    Serial.println(F("dispense <0-15>"));
+    Serial.println(F("set <0-15> <0-180>"));
+    Serial.println(F("calibrate <0-15>"));
+    Serial.println(F("reset/stop/release/home"));
+    Serial.println(F("status/help\n"));
   }
   
   // Unknown command
   else {
-    Serial.println("❌ Unknown command: " + command);
-    Serial.println("Type 'help' for available commands");
+    Serial.println(F("Unknown cmd"));
   }
 }
