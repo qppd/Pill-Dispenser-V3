@@ -130,12 +130,13 @@ bool FirebaseManager::initializeFirebase() {
   // Set network reconnection
   Firebase.reconnectNetwork(true);
   
-  // Configure buffer sizes for ESP32 (Rx: 2048, Tx: 1024 as recommended)
-  fbdo.setBSSLBufferSize(2048, 1024);
+  // Configure buffer sizes for ESP32 (Rx: 4096, Tx: 1024)
+  // Larger Rx buffer needed for Firebase service account + RTDB streaming
+  fbdo.setBSSLBufferSize(4096, 1024);
   fbdo.setResponseSize(2048);
-  deviceStream.setBSSLBufferSize(2048, 1024);
+  deviceStream.setBSSLBufferSize(4096, 1024);
   deviceStream.setResponseSize(2048);
-  scheduleStream.setBSSLBufferSize(2048, 1024);
+  scheduleStream.setBSSLBufferSize(4096, 1024);
   scheduleStream.setResponseSize(2048);
   
   // Set timeouts to handle slow connections
