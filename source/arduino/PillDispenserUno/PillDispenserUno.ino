@@ -300,11 +300,19 @@ void dispensePill(uint8_t channel) {
   Serial.print(F("Dispense CH"));
   Serial.println(channel);
   
-  // Smooth movement to 180 degrees (same speed as return)
-  smoothSetServoAngle(channel, 180, 20);
-  delay(2000);  // Wait exactly 2 seconds at 180°
-  // Smooth movement back to 0 degrees (smooth)
-  smoothSetServoAngle(channel, 0, 20);
+  // For channels 0-4: Start at 180°, move to 0°, wait 2 seconds, return to 180°
+  if (channel <= 4) {
+    // Smooth movement from 180° to 0°
+    smoothSetServoAngle(channel, 0, 20);
+    delay(2000);  // Wait exactly 2 seconds at 0°
+    // Smooth movement back to 180°
+    smoothSetServoAngle(channel, 180, 20);
+  } else {
+    // For other channels, use original logic
+    smoothSetServoAngle(channel, 180, 20);
+    delay(2000);
+    smoothSetServoAngle(channel, 0, 20);
+  }
   delay(100);
   
   Serial.println(F("Done"));
