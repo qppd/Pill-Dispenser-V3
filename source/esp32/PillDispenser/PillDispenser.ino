@@ -126,9 +126,10 @@ void loop() {
     checkDispenseCommands();
     
     // Sync schedules from Firebase periodically (non-blocking check)
-    if (firebase.shouldSyncSchedules()) {
-      firebase.syncSchedulesFromFirebase();
-    }
+    // COMMENTED OUT: Using Firebase stream for real-time updates instead of periodic polling
+    // if (firebase.shouldSyncSchedules()) {
+    //   firebase.syncSchedulesFromFirebase();
+    // }
     
     // Send Firebase heartbeat every 1 minute to indicate device is online
     firebase.sendHeartbeat(&voltageSensor);
