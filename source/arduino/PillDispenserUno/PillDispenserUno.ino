@@ -53,6 +53,9 @@ int ch6StartAngle = 0;
 int ch6TargetAngle = 0;
 const int SERVO_MOVE_DURATION = 1000; // 1 second smooth movement
 
+// Initialize servo position tracking - CH0-4 start at 0°, CH5 at 90°, CH6 at 0°, others at 90°
+uint16_t lastAngles[16] = {0,0,0,0,0,90,0,90,90,90,90,90,90,90,90,90};
+
 // ===== FUNCTION PROTOTYPES =====
 void setServoAngle(uint8_t channel, uint16_t angle);
 void smoothSetServoAngle(uint8_t channel, uint16_t targetAngle, uint8_t speed);
@@ -277,9 +280,6 @@ void setServoAngle(uint8_t channel, uint16_t angle) {
   Serial.print(':');
   Serial.println(angle);
 }
-
-// Initialize servo position tracking - CH0-4 start at 0°, CH5 at 90°, CH6 at 0°, others at 90°
-uint16_t lastAngles[16] = {0,0,0,0,0,90,0,90,90,90,90,90,90,90,90,90};
 
 // Smooth servo movement with incremental steps
 void smoothSetServoAngle(uint8_t channel, uint16_t targetAngle, uint8_t speed) {
