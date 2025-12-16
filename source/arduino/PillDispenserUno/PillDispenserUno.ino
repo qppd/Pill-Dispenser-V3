@@ -300,10 +300,10 @@ void dispensePill(uint8_t channel) {
   Serial.print(F("Dispense CH"));
   Serial.println(channel);
   
-  // Smooth movement to 180 degrees (faster)
-  smoothSetServoAngle(channel, 180, 10);
+  // Smooth movement to 180 degrees (same speed as return)
+  smoothSetServoAngle(channel, 180, 20);
   delay(2000);  // Wait exactly 2 seconds at 180°
-  // Smooth movement back to 0 degrees (slower for smoothness)
+  // Smooth movement back to 0 degrees (smooth)
   smoothSetServoAngle(channel, 0, 20);
   delay(100);
   
