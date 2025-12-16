@@ -302,7 +302,7 @@ void dispensePill(uint8_t channel) {
   
   // Smooth movement to 180 degrees
   smoothSetServoAngle(channel, 180, 10);
-  delay(2100);
+  delay(2000);  // Wait exactly 2 seconds at 180°
   // Smooth movement back to 0 degrees
   smoothSetServoAngle(channel, 0, 10);
   delay(100);
