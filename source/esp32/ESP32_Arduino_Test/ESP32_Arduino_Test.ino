@@ -15,7 +15,7 @@ void setup() {
   Serial.println("================================");
   
   // Initialize Arduino UART
-  SerialUNO.begin(9600, SERIAL_8N1, PIN_UNO_RX, PIN_UNO_TX);
+  SerialUNO.begin(115200, SERIAL_8N1, PIN_UNO_RX, PIN_UNO_TX);
   delay(100);
   
   Serial.println("Waiting for Arduino...");
@@ -58,11 +58,11 @@ void loop() {
         break;
       case 1:
         Serial.println("\n[TEST] Testing servo 0...");
-        SerialUNO.println("SERVO:0,300");
+        SerialUNO.println("SA0,90"); // Set servo 0 to 90 degrees
         break;
       case 2:
         Serial.println("\n[TEST] Dispensing from slot 2...");
-        SerialUNO.println("DISPENSE:2");
+        SerialUNO.println("DP2"); // Dispense from slot 2
         break;
       case 3:
         Serial.println("\n[TEST] Sending PING...");
