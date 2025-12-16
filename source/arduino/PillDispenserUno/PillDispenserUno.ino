@@ -41,8 +41,8 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define I2C_ADDRESS 0x40   // Default PCA9685 address
 
 // Traditional servo pulse widths (for MG90S compatibility)
-#define SERVO_MIN 102      // 500μs (0 degrees)
-#define SERVO_MAX 512      // 2500μs (180 degrees)
+#define SERVO_MIN 500      // 500μs (0 degrees)
+#define SERVO_MAX 2500     // 2500μs (180 degrees)
 
 // ===== CH5/CH6 NON-BLOCKING SERVO CONTROL =====
 bool servosMoving = false;
