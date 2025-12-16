@@ -181,14 +181,14 @@ void processCommand(String command) {
     ESP32Serial.println(channel);
   }
   
-  // DP command: DP<channel> (Dispense using testServo logic) - DP0-DP4
+  // DP command: DP<channel> (Dispense using dispensePill logic) - DP0-DP4
   else if (command.startsWith("DP") && command.length() >= 3 && command.length() <= 4) {
     uint8_t channel = command.substring(2).toInt();
     
     if (channel <= 4) {  // Only channels 0-4 for dispensing
       Serial.print(F("DP"));
       Serial.println(channel);
-      testServo(channel);  // Use working test logic
+      dispensePill(channel);  // Use dispensePill logic like serial monitor
       ESP32Serial.print(F("OK:DP"));
       ESP32Serial.println(channel);
     } else {
