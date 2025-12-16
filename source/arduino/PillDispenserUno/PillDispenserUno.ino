@@ -86,9 +86,9 @@ void setup() {
   // Initialize all servos to neutral position
   stopAllServos();
   
-  // Set pill dispenser channels (0-4) to open position (0°)
+  // Set pill dispenser channels (0-4) to closed position (180°)
   for (uint8_t ch = 0; ch <= 4; ch++) {
-    setServoAngle(ch, 0);
+    setServoAngle(ch, 180);
     delay(50);
   }
   
@@ -306,13 +306,13 @@ void dispensePill(uint8_t channel) {
   Serial.print(F("Dispense CH"));
   Serial.println(channel);
   
-  // For channels 0-4: Start at 0°, move to 180°, wait 2 seconds, return to 0°
+  // For channels 0-4: Start at 180°, move to 0°, wait 2 seconds, return to 180°
   if (channel <= 4) {
-    // Smooth movement from 0° to 180°
-    smoothSetServoAngle(channel, 180, 20);
-    delay(2000);  // Wait exactly 2 seconds at 180°
-    // Smooth movement back to 0°
+    // Smooth movement from 180° to 0°
     smoothSetServoAngle(channel, 0, 20);
+    delay(2000);  // Wait exactly 2 seconds at 0°
+    // Smooth movement back to 180°
+    smoothSetServoAngle(channel, 180, 20);
   } else {
     // For other channels, use original logic
     smoothSetServoAngle(channel, 180, 20);
