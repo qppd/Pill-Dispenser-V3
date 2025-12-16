@@ -89,12 +89,15 @@ void setup() {
   // Set pill dispenser channels (0-4) to open position (0°)
   for (uint8_t ch = 0; ch <= 4; ch++) {
     setServoAngle(ch, 0);
+    lastAngles[ch] = 0;  // Update position tracking
     delay(50);
   }
   
   // Set CH5 and CH6 to their starting positions
   setServoAngle(5, 90);
+  lastAngles[5] = 90;  // Update position tracking
   // setServoAngle(6, 0); // CH6 deactivated for calibration
+  lastAngles[6] = 0;  // Update position tracking
   delay(100);
   
   Serial.println(F("PCA9685 initialized"));
@@ -275,15 +278,13 @@ void setServoAngle(uint8_t channel, uint16_t angle) {
   Serial.println(angle);
 }
 
+// Initialize servo position tracking - CH0-4 start at 0°, CH5 at 90°, CH6 at 0°, others at 90°
+uint16_t lastAngles[16] = {0,0,0,0,0,90,0,90,90,90,90,90,90,90,90,90};
+
 // Smooth servo movement with incremental steps
 void smoothSetServoAngle(uint8_t channel, uint16_t targetAngle, uint8_t speed) {
   if (channel > 15) return;
   if (targetAngle > 180) targetAngle = 180;
-  
-  // Get current angle by reading back from PWM (approximate)
-  // Since we can't read back, we'll assume starting from neutral or use a variable
-  // For simplicity, we'll move from 0 to targetAngle or vice versa
-  static uint16_t lastAngles[16] = {90,90,90,90,90,90,90,90,90,90,90,90,90,90,90,90};
   
   uint16_t currentAngle = lastAngles[channel];
   
