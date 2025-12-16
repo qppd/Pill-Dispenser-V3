@@ -86,6 +86,12 @@ void setup() {
   // Initialize all servos to neutral position
   stopAllServos();
   
+  // Set pill dispenser channels (0-4) to closed position (180°)
+  for (uint8_t ch = 0; ch <= 4; ch++) {
+    setServoAngle(ch, 180);
+    delay(50);
+  }
+  
   // Set CH5 and CH6 to their starting positions
   setServoAngle(5, 90);
   // setServoAngle(6, 0); // CH6 deactivated for calibration
