@@ -25,6 +25,8 @@ private:
   unsigned long lastHeartbeat;
   unsigned long sendDataPrevMillis;
   unsigned long lastScheduleSync;
+  unsigned long lastFirebaseReady;
+  unsigned long lastStreamCheck;
   
   // Command processing
   bool dispenseCommandReceived;
@@ -36,6 +38,8 @@ private:
   static const unsigned long HEARTBEAT_INTERVAL = 60000; // 1 minute
   static const unsigned long SEND_DATA_INTERVAL = 5000;  // 5 seconds
   static const unsigned long SCHEDULE_SYNC_INTERVAL = 10000; // 10 seconds (reduced for testing)
+  static const unsigned long FIREBASE_READY_INTERVAL = 100; // Call Firebase.ready() every 100ms
+  static const unsigned long STREAM_CHECK_INTERVAL = 50; // Check streams every 50ms
   
   // Device paths for streaming
   String deviceParentPath;
@@ -69,6 +73,7 @@ public:
   bool beginDataStream();
   bool beginScheduleStream();
   void handleStreamUpdates();
+  void updateNonBlocking(); // Non-blocking update method
   
   // Configuration
   bool downloadSchedule();

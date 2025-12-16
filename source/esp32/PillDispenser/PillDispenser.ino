@@ -103,14 +103,20 @@ void setup() {
 }
 
 void loop() {
+  // CRITICAL: Process TimeAlarms first with minimal delay
+  // This ensures alarm callbacks are triggered at the right time
+  // DO NOT add any blocking operations before this!
+  Alarm.delay(1);
+  
   if (DEVELOPMENT_MODE) {
-    // Firebase.ready() should be called repeatedly to handle authentication tasks and stream processing
-    Firebase.ready(); // No logging unless error occurs
+    // Use non-blocking Firebase update instead of direct Firebase.ready()
+    // This prevents Firebase streams from blocking TimeAlarms
+    firebase.updateNonBlocking();
     
     // Update time manager (auto-sync every 6 hours)
     timeManager.update();
     
-    // Update schedule manager (checks alarms)
+    // Update schedule manager (checks alarms - but TimeAlarms already processed above)
     scheduleManager.update();
     
     // Update SIM800L for background network reconnection
@@ -119,7 +125,7 @@ void loop() {
     // Check for realtime dispense commands from web app
     checkDispenseCommands();
     
-    // Sync schedules from Firebase periodically
+    // Sync schedules from Firebase periodically (non-blocking check)
     if (firebase.shouldSyncSchedules()) {
       firebase.syncSchedulesFromFirebase();
     }
@@ -251,10 +257,6 @@ void loop() {
       }
     }
   }
-  
-  // CRITICAL: Use Alarm.delay() instead of delay() to process TimeAlarms
-  // This ensures alarm callbacks are triggered at the right time
-  Alarm.delay(100);
   
   // Debug: Print current time EVERY SECOND to monitor alarm triggering
   static unsigned long lastSecondDebug = 0;

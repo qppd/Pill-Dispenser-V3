@@ -14,6 +14,8 @@ FirebaseManager::FirebaseManager() {
   lastHeartbeat = 0;
   sendDataPrevMillis = 0;
   lastScheduleSync = 0;
+  lastFirebaseReady = 0;
+  lastStreamCheck = 0;
   dispenseCommandReceived = false;
   lastDispenseCommand = 0;
   scheduleManager = nullptr;
@@ -380,6 +382,33 @@ bool FirebaseManager::isFirebaseReady() {
   return isConnected && isAuthenticated && Firebase.ready();
 }
 
+// Non-blocking update method - call this frequently in loop()
+void FirebaseManager::updateNonBlocking() {
+  unsigned long currentMillis = millis();
+  
+  // Call Firebase.ready() periodically instead of every loop iteration
+  // This reduces blocking time for stream processing
+  if (currentMillis - lastFirebaseReady >= FIREBASE_READY_INTERVAL) {
+    Firebase.ready();
+    lastFirebaseReady = currentMillis;
+  }
+  
+  // Check stream data availability without blocking
+  if (currentMillis - lastStreamCheck >= STREAM_CHECK_INTERVAL) {
+    // Check device stream for updates
+    if (deviceStream.httpConnected() && deviceStream.dataAvailable()) {
+      // Stream data will be processed by callback
+    }
+    
+    // Check schedule stream for updates
+    if (scheduleStream.httpConnected() && scheduleStream.dataAvailable()) {
+      // Stream data will be processed by callback
+    }
+    
+    lastStreamCheck = currentMillis;
+  }
+}
+
 bool FirebaseManager::shouldSendData() {
   return (millis() - sendDataPrevMillis > SEND_DATA_INTERVAL);
 }
@@ -736,6 +765,9 @@ bool FirebaseManager::syncSchedulesFromFirebase() {
     return false;
   }
 
+  // NOTE: This function may block briefly while fetching schedules from Firebase.
+  // It's called only when shouldSyncSchedules() returns true (every 10 seconds).
+  // The main loop prioritizes TimeAlarms processing before this is called.
   Serial.println("FirebaseManager: Syncing schedules from Firebase...");
   
   String schedulePath = deviceParentPath + "/schedules";
