@@ -55,6 +55,7 @@ const int SERVO_MOVE_DURATION = 1000; // 1 second smooth movement
 
 // ===== FUNCTION PROTOTYPES =====
 void setServoAngle(uint8_t channel, uint16_t angle);
+void setServoAngleSmooth(uint8_t channel, uint16_t targetAngle, uint16_t speed);
 void processSerialMonitorCommand(String command);
 void startServoMovement(int ch5Start, int ch5Target, int ch6Start, int ch6Target);
 void updateServoMovement();
@@ -268,12 +269,48 @@ void setServoAngle(uint8_t channel, uint16_t angle) {
   Serial.println(angle);
 }
 
+void setServoAngleSmooth(uint8_t channel, uint16_t targetAngle, uint16_t speed) {
+  if (channel > 15 || targetAngle > 180) return;
+  
+  // Get current angle by reading PWM (approximate from last set position)
+  // For simplicity, we'll move from 0 or 90 to target
+  // You can track last position if needed
+  
+  // Assume starting from 0 for dispense operations
+  uint16_t startAngle = 0;
+  
+  // Determine rotation direction
+  int step = (startAngle < targetAngle) ? 1 : -1;
+  int steps = abs(targetAngle - startAngle);
+  
+  // Move servo step by step for smooth rotation
+  for (int angle = startAngle; steps >= 0; angle += step, steps--) {
+    setServoAngle(channel, angle);
+    delay(speed);  // Speed controls delay between steps (lower = faster)
+  }
+  
+  // Ensure final position is reached
+  setServoAngle(channel, targetAngle);
+}
+
 void dispensePill(uint8_t channel) {
   Serial.print(F("Dispense CH"));
   Serial.println(channel);
   
-  setServoAngle(channel, 180);
-  delay(2100);
+  // Smooth rotation from 0 to 180 (speed: 10ms per degree for smooth operation)
+  setServoAngleSmooth(channel, 180, 10);
+  delay(2000);  // Hold at 180
+  
+  // Smooth return from 180 to 0
+  uint16_t startAngle = 180;
+  uint16_t targetAngle = 0;
+  int step = -1;
+  int steps = 180;
+  
+  for (int angle = startAngle; steps >= 0; angle += step, steps--) {
+    setServoAngle(channel, angle);
+    delay(10);
+  }
   setServoAngle(channel, 0);
   delay(100);
   
@@ -286,11 +323,20 @@ void dispensePillPair(uint8_t ch1, uint8_t ch2) {
   Serial.print('&');
   Serial.println(ch2);
   
-  setServoAngle(ch1, 180);
-  setServoAngle(ch2, 180);
-  delay(2100);
-  setServoAngle(ch1, 0);
-  setServoAngle(ch2, 0);
+  // Smooth simultaneous rotation to 180
+  for (int angle = 0; angle <= 180; angle++) {
+    setServoAngle(ch1, angle);
+    setServoAngle(ch2, angle);
+    delay(10);
+  }
+  delay(2000);  // Hold at 180
+  
+  // Smooth simultaneous return to 0
+  for (int angle = 180; angle >= 0; angle--) {
+    setServoAngle(ch1, angle);
+    setServoAngle(ch2, angle);
+    delay(10);
+  }
   delay(150);
   
   Serial.println(F("Done"));
@@ -300,13 +346,28 @@ void testServo(uint8_t channel) {
   Serial.print(F("Test CH"));
   Serial.println(channel);
   
-  setServoAngle(channel, 0);
-  delay(1000);
-  setServoAngle(channel, 90);
-  delay(1000);
-  setServoAngle(channel, 180);
-  delay(1000);
-  setServoAngle(channel, 90);
+  // Smooth test sequence with full 180° range
+  Serial.println(F("Moving 0->90->180->90 smoothly"));
+  
+  // 0 to 90
+  for (int angle = 0; angle <= 90; angle++) {
+    setServoAngle(channel, angle);
+    delay(10);
+  }
+  delay(500);
+  
+  // 90 to 180
+  for (int angle = 90; angle <= 180; angle++) {
+    setServoAngle(channel, angle);
+    delay(10);
+  }
+  delay(500);
+  
+  // 180 to 90
+  for (int angle = 180; angle >= 90; angle--) {
+    setServoAngle(channel, angle);
+    delay(10);
+  }
   delay(500);
 }
 
