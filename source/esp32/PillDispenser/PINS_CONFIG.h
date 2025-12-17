@@ -23,7 +23,7 @@
 #define PIN_BUZZER 27
 
 // ===== ARDUINO UNO SERIAL COMMUNICATION PINS =====
-#define PIN_UNO_RX 25   // ESP32 RX <- Arduino TX
-#define PIN_UNO_TX 26   // ESP32 TX -> Arduino RX
+#define PIN_UNO_RX 26   // ESP32 RX <- Arduino TX
+#define PIN_UNO_TX 33   // ESP32 TX -> Arduino RX
 
 #endif
