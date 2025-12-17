@@ -15,7 +15,7 @@
 #include "ScheduleManager.h"
 #include "SIM800L.h"
 #include "VoltageSensor.h"
-#include "WiFiManager.h"
+#include "Wifi_Config.h"
 #include "UserConfig.h"
 
 // ===== DEVELOPMENT MODE CONFIGURATION =====
