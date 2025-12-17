@@ -2,10 +2,10 @@
 #define WIFI_MANAGER_H
 
 #include <WiFi.h>
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 #include "TimeManager.h"
 
-void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager);
-bool checkWiFiCredentialsStored();
-void startWiFiManagerAP();
+bool setupWiFiWithManager(TimeManager* timeManager, const char* apName = "PillDispenser_AP");
+void resetWiFiSettings();
 
 #endif // WIFI_MANAGER_H

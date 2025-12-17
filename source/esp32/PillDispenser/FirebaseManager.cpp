@@ -3,6 +3,7 @@
 #include "ScheduleManager.h"
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
+#include <WiFiManager.h>
 
 // Static instance for callbacks
 FirebaseManager* FirebaseManager::instance = nullptr;
@@ -695,17 +696,14 @@ void FirebaseManager::resetWiFiAndRestart() {
   Firebase.RTDB.endStream(&deviceStream);
   Firebase.RTDB.endStream(&scheduleStream);
   
-  // Disconnect from WiFi
-  WiFi.disconnect(true);
-  delay(100);
-  
-  // Erase WiFi credentials from NVS (Non-Volatile Storage)
-  WiFi.begin("", ""); // This clears saved credentials
-  delay(100);
+  // Reset WiFi settings using WiFiManager
+  WiFiManager wm;
+  wm.resetSettings();
   
   Serial.println("WiFi credentials cleared!");
   Serial.println("Restarting ESP32 in 2 seconds...");
   Serial.println("Device will boot into WiFi Manager AP mode");
+  Serial.println("Connect to AP and configure WiFi at http://192.168.4.1");
   Serial.println("===========================");
   
   delay(2000);

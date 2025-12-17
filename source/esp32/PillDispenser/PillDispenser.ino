@@ -300,37 +300,22 @@ void initializeDevelopmentMode() {
     Serial.println("❌ FAILED");
   }
   
-  // Check if WiFi credentials are stored, if not start AP mode
-  Serial.print("Checking WiFi Credentials: ");
-  if (!checkWiFiCredentialsStored()) {
-    Serial.println("❌ NOT FOUND");
-    Serial.println("\n🔧 Starting WiFi Manager AP Mode...");
-    startWiFiManagerAP();
-    Serial.println("⚠️ Device is in WiFi configuration mode");
-    Serial.println("⚠️ Connect to the AP and configure WiFi to continue");
-    lcd.clear();
-    lcd.print("WiFi Config Mode", 0, 0);
-    lcd.print("Connect to AP", 0, 1);
-    // Stay in AP mode - user needs to configure WiFi
-    while(true) {
-      delay(1000);
-      // Could add web server here to handle WiFi configuration
-    }
-  } else {
-    Serial.println("✅ FOUND");
-  }
-  
-  // Setup WiFi for time synchronization
+  // Setup WiFi using WiFiManager (handles AP mode automatically)
   Serial.print("WiFi Connection: ");
-  setupWiFi(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str(), &timeManager);
-  if (WiFi.status() == WL_CONNECTED) {
+  if (setupWiFiWithManager(&timeManager, "PillDispenser")) {
     Serial.println("✅ OK");
-    
-    // Display initial time on LCD
-    // delay(1000); // Wait a moment for NTP sync
-    // lcd.displayTime(timeManager.getTimeString());
+    lcd.clear();
+    lcd.print("WiFi Connected!", 0, 0);
+    lcd.print(WiFi.localIP().toString(), 0, 1);
+    delay(2000);
   } else {
     Serial.println("❌ FAILED");
+    lcd.clear();
+    lcd.print("WiFi Failed!", 0, 0);
+    lcd.print("Check Config", 0, 1);
+    delay(3000);
+    // Restart to try again
+    ESP.restart();
   }
   
   // Initialize Arduino Servo Controller
