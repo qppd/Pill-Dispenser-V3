@@ -309,8 +309,8 @@ void initializeDevelopmentMode() {
     Serial.println("⚠️ Device is in WiFi configuration mode");
     Serial.println("⚠️ Connect to the AP and configure WiFi to continue");
     lcd.clear();
-    lcd.print(0, 0, "WiFi Config Mode");
-    lcd.print(0, 1, "Connect to AP");
+    lcd.print("WiFi Config Mode", 0, 0);
+    lcd.print("Connect to AP", 0, 1);
     // Stay in AP mode - user needs to configure WiFi
     while(true) {
       delay(1000);
