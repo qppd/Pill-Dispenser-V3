@@ -453,7 +453,7 @@ void dispenseFromContainer(int dispenserId) {
     
     // Wait 10 seconds before releasing
     Serial.println("⏳ Waiting 10 seconds before release...");
-    delay(10000);
+    delay(15000); // NAKA 10 na sya dito 10,000 milliseconds = 10 seconds
     
     // Move to release position (CH5/CH6)
     Serial.println("🔓 Moving to RELEASE position...");
@@ -465,7 +465,7 @@ void dispenseFromContainer(int dispenserId) {
     
     // Wait 10 seconds before returning home
     Serial.println("⏳ Waiting 10 seconds before returning home...");
-    delay(10000);
+    delay(10000); // NAKA 10 na sya dito 10,000 milliseconds = 10 seconds
     
     // Move back to home position
     Serial.println("🏠 Moving to HOME position...");
