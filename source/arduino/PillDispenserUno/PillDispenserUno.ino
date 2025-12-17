@@ -300,10 +300,21 @@ void smoothSetServoAngle(uint8_t channel, uint16_t targetAngle, uint8_t speed) {
   int step = (currentAngle < targetAngle) ? 1 : -1;
   int steps = abs(targetAngle - currentAngle);
   
+  Serial.print(F("Direction: "));
+  Serial.print(step > 0 ? F("CW") : F("CCW"));
+  Serial.print(F(", Steps: "));
+  Serial.println(steps);
+  
   // Move smoothly from current to target
   for (int i = 0; i <= steps; i++) {
     uint16_t angle = currentAngle + (step * i);
     setServoAngle(channel, angle);
+    if (i % 10 == 0 || i == steps) {  // Print every 10 steps and final step
+      Serial.print(F("Step "));
+      Serial.print(i);
+      Serial.print(F(": "));
+      Serial.println(angle);
+    }
     delay(speed);  // Lower value = faster movement
   }
   
@@ -332,6 +343,11 @@ void dispensePill(uint8_t channel) {
     // Smooth movement back to 0°
     smoothSetServoAngle(channel, 0, 20);
     Serial.println(F("Return complete - at home (0°)"));
+    
+    // Verify position by setting it again
+    Serial.println(F("Verifying position..."));
+    setServoAngle(channel, 0);
+    Serial.println(F("Position verified"));
   } else {
     // For other channels, use original logic
     smoothSetServoAngle(channel, 180, 20);
