@@ -48,6 +48,9 @@ private:
   // Callback functions
   static void deviceStreamCallback(MultiPathStream stream);
   static void deviceStreamTimeoutCallback(bool timeout);
+  
+  // WiFi reset functionality
+  void resetWiFiAndRestart();
   static void scheduleStreamCallback(FirebaseStream data);
   static void scheduleStreamTimeoutCallback(bool timeout);
   

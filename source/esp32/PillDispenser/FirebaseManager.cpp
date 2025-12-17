@@ -625,6 +625,10 @@ void FirebaseManager::processCommand(String command) {
         Serial.println("FirebaseManager: Invalid dispenser ID in command");
       }
     }
+  } else if (command == "RESET_WIFI") {
+    Serial.println("FirebaseManager: WiFi reset command received!");
+    Serial.println("FirebaseManager: Clearing WiFi credentials and restarting...");
+    resetWiFiAndRestart();
   } else {
     Serial.print("FirebaseManager: Unknown command: ");
     Serial.println(command);
@@ -682,6 +686,30 @@ bool FirebaseManager::testConnection() {
     Serial.println(fbdo.errorReason());
     return false;
   }
+}
+
+void FirebaseManager::resetWiFiAndRestart() {
+  Serial.println("=== WiFi RESET INITIATED ===");
+  
+  // Disconnect from Firebase
+  Firebase.RTDB.endStream(&deviceStream);
+  Firebase.RTDB.endStream(&scheduleStream);
+  
+  // Disconnect from WiFi
+  WiFi.disconnect(true);
+  delay(100);
+  
+  // Erase WiFi credentials from NVS (Non-Volatile Storage)
+  WiFi.begin("", ""); // This clears saved credentials
+  delay(100);
+  
+  Serial.println("WiFi credentials cleared!");
+  Serial.println("Restarting ESP32 in 2 seconds...");
+  Serial.println("Device will boot into WiFi Manager AP mode");
+  Serial.println("===========================");
+  
+  delay(2000);
+  ESP.restart();
 }
 
 bool FirebaseManager::testDataUpload() {

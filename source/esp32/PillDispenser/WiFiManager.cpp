@@ -1,6 +1,7 @@
 #include "WiFiManager.h"
 #include <Arduino.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
 
 void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager) {
     Serial.println("\n=== WiFi Setup ===");
@@ -78,5 +79,48 @@ void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager)
             Serial.println();
             Serial.println("Still failed to connect. Check your WiFi setup.");
         }
+    }
+}
+
+bool checkWiFiCredentialsStored() {
+    // Check if WiFi credentials are stored in NVS
+    wifi_config_t conf;
+    esp_wifi_get_config(WIFI_IF_STA, &conf);
+    
+    // Check if SSID is not empty
+    if (strlen((const char*)conf.sta.ssid) > 0) {
+        Serial.println("WiFi credentials found in NVS");
+        return true;
+    }
+    
+    Serial.println("No WiFi credentials found in NVS");
+    return false;
+}
+
+void startWiFiManagerAP() {
+    Serial.println("\n=== Starting WiFi Manager AP Mode ===");
+    Serial.println("No WiFi credentials found or reset requested");
+    Serial.println("Starting Access Point for configuration...");
+    
+    // Set ESP32 as Access Point
+    WiFi.mode(WIFI_AP);
+    
+    // Create AP with device-specific name
+    String apName = "PillDispenser_" + String(ESP.getEfuseMac(), HEX);
+    const char* apPassword = "12345678"; // Default AP password
+    
+    // Start Access Point
+    if (WiFi.softAP(apName.c_str(), apPassword)) {
+        Serial.println("WiFi Manager AP started successfully!");
+        Serial.print("AP Name: ");
+        Serial.println(apName);
+        Serial.print("AP Password: ");
+        Serial.println(apPassword);
+        Serial.print("AP IP Address: ");
+        Serial.println(WiFi.softAPIP());
+        Serial.println("Connect to this AP to configure WiFi credentials");
+        Serial.println("========================================");
+    } else {
+        Serial.println("Failed to start WiFi Manager AP!");
     }
 }
