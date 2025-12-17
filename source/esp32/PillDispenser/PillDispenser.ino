@@ -519,26 +519,19 @@ void checkDispenseCommands() {
 
 // Play professional buzzer sound for dispense event
 void playDispenseBuzzer() {
-  // Short professional buzz pattern: beep-beep
+  // Continuous beep for 7 seconds
   digitalWrite(PIN_BUZZER, HIGH);
-  delay(150);
-  digitalWrite(PIN_BUZZER, LOW);
-  delay(100);
-  digitalWrite(PIN_BUZZER, HIGH);
-  delay(150);
+  delay(7000);
   digitalWrite(PIN_BUZZER, LOW);
   Serial.println("🔊 Dispense buzzer activated");
 }
 
 // Play reminder buzzer sound (15 minutes before)
 void playReminderBuzzer() {
-  // Three short beeps for reminder
-  for (int i = 0; i < 3; i++) {
-    digitalWrite(PIN_BUZZER, HIGH);
-    delay(100);
-    digitalWrite(PIN_BUZZER, LOW);
-    delay(100);
-  }
+  // Continuous beep for 7 seconds
+  digitalWrite(PIN_BUZZER, HIGH);
+  delay(7000);
+  digitalWrite(PIN_BUZZER, LOW);
   Serial.println("🔔 Reminder buzzer activated");
 }
 
