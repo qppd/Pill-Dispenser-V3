@@ -473,7 +473,6 @@ void startDispense(int dispenserId, bool scheduled, String medication, String pa
   
   // Move to DISPENSING state
   currentDispenseState = DISPENSING;
-  dispenseStateStartTime = millis();
 }
 
 // Non-blocking dispense state machine
