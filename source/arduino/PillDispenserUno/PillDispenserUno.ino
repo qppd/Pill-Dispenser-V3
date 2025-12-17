@@ -31,7 +31,7 @@
 #include <SoftwareSerial.h>
 
 // ===== SERIAL COMMUNICATION =====
-SoftwareSerial ESP32Serial(2, 3); // RX, TX
+SoftwareSerial ESP32Serial(8, 9); // RX, TX
 
 // ===== PCA9685 SERVO DRIVER =====
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
