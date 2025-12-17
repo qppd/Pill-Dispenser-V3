@@ -480,11 +480,19 @@ void updateServoMovement() {
 }
 
 void moveServosToRelease() {
+  if (servosMoving) {
+    Serial.println(F("Busy - wait"));
+    return;
+  }
   Serial.println(F("Release"));
   startServoMovement(100, 45, 0, 0);  // CH5: 100→45, CH6 deactivated
 }
 
 void moveServosToHome() {
+  if (servosMoving) {
+    Serial.println(F("Busy - wait"));
+    return;
+  }
   Serial.println(F("Home"));
   startServoMovement(45, 100, 0, 0);  // CH5: 45→100, CH6 deactivated
 }

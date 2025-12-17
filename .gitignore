@@ -39,3 +39,6 @@ logs/
 *.tmp
 *.temp
 source/pdv3.rar
+
+# Python virtual environments
+.venv/
