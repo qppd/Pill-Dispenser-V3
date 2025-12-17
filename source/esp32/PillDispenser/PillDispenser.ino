@@ -39,6 +39,25 @@ unsigned long lastLcdUpdate = 0;  // Reactivate LCD time update
 unsigned long lastTimeDebug = 0;   // For debug time output
 int pillCount = 0;
 
+// ===== DISPENSE STATE MACHINE =====
+enum DispenseState {
+  IDLE,
+  DISPENSING,
+  WAITING_FOR_RELEASE,
+  RELEASING,
+  WAITING_FOR_HOME,
+  HOMING,
+  COMPLETE
+};
+
+DispenseState currentDispenseState = IDLE;
+unsigned long dispenseStateStartTime = 0;
+int currentDispenserId = -1;
+bool isScheduledDispense = false;
+String scheduleMedication = "";
+String schedulePatient = "";
+String schedulePillSize = "";
+
 // WiFi credentials (for development - move to secure storage in production)
 const String WIFI_SSID = "jayron";
 const String WIFI_PASSWORD = "12345678";
@@ -54,6 +73,8 @@ void testFirebaseConnection();
 void handleScheduledDispense(int dispenserId, String pillSize, String medication, String patient);
 void dispenseFromContainer(int dispenserId);
 void checkDispenseCommands();
+void updateDispenseStateMachine();
+void startDispense(int dispenserId, bool scheduled = false, String medication = "", String patient = "", String pillSize = "");
 
 // Notification helpers
 void playDispenseBuzzer();
@@ -109,6 +130,9 @@ void loop() {
   Alarm.delay(1);
   
   if (DEVELOPMENT_MODE) {
+    // CRITICAL: Update dispense state machine first (non-blocking)
+    updateDispenseStateMachine();
+    
     // Use non-blocking Firebase update instead of direct Firebase.ready()
     // This prevents Firebase streams from blocking TimeAlarms
     firebase.updateNonBlocking();
@@ -122,8 +146,10 @@ void loop() {
     // Update SIM800L for background network reconnection
     sim800.update();
     
-    // Check for realtime dispense commands from web app
-    checkDispenseCommands();
+    // Check for realtime dispense commands from web app (only if idle)
+    if (currentDispenseState == IDLE) {
+      checkDispenseCommands();
+    }
     
     // Sync schedules from Firebase periodically (non-blocking check)
     // COMMENTED OUT: Using Firebase stream for real-time updates instead of periodic polling
@@ -208,25 +234,19 @@ void loop() {
       } else if (command.startsWith("dispense ")) {
         int containerNum = command.substring(9).toInt();
         if (containerNum >= 1 && containerNum <= 5) {
-          Serial.println("\n" + String('=', 60));
-          Serial.println("👊 MANUAL DISPENSE TRIGGERED (Serial Command)");
-          Serial.println(String('=', 60));
-          Serial.println("Container: " + String(containerNum));
-          Serial.println("Time: " + timeManager.getTimeString());
-          
-          // Play buzzer for manual dispense
-          playDispenseBuzzer();
-          
-          // Perform dispense
-          dispenseFromContainer(containerNum - 1);
-          
-          // Send SMS notification
-          String smsMessage = "[PILL DISPENSER] Manual dispense from Container " + String(containerNum) + 
-                             " via serial command at " + timeManager.getTimeString();
-          sendSMSNotification(smsMessage);
-          
-          Serial.println("✅ Manual dispense complete");
-          Serial.println(String('=', 60) + "\n");
+          if (currentDispenseState != IDLE) {
+            Serial.println("⚠️ Dispense already in progress");
+          } else {
+            Serial.println("\n" + String('=', 60));
+            Serial.println("👊 MANUAL DISPENSE TRIGGERED (Serial Command)");
+            Serial.println(String('=', 60));
+            Serial.println("Container: " + String(containerNum));
+            Serial.println("Time: " + timeManager.getTimeString());
+            Serial.println(String('=', 60) + "\n");
+            
+            // Start non-blocking dispense (convert to 0-based index)
+            startDispense(containerNum - 1, false, "", "", "");
+          }
         } else {
           Serial.println("❌ Invalid container number (1-5)");
         }
@@ -399,6 +419,12 @@ void initializeDevelopmentMode() {
 
 // Callback function for scheduled dispensing
 void handleScheduledDispense(int dispenserId, String pillSize, String medication, String patient) {
+  // Only start dispense if we're idle
+  if (currentDispenseState != IDLE) {
+    Serial.println("⚠️ Dispense already in progress, skipping scheduled dispense");
+    return;
+  }
+  
   Serial.println("\n" + String('=', 60));
   Serial.println("⏰ SCHEDULED DISPENSE TRIGGERED");
   Serial.println(String('=', 60));
@@ -409,86 +435,173 @@ void handleScheduledDispense(int dispenserId, String pillSize, String medication
   Serial.println("Time: " + timeManager.getTimeString());
   Serial.println(String('=', 60));
   
-  // Play buzzer for dispense event
-  playDispenseBuzzer();
-  
-  // Display on LCD
-  lcd.displayDispenseInfo(dispenserId + 1, medication);
-  
-  // Perform dispense
-  dispenseFromContainer(dispenserId);
-  
-  // Update dispenser data in Firebase
-  firebase.updateDispenserAfterDispense(dispenserId, &timeManager);
-  
-  // Send SMS notification to caregivers
-  String smsMessage = "[PILL DISPENSER] Medication dispensed from Container " + String(dispenserId + 1) + 
-                     " - " + medication + " for " + patient + " at " + timeManager.getTimeString();
-  sendSMSNotification(smsMessage);
-  
-  // Log to Firebase
-  firebase.sendPillReport(dispenserId + 1, timeManager.getDateTimeString(), 
-                         "Scheduled dispense: " + medication, 1);
-  
-  Serial.println("✅ Scheduled dispense completed\n");
+  // Start the non-blocking dispense sequence
+  startDispense(dispenserId, true, medication, patient, pillSize);
 }
 
-// Function to dispense from a specific container
+// Function to dispense from a specific container (DEPRECATED - use startDispense instead)
 void dispenseFromContainer(int dispenserId) {
+  // This is now handled by the state machine
+  startDispense(dispenserId, false, "", "", "");
+}
+
+// Start a new dispense sequence
+void startDispense(int dispenserId, bool scheduled, String medication, String patient, String pillSize) {
   if (dispenserId < 0 || dispenserId > 4) {
     Serial.println("❌ Invalid dispenser ID: " + String(dispenserId));
     return;
   }
   
-  Serial.println("\n" + String('=', 60));
-  Serial.println("🔄 DISPENSING FROM CONTAINER " + String(dispenserId + 1));
-  Serial.println(String('=', 60));
-  Serial.printf("Sending DP%d command to Arduino...\n", dispenserId);
-  Serial.println(String('=', 60));
-  
-  // Use the dispensePill method via Arduino servo controller
-  // This sends DP0-DP4 command which triggers testServo() on Arduino
-  bool success = servoController.dispensePill(dispenserId);
-  
-  Serial.println(String('=', 60));
-  if (success) {
-    pillCount++;
-    Serial.println("✅ DISPENSE SUCCESSFUL");
-    Serial.println("   Total pills dispensed: " + String(pillCount));
-    
-    // Wait 10 seconds before releasing
-    Serial.println("⏳ Waiting 10 seconds before release...");
-    delay(15000); // NAKA 10 na sya dito 10,000 milliseconds = 10 seconds
-    
-    // Move to release position (CH5/CH6)
-    Serial.println("🔓 Moving to RELEASE position...");
-    if (servoController.moveServosToRelease()) {
-      Serial.println("✅ Release position reached");
-    } else {
-      Serial.println("❌ Release movement failed");
-    }
-    
-    // Wait 10 seconds before returning home
-    Serial.println("⏳ Waiting 10 seconds before returning home...");
-    delay(10000); // NAKA 10 na sya dito 10,000 milliseconds = 10 seconds
-    
-    // Move back to home position
-    Serial.println("🏠 Moving to HOME position...");
-    if (servoController.moveServosToHome()) {
-      Serial.println("✅ Home position reached");
-    } else {
-      Serial.println("❌ Home movement failed");
-    }
-    
-  } else {
-    Serial.println("❌ DISPENSE FAILED");
-    Serial.println("   Arduino communication error or timeout");
+  if (currentDispenseState != IDLE) {
+    Serial.println("⚠️ Dispense already in progress, cannot start new dispense");
+    return;
   }
-  Serial.println(String('=', 60) + "\n");
+  
+  // Store dispense information
+  currentDispenserId = dispenserId;
+  isScheduledDispense = scheduled;
+  scheduleMedication = medication;
+  schedulePatient = patient;
+  schedulePillSize = pillSize;
+  
+  // Play buzzer for dispense event
+  playDispenseBuzzer();
+  
+  // Display on LCD if scheduled
+  if (scheduled) {
+    lcd.displayDispenseInfo(dispenserId + 1, medication);
+  }
+  
+  Serial.println("\n" + String('=', 60));
+  Serial.println("🔄 STARTING DISPENSE SEQUENCE - CONTAINER " + String(dispenserId + 1));
+  Serial.println(String('=', 60));
+  
+  // Move to DISPENSING state
+  currentDispenseState = DISPENSING;
+  dispenseStateStartTime = millis();
+}
+
+// Non-blocking dispense state machine
+void updateDispenseStateMachine() {
+  unsigned long currentTime = millis();
+  unsigned long elapsedTime = currentTime - dispenseStateStartTime;
+  
+  switch (currentDispenseState) {
+    case IDLE:
+      // Nothing to do
+      break;
+      
+    case DISPENSING:
+      // Send dispense command to Arduino
+      Serial.println("🔄 DISPENSING FROM CONTAINER " + String(currentDispenserId + 1));
+      Serial.printf("Sending DP%d command to Arduino...\n", currentDispenserId);
+      
+      if (servoController.dispensePill(currentDispenserId)) {
+        pillCount++;
+        Serial.println("✅ DISPENSE SUCCESSFUL");
+        Serial.println("   Total pills dispensed: " + String(pillCount));
+        
+        // Move to waiting state (wait 15 seconds before release)
+        currentDispenseState = WAITING_FOR_RELEASE;
+        dispenseStateStartTime = millis();
+        Serial.println("⏳ Waiting 15 seconds before release...");
+      } else {
+        Serial.println("❌ DISPENSE FAILED - Arduino communication error");
+        currentDispenseState = IDLE;
+      }
+      break;
+      
+    case WAITING_FOR_RELEASE:
+      // Wait 15 seconds non-blocking
+      if (elapsedTime >= 15000) {
+        // Time to release
+        currentDispenseState = RELEASING;
+        dispenseStateStartTime = millis();
+      }
+      break;
+      
+    case RELEASING:
+      // Move to release position
+      Serial.println("🔓 Moving to RELEASE position...");
+      if (servoController.moveServosToRelease()) {
+        Serial.println("✅ Release command sent");
+      } else {
+        Serial.println("❌ Release command failed");
+      }
+      
+      // Move to waiting state (wait 10 seconds before homing)
+      currentDispenseState = WAITING_FOR_HOME;
+      dispenseStateStartTime = millis();
+      Serial.println("⏳ Waiting 10 seconds before returning home...");
+      break;
+      
+    case WAITING_FOR_HOME:
+      // Wait 10 seconds non-blocking
+      if (elapsedTime >= 10000) {
+        // Time to go home
+        currentDispenseState = HOMING;
+        dispenseStateStartTime = millis();
+      }
+      break;
+      
+    case HOMING:
+      // Move back to home position
+      Serial.println("🏠 Moving to HOME position...");
+      if (servoController.moveServosToHome()) {
+        Serial.println("✅ Home command sent");
+      } else {
+        Serial.println("❌ Home command failed");
+      }
+      
+      // Move to complete state
+      currentDispenseState = COMPLETE;
+      break;
+      
+    case COMPLETE:
+      // Update Firebase and send notifications if this was a scheduled dispense
+      if (isScheduledDispense) {
+        firebase.updateDispenserAfterDispense(currentDispenserId, &timeManager);
+        
+        String smsMessage = "[PILL DISPENSER] Medication dispensed from Container " + 
+                           String(currentDispenserId + 1) + " - " + scheduleMedication + 
+                           " for " + schedulePatient + " at " + timeManager.getTimeString();
+        sendSMSNotification(smsMessage);
+        
+        firebase.sendPillReport(currentDispenserId + 1, timeManager.getDateTimeString(), 
+                               "Scheduled dispense: " + scheduleMedication, 1);
+      } else {
+        // Manual dispense
+        firebase.updateDispenserAfterDispense(currentDispenserId, &timeManager);
+        
+        String smsMessage = "[PILL DISPENSER] Manual dispense from Container " + 
+                           String(currentDispenserId + 1) + " at " + timeManager.getTimeString();
+        sendSMSNotification(smsMessage);
+        
+        firebase.sendPillReport(currentDispenserId + 1, timeManager.getDateTimeString(), 
+                               "Manual dispense", 1);
+      }
+      
+      Serial.println("✅ DISPENSE SEQUENCE COMPLETED");
+      Serial.println(String('=', 60) + "\n");
+      
+      // Reset to idle
+      currentDispenseState = IDLE;
+      currentDispenserId = -1;
+      isScheduledDispense = false;
+      scheduleMedication = "";
+      schedulePatient = "";
+      schedulePillSize = "";
+      break;
+  }
 }
 
 // Check for realtime dispense commands from web app
 void checkDispenseCommands() {
+  // Only check if we're idle
+  if (currentDispenseState != IDLE) {
+    return;
+  }
+  
   if (firebase.hasDispenseCommand()) {
     int dispenserId = firebase.getLastDispenseCommand();
     
@@ -496,23 +609,8 @@ void checkDispenseCommands() {
       Serial.println("\n📱 Realtime dispense command received!");
       Serial.println("Container: " + String(dispenserId));
       
-      // Play buzzer for manual dispense
-      playDispenseBuzzer();
-      
-      // Perform dispense (convert to 0-based index)
-      dispenseFromContainer(dispenserId - 1);
-      
-      // Update dispenser data in Firebase
-      firebase.updateDispenserAfterDispense(dispenserId - 1, &timeManager);
-      
-      // Send SMS notification to caregivers
-      String smsMessage = "[PILL DISPENSER] Manual dispense from Container " + String(dispenserId) + 
-                         " at " + timeManager.getTimeString();
-      sendSMSNotification(smsMessage);
-      
-      // Log to Firebase
-      firebase.sendPillReport(dispenserId, timeManager.getDateTimeString(), 
-                             "Manual dispense via web app", 1);
+      // Start dispense (convert to 0-based index)
+      startDispense(dispenserId - 1, false, "", "", "");
     }
   }
 }
