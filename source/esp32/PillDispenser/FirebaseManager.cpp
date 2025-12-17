@@ -786,6 +786,8 @@ bool FirebaseManager::syncSchedulesFromFirebase() {
     String key, value = "";
     int type = 0;
     int addedCount = 0;
+    int skippedCount = 0;
+    int dispenserCounts[5] = {0, 0, 0, 0, 0}; // Track schedules per dispenser
     
     for (size_t i = 0; i < len; i++) {
       json->iteratorGet(i, type, key, value);
@@ -839,19 +841,66 @@ bool FirebaseManager::syncSchedulesFromFirebase() {
         pillSize = data.to<String>();
       }
       
-      // Add schedule to manager
-      if (scheduleManager->addSchedule(key, dispenserId, hour, minute, 
-                                       medicationName, patientName, pillSize, enabled)) {
-        addedCount++;
-        Serial.printf("Added schedule: %s - %02d:%02d for dispenser %d\n", 
-                     key.c_str(), hour, minute, dispenserId);
+      // ===== VALIDATION =====
+      bool isValid = true;
+      String skipReason = "";
+      
+      // Validate dispenser ID (must be 0-4)
+      if (dispenserId < 0 || dispenserId > 4) {
+        isValid = false;
+        skipReason = "Invalid dispenser ID: " + String(dispenserId);
+      }
+      
+      // Validate time (skip schedules with 00:00 unless explicitly valid)
+      if (hour == 0 && minute == 0 && medicationName.isEmpty()) {
+        isValid = false;
+        skipReason = "Empty schedule (00:00 with no medication)";
+      }
+      
+      // Validate patient and medication names
+      if (patientName.isEmpty() || medicationName.isEmpty() || 
+          patientName == "Patient Name" || medicationName == "New Medication") {
+        isValid = false;
+        skipReason = "Missing or default patient/medication info";
+      }
+      
+      // Check schedule limit per dispenser (max 3 per dispenser)
+      if (isValid && dispenserId >= 0 && dispenserId <= 4) {
+        if (dispenserCounts[dispenserId] >= 3) {
+          isValid = false;
+          skipReason = "Dispenser " + String(dispenserId) + " already has 3 schedules";
+        }
+      }
+      
+      // Add schedule if valid
+      if (isValid) {
+        if (scheduleManager->addSchedule(key, dispenserId, hour, minute, 
+                                         medicationName, patientName, pillSize, enabled)) {
+          addedCount++;
+          dispenserCounts[dispenserId]++;
+          Serial.printf("✅ Added schedule: %s - %02d:%02d for dispenser %d\n", 
+                       key.c_str(), hour, minute, dispenserId);
+        }
+      } else {
+        skippedCount++;
+        Serial.printf("⚠️  Skipped schedule %s: %s\n", key.c_str(), skipReason.c_str());
       }
     }
     
     json->iteratorEnd();
     
     lastScheduleSync = millis();
-    Serial.printf("FirebaseManager: Schedule sync complete - %d schedules loaded\n", addedCount);
+    Serial.println("\n" + String('=', 60));
+    Serial.println("📋 SCHEDULE SYNC SUMMARY");
+    Serial.println(String('=', 60));
+    Serial.printf("Total entries found: %d\n", len);
+    Serial.printf("✅ Schedules added: %d\n", addedCount);
+    Serial.printf("⚠️  Schedules skipped: %d\n", skippedCount);
+    Serial.println("Per-dispenser breakdown:");
+    for (int d = 0; d < 5; d++) {
+      Serial.printf("  Container %d: %d schedules\n", d, dispenserCounts[d]);
+    }
+    Serial.println(String('=', 60) + "\n");
     
     // Print all schedules
     scheduleManager->printSchedules();
