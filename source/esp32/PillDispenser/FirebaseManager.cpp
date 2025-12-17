@@ -245,10 +245,18 @@ void FirebaseManager::deviceStreamCallback(MultiPathStream stream) {
         
       } else if (stream.dataPath == "/commands") {
         String command = stream.value;
-        Serial.print("FirebaseManager: Command received via stream: ");
+        Serial.print("FirebaseManager: Command event detected - Type: ");
+        Serial.println(stream.type);
+        Serial.print("FirebaseManager: Command value: ");
         Serial.println(command);
-        // Process command in realtime
-        instance->processCommand(command);
+        
+        // Only process non-empty commands (ignore delete/null events)
+        if (command.length() > 0 && command != "null" && stream.type != "null") {
+          Serial.println("FirebaseManager: Processing command in realtime...");
+          instance->processCommand(command);
+        } else {
+          Serial.println("FirebaseManager: Ignoring null/empty command (likely deletion)");
+        }
         
       } else if (stream.dataPath == "/pill_schedule") {
         String schedule = stream.value;
