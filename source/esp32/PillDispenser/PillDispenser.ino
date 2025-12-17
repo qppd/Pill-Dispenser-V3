@@ -43,15 +43,10 @@ int pillCount = 0;
 enum DispenseState {
   IDLE,
   DISPENSING,
-  WAITING_FOR_RELEASE,
-  RELEASING,
-  WAITING_FOR_HOME,
-  HOMING,
   COMPLETE
 };
 
 DispenseState currentDispenseState = IDLE;
-unsigned long dispenseStateStartTime = 0;
 int currentDispenserId = -1;
 bool isScheduledDispense = false;
 String scheduleMedication = "";
@@ -483,78 +478,28 @@ void startDispense(int dispenserId, bool scheduled, String medication, String pa
 
 // Non-blocking dispense state machine
 void updateDispenseStateMachine() {
-  unsigned long currentTime = millis();
-  unsigned long elapsedTime = currentTime - dispenseStateStartTime;
-  
   switch (currentDispenseState) {
     case IDLE:
       // Nothing to do
       break;
       
     case DISPENSING:
-      // Send dispense command to Arduino
+      // Send dispense command to Arduino (Arduino handles entire sequence)
       Serial.println("🔄 DISPENSING FROM CONTAINER " + String(currentDispenserId + 1));
       Serial.printf("Sending DP%d command to Arduino...\n", currentDispenserId);
+      Serial.println("Arduino will handle: Dispense → Wait 15s → Release → Wait 10s → Home");
       
       if (servoController.dispensePill(currentDispenserId)) {
         pillCount++;
-        Serial.println("✅ DISPENSE SUCCESSFUL");
+        Serial.println("✅ DISPENSE SEQUENCE COMPLETED BY ARDUINO");
         Serial.println("   Total pills dispensed: " + String(pillCount));
         
-        // Move to waiting state (wait 15 seconds before release)
-        currentDispenseState = WAITING_FOR_RELEASE;
-        dispenseStateStartTime = millis();
-        Serial.println("⏳ Waiting 15 seconds before release...");
+        // Arduino has completed everything, move directly to complete
+        currentDispenseState = COMPLETE;
       } else {
         Serial.println("❌ DISPENSE FAILED - Arduino communication error");
         currentDispenseState = IDLE;
       }
-      break;
-      
-    case WAITING_FOR_RELEASE:
-      // Wait 15 seconds non-blocking
-      if (elapsedTime >= 15000) {
-        // Time to release
-        currentDispenseState = RELEASING;
-        dispenseStateStartTime = millis();
-      }
-      break;
-      
-    case RELEASING:
-      // Move to release position
-      Serial.println("🔓 Moving to RELEASE position...");
-      if (servoController.moveServosToRelease()) {
-        Serial.println("✅ Release command sent");
-      } else {
-        Serial.println("❌ Release command failed");
-      }
-      
-      // Move to waiting state (wait 10 seconds before homing)
-      currentDispenseState = WAITING_FOR_HOME;
-      dispenseStateStartTime = millis();
-      Serial.println("⏳ Waiting 10 seconds before returning home...");
-      break;
-      
-    case WAITING_FOR_HOME:
-      // Wait 10 seconds non-blocking
-      if (elapsedTime >= 10000) {
-        // Time to go home
-        currentDispenseState = HOMING;
-        dispenseStateStartTime = millis();
-      }
-      break;
-      
-    case HOMING:
-      // Move back to home position
-      Serial.println("🏠 Moving to HOME position...");
-      if (servoController.moveServosToHome()) {
-        Serial.println("✅ Home command sent");
-      } else {
-        Serial.println("❌ Home command failed");
-      }
-      
-      // Move to complete state
-      currentDispenseState = COMPLETE;
       break;
       
     case COMPLETE:

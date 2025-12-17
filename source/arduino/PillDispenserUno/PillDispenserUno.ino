@@ -332,29 +332,46 @@ void dispensePill(uint8_t channel) {
   Serial.print(F("Dispense CH"));
   Serial.println(channel);
   
-  // For channels 0-4: Start at 0° (home), smooth to 180°, wait 2 seconds, smooth back to 0° (home)
+  // For channels 0-4: Complete dispense sequence with release and home
   if (channel <= 4) {
+    // Step 1: Dispense (0° to 180° and back)
     Serial.println(F("Moving to 180°"));
-    // Smooth movement from 0° to 180°
     smoothSetServoAngle(channel, 180, 20);
     Serial.println(F("At 180° - waiting 2 seconds"));
     delay(2000);  // Wait 2 seconds at 180 degrees
     Serial.println(F("Moving back to 0°"));
-    // Smooth movement back to 0°
     smoothSetServoAngle(channel, 0, 20);
-    Serial.println(F("Return complete - at home (0°)"));
+    Serial.println(F("Dispense complete"));
     
-    // Verify position by setting it again
-    Serial.println(F("Verifying position..."));
+    // Verify position
     setServoAngle(channel, 0);
-    Serial.println(F("Position verified"));
+    
+    // Step 2: Wait 15 seconds before release
+    Serial.println(F("Waiting 15 seconds before release..."));
+    delay(15000);
+    
+    // Step 3: Release (CH5: 100° to 45°)
+    Serial.println(F("Moving to RELEASE position..."));
+    smoothSetServoAngle(5, 45, 20);  // CH5: 100→45
+    Serial.println(F("Release complete"));
+    delay(100);
+    
+    // Step 4: Wait 10 seconds before home
+    Serial.println(F("Waiting 10 seconds before home..."));
+    delay(10000);
+    
+    // Step 5: Home (CH5: 45° to 100°)
+    Serial.println(F("Moving to HOME position..."));
+    smoothSetServoAngle(5, 100, 20);  // CH5: 45→100
+    Serial.println(F("Home complete"));
+    delay(100);
+    
   } else {
     // For other channels, use original logic
     smoothSetServoAngle(channel, 180, 20);
     delay(2000);
     smoothSetServoAngle(channel, 0, 20);
   }
-  delay(100);
   
   Serial.println(F("Done"));
 }
