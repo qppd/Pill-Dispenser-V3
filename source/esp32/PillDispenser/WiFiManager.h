@@ -5,5 +5,7 @@
 #include "TimeManager.h"
 
 void setupWiFi(const char* ssid, const char* password, TimeManager* timeManager);
+bool checkWiFiCredentialsStored();
+void startWiFiManagerAP();
 
 #endif // WIFI_MANAGER_H

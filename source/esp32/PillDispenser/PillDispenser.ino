@@ -300,6 +300,26 @@ void initializeDevelopmentMode() {
     Serial.println("❌ FAILED");
   }
   
+  // Check if WiFi credentials are stored, if not start AP mode
+  Serial.print("Checking WiFi Credentials: ");
+  if (!checkWiFiCredentialsStored()) {
+    Serial.println("❌ NOT FOUND");
+    Serial.println("\n🔧 Starting WiFi Manager AP Mode...");
+    startWiFiManagerAP();
+    Serial.println("⚠️ Device is in WiFi configuration mode");
+    Serial.println("⚠️ Connect to the AP and configure WiFi to continue");
+    lcd.clear();
+    lcd.print(0, 0, "WiFi Config Mode");
+    lcd.print(0, 1, "Connect to AP");
+    // Stay in AP mode - user needs to configure WiFi
+    while(true) {
+      delay(1000);
+      // Could add web server here to handle WiFi configuration
+    }
+  } else {
+    Serial.println("✅ FOUND");
+  }
+  
   // Setup WiFi for time synchronization
   Serial.print("WiFi Connection: ");
   setupWiFi(WIFI_SSID.c_str(), WIFI_PASSWORD.c_str(), &timeManager);
