@@ -42,3 +42,7 @@ source/pdv3.rar
 
 # Python virtual environments
 .venv/
+
+# 3D model files
+*.gcode
+*.stl

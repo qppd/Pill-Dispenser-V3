@@ -332,7 +332,7 @@ void dispensePill(uint8_t channel) {
   Serial.print(F("Dispense CH"));
   Serial.println(channel);
 
-  // For channels 0-4: Complete dispense sequence with release
+  // For channels 0-4: Complete dispense sequence with release and home
   if (channel <= 4) {
     // Step 1: Dispense (0° to 180° and back)
     Serial.println(F("Moving to 180°"));
@@ -352,11 +352,22 @@ void dispensePill(uint8_t channel) {
 
     // Step 3: Release (CH5: 100° to 45°)
     Serial.println(F("Moving to RELEASE position..."));
-    smoothSetServoAngle(5, 45, 20);  // CH5: 100→45
+    setServoAngle(5, 45);  // CH5: direct to 45°
+    lastAngles[5] = 45;  // Update position tracking
     Serial.println(F("Release complete"));
 
     delay(100);
-
+    
+    // Step 4: Wait 10 seconds before home
+    Serial.println(F("Waiting 10 seconds before home..."));
+    delay(10000);
+    
+    // Step 5: Home (CH5: 45° to 100°)
+    Serial.println(F("Moving to HOME position..."));
+    setServoAngle(5, 100);  // CH5: direct to 100°
+    lastAngles[5] = 100;  // Update position tracking
+    Serial.println(F("Home complete"));
+    delay(100);
     
   } else {
     // For other channels, use original logic
@@ -473,12 +484,14 @@ void updateServoMovement() {
 
 void moveServosToRelease() {
   Serial.println(F("Release"));
-  smoothSetServoAngle(5, 45, 20);  // CH5: 100→45
+  setServoAngle(5, 45);  // CH5: direct to 45°
+  lastAngles[5] = 45;  // Update position tracking
 }
 
 void moveServosToHome() {
   Serial.println(F("Home"));
-  smoothSetServoAngle(5, 100, 20);  // CH5: 45→100
+  setServoAngle(5, 100);  // CH5: direct to 100°
+  lastAngles[5] = 100;  // Update position tracking
 }
 
 // ===== SERIAL MONITOR COMMAND PROCESSING =====
